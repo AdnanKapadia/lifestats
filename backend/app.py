@@ -155,7 +155,7 @@ def search_food():
         print(f"Error: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-from db import init_db, get_user_meals, add_meal, delete_meal
+from db import init_db, get_user_meals, add_meal, delete_meal, get_db_connection
 
 # Initialize DB on startup (safely fails if no URL)
 init_db()
@@ -204,10 +204,41 @@ def delete_meal_route(meal_id):
 
 @app.route('/api/health', methods=['GET'])
 def health():
-    """Health check endpoint"""
+    """Health check endpoint with DB diagnostics"""
+    db_status = "unknown"
+    db_error = None
+    
+    # Check Env Vars
+    postgres_url = os.getenv('POSTGRES_URL')
+    env_vars = {
+        'POSTGRES_URL_SET': bool(postgres_url),
+        'USDA_KEY_SET': USDA_API_KEY != 'DEMO_KEY'
+    }
+
+    # Check DB Connection
+    try:
+        conn = get_db_connection()
+        # Simple query to ensure table exists
+        cur = conn.cursor()
+        cur.execute("SELECT count(*) FROM meals")
+        count = cur.fetchone()['count']
+        cur.close()
+        conn.close()
+        db_status = "connected"
+        db_details = f"Table 'meals' exists with {count} rows"
+    except Exception as e:
+        db_status = "error"
+        db_error = str(e)
+        db_details = "Connection failed"
+
     return jsonify({
         'status': 'ok',
-        'usda_api_configured': USDA_API_KEY != 'DEMO_KEY'
+        'database': {
+            'status': db_status,
+            'error': db_error,
+            'details': db_details
+        },
+        'environment': env_vars
     })
 
 if __name__ == '__main__':
