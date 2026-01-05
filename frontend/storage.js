@@ -1,10 +1,10 @@
-// Storage layer - easy to swap out for Supabase later
+// Storage layer - Communicates with Backend API
 class Storage {
     constructor() {
         this.userId = this.getUserId();
     }
 
-    // Get or create user ID
+    // Get or create user ID (Persist in LocalStorage still for identity)
     getUserId() {
         let userId = localStorage.getItem('lifestats_userId');
         if (!userId) {
@@ -14,9 +14,8 @@ class Storage {
         return userId;
     }
 
-    // Save a meal
-    saveMeal(foodName, mealType, nutrition = null) {
-        const meals = this.getMeals();
+    // Save a meal (Async)
+    async saveMeal(foodName, mealType, nutrition = null) {
         const newMeal = {
             id: 'meal-' + Date.now(),
             userId: this.userId,
@@ -25,20 +24,45 @@ class Storage {
             nutrition: nutrition || { calories: 0, protein: 0, carbs: 0, fat: 0 },
             timestamp: Date.now()
         };
-        meals.push(newMeal);
-        localStorage.setItem('lifestats_meals', JSON.stringify(meals));
-        return newMeal;
+
+        try {
+            const response = await fetch('/api/meals', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(newMeal)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to save meal');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error saving meal:', error);
+            // Fallback? Or just alert. For now, alert.
+            alert('Error saving meal. Check connection.');
+            return null;
+        }
     }
 
-    // Get all meals
-    getMeals() {
-        const mealsJson = localStorage.getItem('lifestats_meals');
-        return mealsJson ? JSON.parse(mealsJson) : [];
+    // Get meals (Async)
+    async getMeals() {
+        try {
+            const response = await fetch(`/api/meals?userId=${this.userId}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch meals');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching meals:', error);
+            return [];
+        }
     }
 
-    // Get meals for today
-    getTodaysMeals() {
-        const meals = this.getMeals();
+    // Get meals for today (Async) - Efficient filtering happens in JS for now, simpler
+    async getTodaysMeals() {
+        const meals = await this.getMeals();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -49,29 +73,20 @@ class Storage {
         });
     }
 
-    // Delete a meal
-    deleteMeal(mealId) {
-        const meals = this.getMeals();
-        const filtered = meals.filter(meal => meal.id !== mealId);
-        localStorage.setItem('lifestats_meals', JSON.stringify(filtered));
-    }
-
-    // Get meals grouped by date
-    getMealsByDate() {
-        const meals = this.getMeals();
-        const grouped = {};
-
-        meals.forEach(meal => {
-            const date = new Date(meal.timestamp);
-            const dateKey = date.toLocaleDateString();
-
-            if (!grouped[dateKey]) {
-                grouped[dateKey] = [];
+    // Delete a meal (Async)
+    async deleteMeal(mealId) {
+        try {
+            const response = await fetch(`/api/meals/${mealId}?userId=${this.userId}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) {
+                throw new Error('Failed to delete meal');
             }
-            grouped[dateKey].push(meal);
-        });
-
-        return grouped;
+            return true;
+        } catch (error) {
+            console.error('Error deleting meal:', error);
+            return false;
+        }
     }
 }
 

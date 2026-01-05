@@ -4,6 +4,7 @@ import requests
 import os
 import re
 from dotenv import load_dotenv
+import supabase_client
 
 load_dotenv()
 
@@ -88,7 +89,15 @@ def search_food():
     if not query or len(query) < 2:
         return jsonify({'foods': []})
     
+    # Check Cache
+    normalized_query = query.lower().strip()
+    cached_data = supabase_client.get_cached_results(normalized_query)
+    if cached_data:
+        print(f"Cache hit for: {normalized_query}")
+        return jsonify(cached_data)
+    
     try:
+        print(f"Cache miss for: {normalized_query}. Calling FatSecret API...")
         # Call FatSecret Proxy
         response = requests.get(
             f'{FATSECRET_BASE_URL}/search',
@@ -133,13 +142,65 @@ def search_food():
                 'fat': nutrients.get('fat', 0)
             })
         
-        return jsonify({'foods': foods})
+        result = {'foods': foods}
+        
+        # Save to Cache
+        supabase_client.cache_results(normalized_query, result)
+        
+        return jsonify(result)
     
     except requests.Timeout:
         return jsonify({'error': 'Request timeout'}), 504
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
+from db import init_db, get_user_meals, add_meal, delete_meal
+
+# Initialize DB on startup (safely fails if no URL)
+init_db()
+
+@app.route('/api/meals', methods=['GET'])
+def get_meals_route():
+    user_id = request.args.get('userId')
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    try:
+        meals = get_user_meals(user_id)
+        return jsonify(meals)
+    except Exception as e:
+        print(f"DB Error: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/meals', methods=['POST'])
+def save_meal_route():
+    data = request.json
+    if not data or 'userId' not in data:
+        return jsonify({'error': 'Invalid data'}), 400
+        
+    try:
+        saved_meal = add_meal(data)
+        return jsonify(saved_meal)
+    except Exception as e:
+        print(f"DB Error: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/meals/<meal_id>', methods=['DELETE'])
+def delete_meal_route(meal_id):
+    user_id = request.args.get('userId')
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+        
+    try:
+        success = delete_meal(meal_id, user_id)
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Meal not found or unauthorized'}), 404
+    except Exception as e:
+        print(f"DB Error: {e}")
+        return jsonify({'error': 'Database error'}), 500
 
 @app.route('/api/health', methods=['GET'])
 def health():

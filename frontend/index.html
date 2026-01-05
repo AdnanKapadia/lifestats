@@ -54,6 +54,9 @@
             font-size: 0.75em;
             color: #94a3b8;
             margin-bottom: 30px;
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-style: dotted;
         }
 
         /* Card Styles */
@@ -434,7 +437,19 @@
         const fatInput = document.getElementById('fatInput');
 
         // Display user ID
-        document.getElementById('userIdDisplay').textContent = `User ID: ${storage.userId}`;
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        userIdDisplay.textContent = `User ID: ${storage.userId} (Tap to edit)`;
+
+        // Edit User ID
+        userIdDisplay.addEventListener('click', () => {
+            const newId = prompt('Enter your User ID (or "Link Device" code):', storage.userId);
+            if (newId && newId.trim() !== '' && newId !== storage.userId) {
+                if (confirm(`Switch User ID to "${newId}"? This will reload the app.`)) {
+                    localStorage.setItem('lifestats_userId', newId.trim());
+                    location.reload();
+                }
+            }
+        });
 
         // Toggle Nutrition Visibility
         toggleNutritionBtn.addEventListener('click', () => {
@@ -581,7 +596,7 @@
         });
 
         // Handle form submission
-        document.getElementById('foodForm').addEventListener('submit', (e) => {
+        document.getElementById('foodForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const foodName = foodNameInput.value.trim();
@@ -597,7 +612,7 @@
 
             if (foodName) {
                 // Save meal
-                storage.saveMeal(foodName, mealType, nutrition);
+                await storage.saveMeal(foodName, mealType, nutrition);
 
                 // Success feedback
                 const form = document.getElementById('foodForm');
@@ -623,16 +638,16 @@
                 toggleNutritionBtn.textContent = '(Show)';
 
                 // Refresh list
-                renderMeals();
+                await renderMeals();
 
-                if (navigator.vibitrat) navigator.vibrate(50);
+                if (navigator.vibrate) navigator.vibrate(50);
             }
         });
 
         // Render meals list
-        function renderMeals() {
+        async function renderMeals() {
             const mealsList = document.getElementById('mealsList');
-            const todaysMeals = storage.getTodaysMeals();
+            const todaysMeals = await storage.getTodaysMeals();
 
             // Calculate total calories
             const totalCalories = todaysMeals.reduce((sum, meal) => sum + (meal.nutrition?.calories || 0), 0);
@@ -679,10 +694,10 @@
         }
 
         // Delete meal
-        function deleteMeal(mealId) {
+        async function deleteMeal(mealId) {
             if (confirm('Delete this meal?')) {
-                storage.deleteMeal(mealId);
-                renderMeals();
+                await storage.deleteMeal(mealId);
+                await renderMeals();
             }
         }
 
