@@ -15,13 +15,15 @@ class Storage {
     }
 
     // Save a meal (Async)
-    async saveMeal(foodName, mealType, nutrition = null) {
+    async saveMeal(foodName, mealType, nutrition = null, servingInfo = null) {
         const newMeal = {
             id: 'meal-' + Date.now(),
             userId: this.userId,
             foodName: foodName,
             mealType: mealType,
             nutrition: nutrition || { calories: 0, protein: 0, carbs: 0, fat: 0 },
+            servingSize: servingInfo ? servingInfo.size : 1.0,
+            servingUnit: servingInfo ? servingInfo.unit : 'serving',
             timestamp: Date.now()
         };
 
@@ -49,7 +51,7 @@ class Storage {
     // Get meals (Async)
     async getMeals() {
         try {
-            const response = await fetch(`/api/meals?userId=${this.userId}`);
+            const response = await fetch(`/api/meals?userId=${encodeURIComponent(this.userId)}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch meals');
             }
@@ -76,7 +78,7 @@ class Storage {
     // Delete a meal (Async)
     async deleteMeal(mealId) {
         try {
-            const response = await fetch(`/api/meals/${mealId}?userId=${this.userId}`, {
+            const response = await fetch(`/api/meals/${mealId}?userId=${encodeURIComponent(this.userId)}`, {
                 method: 'DELETE'
             });
             if (!response.ok) {
@@ -86,6 +88,51 @@ class Storage {
         } catch (error) {
             console.error('Error deleting meal:', error);
             return false;
+        }
+    }
+    // Update a meal (Async)
+    async updateMeal(mealId, updates) {
+        try {
+            const response = await fetch(`/api/meals/${mealId}?userId=${encodeURIComponent(this.userId)}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updates)
+            });
+            if (!response.ok) {
+                throw new Error('Failed to update meal');
+            }
+            return true;
+        } catch (error) {
+            console.error('Error updating meal:', error);
+            return false;
+        }
+    }
+
+    // Save custom food (Async)
+    async saveCustomFood(foodData) {
+        try {
+            // Inject user ID
+            const payload = { ...foodData, userId: this.userId };
+
+            const response = await fetch('/api/add-custom-food', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Failed to save custom food');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error saving custom food:', error);
+            alert('Error saving custom food: ' + error.message);
+            return null;
         }
     }
 }

@@ -29,8 +29,8 @@
         }
 
         body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #e2e8f0;
+            background: linear-gradient(135deg, #18181b 0%, #27272a 100%);
+            color: #e4e4e7;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             min-height: 100vh;
             padding: 20px;
@@ -43,7 +43,7 @@
         }
 
         h1 {
-            color: #60a5fa;
+            color: #a1a1aa;
             font-size: 2em;
             margin-bottom: 10px;
             text-align: center;
@@ -52,7 +52,7 @@
         .user-id {
             text-align: center;
             font-size: 0.75em;
-            color: #94a3b8;
+            color: #71717a;
             margin-bottom: 30px;
             cursor: pointer;
             text-decoration: underline;
@@ -61,13 +61,13 @@
 
         /* Card Styles */
         .card {
-            background: rgba(30, 41, 59, 0.6);
+            background: rgba(39, 39, 42, 0.6);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(96, 165, 250, 0.2);
+            border: none;
             border-radius: 16px;
             padding: 24px;
             margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            box-shadow: none;
             position: relative;
         }
 
@@ -80,7 +80,7 @@
         label {
             display: block;
             margin-bottom: 8px;
-            color: #cbd5e1;
+            color: #a1a1aa;
             font-size: 0.9em;
             font-weight: 500;
         }
@@ -91,10 +91,10 @@
         select {
             width: 100%;
             padding: 12px 16px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 2px solid rgba(96, 165, 250, 0.3);
+            background: rgba(24, 24, 27, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 12px;
-            color: #e2e8f0;
+            color: #e4e4e7;
             font-size: 16px;
             transition: all 0.3s ease;
         }
@@ -102,8 +102,8 @@
         input:focus,
         select:focus {
             outline: none;
-            border-color: #60a5fa;
-            box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.1);
+            border-color: #71717a;
+            box-shadow: 0 0 0 2px rgba(113, 113, 122, 0.2);
         }
 
         /* Search Results Dropdown */
@@ -112,8 +112,8 @@
             top: 100%;
             left: 0;
             right: 0;
-            background: #1e293b;
-            border: 1px solid #475569;
+            background: #27272a;
+            border: 1px solid #3f3f46;
             border-radius: 12px;
             margin-top: 4px;
             max-height: 300px;
@@ -125,7 +125,7 @@
 
         .search-result-item {
             padding: 12px 16px;
-            border-bottom: 1px solid #334155;
+            border-bottom: 1px solid #3f3f46;
             cursor: pointer;
             transition: background 0.2s;
         }
@@ -135,17 +135,17 @@
         }
 
         .search-result-item:hover {
-            background: #334155;
+            background: #3f3f46;
         }
 
         .search-result-name {
             font-weight: 600;
-            color: #f1f5f9;
+            color: #e4e4e7;
         }
 
         .search-result-details {
             font-size: 0.85em;
-            color: #94a3b8;
+            color: #a1a1aa;
             margin-top: 2px;
         }
 
@@ -160,7 +160,7 @@
         .nutrition-item label {
             font-size: 0.75em;
             margin-bottom: 4px;
-            color: #94a3b8;
+            color: #a1a1aa;
         }
 
         .nutrition-item input {
@@ -172,7 +172,7 @@
         .toggle-btn {
             background: none;
             border: none;
-            color: #60a5fa;
+            color: #a1a1aa;
             font-size: 0.85em;
             cursor: pointer;
             padding: 0;
@@ -184,37 +184,37 @@
         .toggle-btn:hover {
             transform: none;
             box-shadow: none;
-            color: #93c5fd;
+            color: #d4d4d8;
         }
 
         button.primary-btn {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
-            color: white;
+            background: #2ECC71;
+            color: #ffffff;
             border: none;
             border-radius: 12px;
             font-size: 1.1em;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: none;
         }
 
         button.primary-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+            transform: scale(1.02);
+            background: #27ae60;
         }
 
         button.primary-btn:active {
-            transform: translateY(0);
+            transform: scale(0.98);
         }
 
         /* Meals List */
         .section-title {
             font-size: 1.3em;
             margin-bottom: 16px;
-            color: #60a5fa;
+            color: #a1a1aa;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -222,7 +222,7 @@
 
         .daily-total {
             font-size: 0.8em;
-            color: #94a3b8;
+            color: #71717a;
             font-weight: normal;
         }
 
@@ -233,8 +233,8 @@
         }
 
         .meal-item {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(96, 165, 250, 0.2);
+            background: rgba(39, 39, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             padding: 16px;
             display: flex;
@@ -244,7 +244,7 @@
         }
 
         .meal-item:hover {
-            border-color: rgba(96, 165, 250, 0.4);
+            border-color: rgba(255, 255, 255, 0.1);
             transform: translateX(4px);
         }
 
@@ -265,12 +265,12 @@
 
         .meal-time {
             font-size: 0.85em;
-            color: #94a3b8;
+            color: #71717a;
         }
 
         .meal-macros {
             font-size: 0.85em;
-            color: #60a5fa;
+            color: #a1a1aa;
             margin-top: 2px;
         }
 
@@ -322,7 +322,400 @@
         }
 
         .hidden {
+            display: none !important;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s ease;
+            /* Smooth fade in of blur/bg */
+            padding: 20px;
+        }
+
+        .modal {
+            background: #27272a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            animation: modalSlideUp 0.3s ease;
+        }
+
+        @keyframes modalSlideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #e4e4e7;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #a1a1aa;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-secondary {
+            background: rgba(113, 113, 122, 0.2);
+            color: #a1a1aa;
+            border: 1px solid rgba(113, 113, 122, 0.2);
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .meal-type-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .meal-type-btn {
+            background: rgba(39, 39, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 4px;
+            color: #a1a1aa;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .meal-type-btn:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(39, 39, 42, 0.8);
+        }
+
+        .meal-type-btn.active {
+            box-shadow: none;
+        }
+
+        /* Meal Type Specific Tints */
+        .meal-type-btn[data-value="breakfast"].active {
+            background: rgba(250, 204, 21, 0.15);
+            /* Soft Yellow */
+            border-color: rgba(250, 204, 21, 0.4);
+            color: #facc15;
+        }
+
+        .meal-type-btn[data-value="lunch"].active {
+            background: rgba(46, 204, 113, 0.15);
+            /* Leaf Green */
+            border-color: rgba(46, 204, 113, 0.4);
+            color: #2ecc71;
+        }
+
+        .meal-type-btn[data-value="dinner"].active {
+            background: rgba(59, 130, 246, 0.15);
+            /* Soft Blue */
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+        }
+
+        .meal-type-btn[data-value="snack"].active {
+            background: rgba(244, 114, 182, 0.15);
+            /* Soft Pink/Red */
+            border-color: rgba(244, 114, 182, 0.4);
+            color: #f472b6;
+        }
+
+        .meal-type-btn .emoji {
+            font-size: 1.5em;
+        }
+
+        .meal-type-btn .emoji {
+            font-size: 1.5em;
+        }
+
+        /* Expansion Overlay */
+        #expansion-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 44px;
+            height: 44px;
+            background: #2ECC71;
+            border-radius: 10px;
+            /* Match button radius start */
+            z-index: 99;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .notification-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(34, 197, 94, 0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            font-weight: 500;
+            z-index: 1000;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .notification-toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Custom Food Modal Redesign */
+        .custom-food-modal .modal {
+            max-width: 500px;
+            background: #18181b;
+            border: 6px solid #2ECC71;
+            /* Thick Green Outline */
+            box-shadow: none;
+            animation: none;
+            /* Disable default bounce */
+        }
+
+        .custom-food-modal .close-btn {
+            color: #ef4444;
+            font-size: 2.2em;
+            transition: transform 0.2s;
+        }
+
+        .custom-food-modal .close-btn:hover {
+            transform: scale(1.1);
+            color: #ff0000;
+        }
+
+        .custom-food-header-input {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid #27272a;
+            border-radius: 0;
+            font-size: 1.2em;
+            padding: 8px 0;
+            color: #e4e4e7;
+        }
+
+        .custom-food-header-input:focus {
+            box-shadow: none;
+            border-color: #71717a;
+        }
+
+        .macro-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            background: rgba(39, 39, 42, 0.4);
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .macro-row label {
+            margin-bottom: 0;
+            flex: 1;
+            font-size: 1.1em;
+            color: #a1a1aa;
+        }
+
+        .macro-input-group {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .macro-input-group input {
+            width: 80px;
+            text-align: right;
+            font-size: 1.2rem;
+            padding: 8px;
+            background: rgba(39, 39, 42, 0.6);
+            border: 1px solid #3f3f46;
+        }
+
+        .calories-hero {
+            text-align: center;
+            margin-bottom: 24px;
+            background: rgba(255, 85, 51, 0.15);
+            /* #ff5533 */
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 85, 51, 0.2);
+        }
+
+        .calories-hero label {
+            color: #ff5533;
+            font-size: 0.9em;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .calories-hero input {
+            font-size: 3em;
+            width: 100%;
+            text-align: center;
+            border: none;
+            background: transparent;
+            color: #ff5533;
+            padding: 0;
+            font-weight: 700;
+        }
+
+        .calories-hero input:focus {
+            box-shadow: none;
+        }
+
+        .expand-section {
+            border-top: 1px solid #27272a;
+            margin-top: 16px;
+            padding-top: 16px;
+        }
+
+        .expand-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #71717a;
+            font-size: 0.9em;
+            cursor: pointer;
+            padding: 8px 0;
+            user-select: none;
+        }
+
+        .expand-header:hover {
+            color: #a1a1aa;
+        }
+
+        .expand-content {
             display: none;
+            padding-top: 12px;
+            animation: slideDown 0.2s ease;
+        }
+
+        .expand-content.open {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .mini-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .mini-input-group {
+            text-align: center;
+        }
+
+        .mini-input-group label {
+            font-size: 0.75em;
+            color: #71717a;
+            margin-bottom: 4px;
+        }
+
+        .mini-input-group input {
+            padding: 8px 4px;
+            text-align: center;
+            font-size: 1em;
+        }
+
+        /* Chips */
+        .chip-container {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 4px 0;
+            margin-top: 8px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .chip-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .chip {
+            background: rgba(39, 39, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #a1a1aa;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .chip:hover {
+            background: rgba(39, 39, 42, 0.8);
+            border-color: #71717a;
+            color: #e4e4e7;
+        }
+
+        .chip:active {
+            transform: scale(0.95);
         }
     </style>
 </head>
@@ -332,9 +725,30 @@
         <h1>🍎 LifeStats</h1>
         <div class="user-id" id="userIdDisplay">User ID: Loading...</div>
 
+        <!-- Animation Overlay -->
+        <div id="expansion-overlay"></div>
+
+        <!-- Notification Toast -->
+        <div id="notificationToast" class="notification-toast">
+            <span>✅</span>
+            <span id="notificationMessage">Message</span>
+        </div>
+
         <!-- Food Entry Form -->
         <div class="card">
-            <div class="section-title">Log Food</div>
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                Log Food
+                <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; margin-right: -4px; transition: transform 0.2s ease, filter 0.2s ease;"
+                    id="customBtnContainer" onclick="openCustomFoodModal(this)"
+                    onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'"
+                    onmouseleave="this.style.transform='scale(1)'">
+                    <div
+                        style="background: #2ECC71; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                        <span style="font-size: 28px; color: #ffffff; line-height: 1;">+</span>
+                    </div>
+                    <span style="font-size: 10px; margin-top: 4px; color: #a1a1aa; font-weight: 500;">Custom</span>
+                </div>
+            </div>
 
             <div class="form-group">
                 <label for="foodSearch">Search Food (FatSecret)</label>
@@ -358,7 +772,7 @@
                         <div style="flex: 1;">
                             <label>Unit</label>
                             <input type="text" id="unitInput" disabled
-                                style="background: rgba(15, 23, 42, 0.4); color: #94a3b8; cursor: not-allowed;">
+                                style="background: rgba(24, 24, 27, 0.4); color: #71717a; cursor: not-allowed;">
                         </div>
                     </div>
                 </div>
@@ -387,13 +801,26 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="mealType">Meal Type</label>
-                    <select id="mealType" required>
-                        <option value="breakfast">🌅 Breakfast</option>
-                        <option value="lunch">🌞 Lunch</option>
-                        <option value="dinner">🌙 Dinner</option>
-                        <option value="snack">🍿 Snack</option>
-                    </select>
+                    <label>Meal Type</label>
+                    <div class="meal-type-grid">
+                        <button type="button" class="meal-type-btn active" data-value="breakfast">
+                            <span class="emoji">🌅</span>
+                            <span>Breakfast</span>
+                        </button>
+                        <button type="button" class="meal-type-btn" data-value="lunch">
+                            <span class="emoji">🌞</span>
+                            <span>Lunch</span>
+                        </button>
+                        <button type="button" class="meal-type-btn" data-value="dinner">
+                            <span class="emoji">🌙</span>
+                            <span>Dinner</span>
+                        </button>
+                        <button type="button" class="meal-type-btn" data-value="snack">
+                            <span class="emoji">🍿</span>
+                            <span>Snack</span>
+                        </button>
+                    </div>
+                    <input type="hidden" id="mealType" value="breakfast" required>
                 </div>
 
                 <button type="submit" class="primary-btn">Add Meal</button>
@@ -408,6 +835,305 @@
             </div>
             <div id="mealsList" class="meals-list">
                 <!-- Meals will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+    <!-- Custom Food Modal -->
+    <div id="customFoodModalOverlay" class="modal-overlay hidden custom-food-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Create Custom Food</div>
+                <button class="close-btn" onclick="closeCustomFoodModal()">&times;</button>
+            </div>
+
+            <form id="customFoodForm" onsubmit="handleCustomFoodSubmit(event)">
+                <!-- Header Info -->
+                <div style="margin-bottom: 24px; display: grid; gap: 16px;">
+                    <div>
+                        <input type="text" id="customFoodName" class="custom-food-header-input" required
+                            placeholder="Food Name (e.g. My Smoothie)" style="width: 100%;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                        <div style="grid-column: span 1; display: flex; flex-direction: column;">
+                            <input type="text" id="customBrand" class="custom-food-header-input" placeholder="Brand"
+                                value="Homemade" style="font-size: 1em;">
+                            <span style="font-size: 0.7em; color: #64748b; margin-top: 2px;">Brand</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column;">
+                            <input type="number" id="customServingSize" class="custom-food-header-input" required
+                                step="any" min="0" placeholder="1" style="font-size: 1em;">
+                            <span style="font-size: 0.7em; color: #64748b; margin-top: 2px;">Qty</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column;">
+                            <input type="text" id="customServingUnit" class="custom-food-header-input" required
+                                placeholder="Unit" value="serving" style="font-size: 1em;">
+                            <span style="font-size: 0.7em; color: #64748b; margin-top: 2px;">Unit</span>
+                        </div>
+                    </div>
+                    <!-- Chips for Unit -->
+                    <div class="chip-container">
+                        <div id="lastUnitChip" class="chip"
+                            style="display: none; border-color: #f59e0b; color: #fbbf24;"
+                            onclick="handleChipClick(this.dataset.value)"></div>
+                        <div class="chip" onclick="handleChipClick('100g')">100g</div>
+                        <div class="chip" onclick="handleChipClick('oz')">oz</div>
+                        <div class="chip" onclick="handleChipClick('cup')">cup</div>
+                        <div class="chip" onclick="handleChipClick('piece')">piece</div>
+                        <div class="chip" onclick="handleChipClick('serving')">serving</div>
+                    </div>
+                </div>
+
+                <!-- STEP 1: Calories & Macros -->
+                <div class="calories-hero">
+                    <label>Calories</label>
+                    <input type="number" id="customCalories" required min="0" step="1" placeholder="0">
+                </div>
+
+                <div class="macro-row" id="row-protein"
+                    style="background: rgba(96, 165, 250, 0.15); border-color: rgba(96, 165, 250, 0.2);">
+                    <label style="color: #60a5fa;">Protein</label>
+                    <div class="macro-input-group">
+                        <input type="number" id="customProtein" min="0" step="0.1" placeholder="0" class="macro-watch">
+                        <span style="color: #64748b; font-size: 0.9em;">g</span>
+                    </div>
+                </div>
+
+                <div class="macro-row" id="row-carbs"
+                    style="background: rgba(192, 132, 252, 0.15); border-color: rgba(192, 132, 252, 0.2);">
+                    <label style="color: #c084fc;">Carbs</label>
+                    <div class="macro-input-group">
+                        <input type="number" id="customCarbs" min="0" step="0.1" placeholder="0" class="macro-watch">
+                        <span style="color: #64748b; font-size: 0.9em;">g</span>
+                    </div>
+                </div>
+
+                <div class="macro-row" id="row-fat"
+                    style="background: rgba(242, 198, 75, 0.15); border-color: rgba(242, 198, 75, 0.2);">
+                    <label style="color: #f2c64b;">Fat</label>
+                    <div class="macro-input-group">
+                        <input type="number" id="customFat" min="0" step="0.1" placeholder="0" class="macro-watch">
+                        <span style="color: #64748b; font-size: 0.9em;">g</span>
+                    </div>
+                </div>
+
+                <!-- STEP 2: More Nutrition -->
+                <div class="expand-section">
+                    <div class="expand-header" onclick="toggleExpand('moreNutritionSection')">
+                        <span>More Nutrition</span>
+                        <span id="moreNutritionSectionArrow">▼</span>
+                    </div>
+                    <div id="moreNutritionSection" class="expand-content">
+                        <div class="mini-grid">
+                            <div class="mini-input-group">
+                                <label>Fiber (g)</label>
+                                <input type="number" id="customFiber" step="0.1" placeholder="-">
+                            </div>
+                            <div class="mini-input-group">
+                                <label>Sugar (g)</label>
+                                <input type="number" id="customSugar" step="0.1" placeholder="-">
+                            </div>
+                            <div class="mini-input-group">
+                                <label>Sodium (mg)</label>
+                                <input type="number" id="customSodium" step="0.1" placeholder="-">
+                            </div>
+                        </div>
+
+                        <!-- STEP 3: Advanced (Nested) -->
+                        <div class="expand-section" style="border-top: 1px dashed #334155;">
+                            <div class="expand-header" onclick="toggleExpand('advancedNutritionSection')">
+                                <span>Advanced Nutrition</span>
+                                <span id="advancedNutritionSectionArrow">▼</span>
+                            </div>
+                            <div id="advancedNutritionSection" class="expand-content">
+                                <!-- Fats: 2x2 Grid -->
+                                <div
+                                    style="margin-bottom: 12px; color: #64748b; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    Fat Breakdown</div>
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                                    <div class="mini-input-group">
+                                        <label>Saturated</label>
+                                        <input type="number" id="customSatFat" step="0.1" placeholder="-">
+                                    </div>
+                                    <div class="mini-input-group">
+                                        <label>Trans</label>
+                                        <input type="number" id="customTransFat" step="0.1" placeholder="-">
+                                    </div>
+                                    <div class="mini-input-group">
+                                        <label>Poly</label>
+                                        <input type="number" id="customPolyFat" step="0.1" placeholder="-">
+                                    </div>
+                                    <div class="mini-input-group">
+                                        <label>Mono</label>
+                                        <input type="number" id="customMonoFat" step="0.1" placeholder="-">
+                                    </div>
+                                </div>
+
+                                <!-- Other: 2 items -->
+                                <div
+                                    style="margin-bottom: 12px; color: #64748b; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    Other</div>
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                                    <div class="mini-input-group">
+                                        <label>Cholesterol (mg)</label>
+                                        <input type="number" id="customCholesterol" step="0.1" placeholder="-">
+                                    </div>
+                                    <div class="mini-input-group">
+                                        <label>Added Sugar (g)</label>
+                                        <input type="number" id="customAddedSugar" step="0.1" placeholder="-">
+                                    </div>
+                                </div>
+
+                                <!-- Micros: keep existing grid -->
+                                <div
+                                    style="margin-bottom: 12px; color: #64748b; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    Micros</div>
+                                <div class="mini-grid">
+                                    <div class="mini-input-group">
+                                        <label>Calcium</label>
+                                        <input type="number" id="customCalcium" step="0.1" placeholder="-">
+                                    </div>
+                                    <div class="mini-input-group">
+                                        <label>Iron</label>
+                                        <input type="number" id="customIron" step="0.1" placeholder="-">
+                                    </div>
+                                    <div class="mini-input-group">
+                                        <label>Potassium</label>
+                                        <input type="number" id="customPotassium" step="0.1" placeholder="-">
+                                    </div>
+                                    <div class="mini-input-group">
+                                        <label>Vit C</label>
+                                        <input type="number" id="customVitC" step="0.1" placeholder="-">
+                                    </div>
+                                    <div class="mini-input-group">
+                                        <label>Vit D</label>
+                                        <input type="number" id="customVitD" step="0.1" placeholder="-">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="border-top: none; margin-top: 32px;">
+                    <button type="submit" class="primary-btn">Save Food</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Meal Modal -->
+    <div id="editModalOverlay" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Edit Meal</div>
+                <button class="close-btn" onclick="closeEditModal()">&times;</button>
+            </div>
+
+            <div class="form-group">
+                <label>Food Name</label>
+                <input type="text" id="editFoodName">
+            </div>
+
+            <div class="form-group" id="editPortionSection">
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label>Portion</label>
+                        <input type="number" id="editPortionInput" step="any" min="0">
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Unit</label>
+                        <input type="text" id="editUnitInput" disabled
+                            style="background: rgba(15, 23, 42, 0.4); color: #94a3b8;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Nutrition</label>
+                <div class="nutrition-grid">
+                    <div class="nutrition-item">
+                        <label>Calories</label>
+                        <input type="number" id="editCalInput" min="0" step="1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Protein</label>
+                        <input type="number" id="editProtInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Carbs</label>
+                        <input type="number" id="editCarbInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Fat</label>
+                        <input type="number" id="editFatInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Cholesterol (mg)</label>
+                        <input type="number" id="editCholesterolInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Sodium (mg)</label>
+                        <input type="number" id="editSodiumInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Fiber (g)</label>
+                        <input type="number" id="editFiberInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Sugar (g)</label>
+                        <input type="number" id="editSugarInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Sat. Fat (g)</label>
+                        <input type="number" id="editSaturatedFatInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Trans Fat (g)</label>
+                        <input type="number" id="editTransFatInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Polyunsat. Fat (g)</label>
+                        <input type="number" id="editPolyunsaturatedFatInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Monounsat. Fat (g)</label>
+                        <input type="number" id="editMonounsaturatedFatInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Added Sugar (g)</label>
+                        <input type="number" id="editAddedSugarInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Vitamin D (mcg)</label>
+                        <input type="number" id="editVitaminDInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Calcium (mg)</label>
+                        <input type="number" id="editCalciumInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Iron (mg)</label>
+                        <input type="number" id="editIronInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Potassium (mg)</label>
+                        <input type="number" id="editPotassiumInput" min="0" step="0.1">
+                    </div>
+                    <div class="nutrition-item">
+                        <label>Vitamin C (mg)</label>
+                        <input type="number" id="editVitaminCInput" min="0" step="0.1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button class="primary-btn" onclick="saveEditedMeal()">Save Changes</button>
             </div>
         </div>
     </div>
@@ -429,6 +1155,21 @@
         const foodNameInput = document.getElementById('foodName');
         const nutritionInputs = document.getElementById('nutritionInputs');
         const toggleNutritionBtn = document.getElementById('toggleNutrition');
+        const mealTypeInput = document.getElementById('mealType');
+        const mealTypeBtns = document.querySelectorAll('.meal-type-btn');
+
+        // Meal Type Selection Logic
+        mealTypeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Update hidden input
+                const value = btn.dataset.value;
+                mealTypeInput.value = value;
+
+                // Update visual state
+                mealTypeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
 
         // Nutrition inputs
         const calInput = document.getElementById('calInput');
@@ -486,18 +1227,26 @@
                 return;
             }
 
-            searchTimeout = setTimeout(() => performSearch(query), 500);
+            // 1. Instant Local Search
+            performSearch(query, true);
+
+            // 2. Debounced Full Search (API)
+            searchTimeout = setTimeout(() => performSearch(query, false), 500);
         });
 
         // Perform Search
-        async function performSearch(query) {
+        async function performSearch(query, localOnly = false) {
             try {
-                const response = await fetch(`/api/search-food?q=${encodeURIComponent(query)}`);
+                let url = `/api/search-food?q=${encodeURIComponent(query)}`;
+                if (localOnly) url += '&local_only=true';
+
+                const response = await fetch(url);
                 const data = await response.json();
 
                 if (data.foods && data.foods.length > 0) {
                     renderSearchResults(data.foods);
-                } else {
+                } else if (!localOnly) {
+                    // Only show "no results" on full search
                     searchResults.innerHTML = '<div class="search-result-item">No results found</div>';
                     searchResults.style.display = 'block';
                 }
@@ -514,7 +1263,7 @@
                 // Calculate display calories
                 let calText = '';
                 if (food.preCalculated) {
-                    calText = `${food.calories} kcal (${food.servingUnit})`;
+                    calText = `${food.calories} kcal (${food.servingSize} ${food.servingUnit})`;
                 } else if (food.servingSize && food.calories) {
                     const calsPerServing = Math.round((food.calories / 100) * food.servingSize);
                     calText = `${calsPerServing} kcal (${food.servingSize}${food.servingUnit || 'g'})`;
@@ -532,8 +1281,25 @@
             searchResults.style.display = 'block';
         }
 
-        // Select Food
-        function selectFood(food) {
+        // SelectFood
+        async function selectFood(food) {
+            // Fetch detailed data if possible
+            if (food.fdcId) {
+                document.body.style.cursor = 'wait';
+                try {
+                    const resp = await fetch(`/api/get-food-details?food_id=${food.fdcId}`);
+                    if (resp.ok) {
+                        const detailed = await resp.json();
+                        // Use detailed data
+                        food = detailed;
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch food details", e);
+                } finally {
+                    document.body.style.cursor = 'default';
+                }
+            }
+
             foodNameInput.value = food.description;
 
             // Calculate nutrition per serving if available
@@ -574,6 +1340,20 @@
                 protein: baseProt,
                 carbs: baseCarb,
                 fat: baseFat,
+                cholesterol: food.cholesterol,
+                sodium: food.sodium,
+                fiber: food.fiber,
+                sugar: food.sugar,
+                saturatedFat: food.saturatedFat,
+                transFat: food.transFat,
+                polyunsaturatedFat: food.polyunsaturatedFat,
+                monounsaturatedFat: food.monounsaturatedFat,
+                addedSugar: food.addedSugar,
+                vitaminD: food.vitaminD,
+                calcium: food.calcium,
+                iron: food.iron,
+                potassium: food.potassium,
+                vitaminC: food.vitaminC,
                 portion: displayPortion
             };
 
@@ -596,23 +1376,182 @@
         });
 
         // Handle form submission
+        // Edit Modal Logic
+        const editModalOverlay = document.getElementById('editModalOverlay');
+        let currentEditingMeal = null;
+        let originalEditingMeal = null;
+
+        function closeEditModal() {
+            editModalOverlay.classList.add('hidden');
+            currentEditingMeal = null;
+            originalEditingMeal = null;
+        }
+
+        window.openMealDetail = function (meal) {
+            currentEditingMeal = JSON.parse(JSON.stringify(meal)); // Deep copy
+            originalEditingMeal = meal;
+
+            // Populate fields
+            document.getElementById('editFoodName').value = meal.foodName;
+
+            document.getElementById('editCalInput').value = meal.nutrition.calories;
+            document.getElementById('editProtInput').value = meal.nutrition.protein;
+            document.getElementById('editCarbInput').value = meal.nutrition.carbs;
+            document.getElementById('editFatInput').value = meal.nutrition.fat;
+            document.getElementById('editCholesterolInput').value = meal.nutrition.cholesterol !== null ? meal.nutrition.cholesterol : '';
+            document.getElementById('editSodiumInput').value = meal.nutrition.sodium !== null ? meal.nutrition.sodium : '';
+            document.getElementById('editFiberInput').value = meal.nutrition.fiber !== null ? meal.nutrition.fiber : '';
+            document.getElementById('editSugarInput').value = meal.nutrition.sugar !== null ? meal.nutrition.sugar : '';
+            document.getElementById('editSaturatedFatInput').value = meal.nutrition.saturatedFat !== null ? meal.nutrition.saturatedFat : '';
+            document.getElementById('editTransFatInput').value = meal.nutrition.transFat !== null ? meal.nutrition.transFat : '';
+            document.getElementById('editPolyunsaturatedFatInput').value = meal.nutrition.polyunsaturatedFat !== null ? meal.nutrition.polyunsaturatedFat : '';
+            document.getElementById('editMonounsaturatedFatInput').value = meal.nutrition.monounsaturatedFat !== null ? meal.nutrition.monounsaturatedFat : '';
+            document.getElementById('editAddedSugarInput').value = meal.nutrition.addedSugar !== null ? meal.nutrition.addedSugar : '';
+            document.getElementById('editVitaminDInput').value = meal.nutrition.vitaminD !== null ? meal.nutrition.vitaminD : '';
+            document.getElementById('editCalciumInput').value = meal.nutrition.calcium !== null ? meal.nutrition.calcium : '';
+            document.getElementById('editIronInput').value = meal.nutrition.iron !== null ? meal.nutrition.iron : '';
+            document.getElementById('editPotassiumInput').value = meal.nutrition.potassium !== null ? meal.nutrition.potassium : '';
+            document.getElementById('editVitaminCInput').value = meal.nutrition.vitaminC !== null ? meal.nutrition.vitaminC : '';
+
+            // Handle Portion
+            const editPortionSection = document.getElementById('editPortionSection');
+            const editPortionInput = document.getElementById('editPortionInput');
+            const editUnitInput = document.getElementById('editUnitInput');
+
+            // Always show portion section if servingSize exists (it defaults to 1.0)
+            if (meal.servingSize) {
+                editPortionSection.classList.remove('hidden');
+                editPortionInput.value = meal.servingSize;
+                editUnitInput.value = meal.servingUnit || 'serving'; // Default to 'serving' if empty
+            } else {
+                // Fallback for very old data if any
+                editPortionSection.classList.remove('hidden');
+                editPortionInput.value = 1;
+                editUnitInput.value = 'serving';
+                // Ensure we have a base for scaling
+                originalEditingMeal.servingSize = 1;
+            }
+
+            editModalOverlay.classList.remove('hidden');
+        };
+
+        // Scale Logic for Edit Modal
+        document.getElementById('editPortionInput').addEventListener('input', (e) => {
+            if (!currentEditingMeal || !originalEditingMeal.servingSize) return;
+
+            const newPortion = parseFloat(e.target.value);
+            if (isNaN(newPortion) || newPortion < 0) return;
+
+            const ratio = newPortion / originalEditingMeal.servingSize;
+
+            document.getElementById('editCalInput').value = Math.round(originalEditingMeal.nutrition.calories * ratio);
+            document.getElementById('editProtInput').value = Number((originalEditingMeal.nutrition.protein * ratio).toFixed(1));
+            document.getElementById('editCarbInput').value = Number((originalEditingMeal.nutrition.carbs * ratio).toFixed(1));
+            document.getElementById('editFatInput').value = Number((originalEditingMeal.nutrition.fat * ratio).toFixed(1));
+            document.getElementById('editCholesterolInput').value = originalEditingMeal.nutrition.cholesterol !== null ? Number((originalEditingMeal.nutrition.cholesterol * ratio).toFixed(1)) : '';
+            document.getElementById('editSodiumInput').value = originalEditingMeal.nutrition.sodium !== null ? Number((originalEditingMeal.nutrition.sodium * ratio).toFixed(1)) : '';
+            document.getElementById('editFiberInput').value = originalEditingMeal.nutrition.fiber !== null ? Number((originalEditingMeal.nutrition.fiber * ratio).toFixed(1)) : '';
+            document.getElementById('editSugarInput').value = originalEditingMeal.nutrition.sugar !== null ? Number((originalEditingMeal.nutrition.sugar * ratio).toFixed(1)) : '';
+            document.getElementById('editSaturatedFatInput').value = originalEditingMeal.nutrition.saturatedFat !== null ? Number((originalEditingMeal.nutrition.saturatedFat * ratio).toFixed(1)) : '';
+            document.getElementById('editTransFatInput').value = originalEditingMeal.nutrition.transFat !== null ? Number((originalEditingMeal.nutrition.transFat * ratio).toFixed(1)) : '';
+            document.getElementById('editPolyunsaturatedFatInput').value = originalEditingMeal.nutrition.polyunsaturatedFat !== null ? Number((originalEditingMeal.nutrition.polyunsaturatedFat * ratio).toFixed(1)) : '';
+            document.getElementById('editMonounsaturatedFatInput').value = originalEditingMeal.nutrition.monounsaturatedFat !== null ? Number((originalEditingMeal.nutrition.monounsaturatedFat * ratio).toFixed(1)) : '';
+            document.getElementById('editAddedSugarInput').value = originalEditingMeal.nutrition.addedSugar !== null ? Number((originalEditingMeal.nutrition.addedSugar * ratio).toFixed(1)) : '';
+            document.getElementById('editVitaminDInput').value = originalEditingMeal.nutrition.vitaminD !== null ? Number((originalEditingMeal.nutrition.vitaminD * ratio).toFixed(1)) : '';
+            document.getElementById('editCalciumInput').value = originalEditingMeal.nutrition.calcium !== null ? Number((originalEditingMeal.nutrition.calcium * ratio).toFixed(1)) : '';
+            document.getElementById('editIronInput').value = originalEditingMeal.nutrition.iron !== null ? Number((originalEditingMeal.nutrition.iron * ratio).toFixed(1)) : '';
+            document.getElementById('editPotassiumInput').value = originalEditingMeal.nutrition.potassium !== null ? Number((originalEditingMeal.nutrition.potassium * ratio).toFixed(1)) : '';
+            document.getElementById('editVitaminCInput').value = originalEditingMeal.nutrition.vitaminC !== null ? Number((originalEditingMeal.nutrition.vitaminC * ratio).toFixed(1)) : '';
+        });
+
+        window.saveEditedMeal = async function () {
+            if (!currentEditingMeal) return;
+
+            const updates = {
+                foodName: document.getElementById('editFoodName').value,
+                nutrition: {
+                    calories: Number(document.getElementById('editCalInput').value),
+                    protein: Number(document.getElementById('editProtInput').value),
+                    carbs: Number(document.getElementById('editCarbInput').value),
+                    fat: Number(document.getElementById('editFatInput').value),
+                    cholesterol: document.getElementById('editCholesterolInput').value ? Number(document.getElementById('editCholesterolInput').value) : null,
+                    sodium: document.getElementById('editSodiumInput').value ? Number(document.getElementById('editSodiumInput').value) : null,
+                    fiber: document.getElementById('editFiberInput').value ? Number(document.getElementById('editFiberInput').value) : null,
+                    sugar: document.getElementById('editSugarInput').value ? Number(document.getElementById('editSugarInput').value) : null,
+                    saturatedFat: document.getElementById('editSaturatedFatInput').value ? Number(document.getElementById('editSaturatedFatInput').value) : null,
+                    transFat: document.getElementById('editTransFatInput').value ? Number(document.getElementById('editTransFatInput').value) : null,
+                    polyunsaturatedFat: document.getElementById('editPolyunsaturatedFatInput').value ? Number(document.getElementById('editPolyunsaturatedFatInput').value) : null,
+                    monounsaturatedFat: document.getElementById('editMonounsaturatedFatInput').value ? Number(document.getElementById('editMonounsaturatedFatInput').value) : null,
+                    addedSugar: document.getElementById('editAddedSugarInput').value ? Number(document.getElementById('editAddedSugarInput').value) : null,
+                    vitaminD: document.getElementById('editVitaminDInput').value ? Number(document.getElementById('editVitaminDInput').value) : null,
+                    calcium: document.getElementById('editCalciumInput').value ? Number(document.getElementById('editCalciumInput').value) : null,
+                    iron: document.getElementById('editIronInput').value ? Number(document.getElementById('editIronInput').value) : null,
+                    potassium: document.getElementById('editPotassiumInput').value ? Number(document.getElementById('editPotassiumInput').value) : null,
+                    vitaminC: document.getElementById('editVitaminCInput').value ? Number(document.getElementById('editVitaminCInput').value) : null
+                }
+            };
+
+            const newPortion = parseFloat(document.getElementById('editPortionInput').value);
+            if (!isNaN(newPortion) && !document.getElementById('editPortionSection').classList.contains('hidden')) {
+                updates.servingSize = newPortion;
+                updates.servingUnit = document.getElementById('editUnitInput').value;
+            }
+
+            const success = await storage.updateMeal(currentEditingMeal.id, updates);
+            if (success) {
+                closeEditModal();
+                await renderMeals();
+            } else {
+                alert('Failed to save changes');
+            }
+        };
+
+        // Close on outside click
+        editModalOverlay.addEventListener('click', (e) => {
+            if (e.target === editModalOverlay) closeEditModal();
+        });
+
+
         document.getElementById('foodForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const foodName = foodNameInput.value.trim();
-            const mealType = document.getElementById('mealType').value;
+            const mealType = mealTypeInput.value;
 
             // Collect nutrition data
             const nutrition = {
                 calories: Number(calInput.value) || 0,
                 protein: Number(protInput.value) || 0,
                 carbs: Number(carbInput.value) || 0,
-                fat: Number(fatInput.value) || 0
+                fat: Number(fatInput.value) || 0,
+                cholesterol: window.refNutrition?.cholesterol ?? null,
+                sodium: window.refNutrition?.sodium ?? null,
+                fiber: window.refNutrition?.fiber ?? null,
+                sugar: window.refNutrition?.sugar ?? null,
+                saturatedFat: window.refNutrition?.saturatedFat ?? null,
+                transFat: window.refNutrition?.transFat ?? null,
+                polyunsaturatedFat: window.refNutrition?.polyunsaturatedFat ?? null,
+                monounsaturatedFat: window.refNutrition?.monounsaturatedFat ?? null,
+                addedSugar: window.refNutrition?.addedSugar ?? null,
+                vitaminD: window.refNutrition?.vitaminD ?? null,
+                calcium: window.refNutrition?.calcium ?? null,
+                iron: window.refNutrition?.iron ?? null,
+                potassium: window.refNutrition?.potassium ?? null,
+                vitaminC: window.refNutrition?.vitaminC ?? null
             };
 
             if (foodName) {
+                // Collect serving info
+                const portionVal = parseFloat(document.getElementById('portionInput').value);
+                const unitVal = document.getElementById('unitInput').value;
+
+                const servingInfo = {
+                    size: !isNaN(portionVal) ? portionVal : 1.0,
+                    unit: unitVal || 'serving'
+                };
+
                 // Save meal
-                await storage.saveMeal(foodName, mealType, nutrition);
+                await storage.saveMeal(foodName, mealType, nutrition, servingInfo);
 
                 // Success feedback
                 const form = document.getElementById('foodForm');
@@ -680,14 +1619,14 @@
                 const macroStr = macros.length > 0 ? `• ${macros.join(' ')}` : '';
 
                 return `
-                    <div class="meal-item">
+                    <div class="meal-item" onclick='openMealDetail(${JSON.stringify(meal).replace(/'/g, "&#39;")})' style="cursor: pointer;">
                         <div class="meal-emoji">${mealEmojis[meal.mealType]}</div>
                         <div class="meal-info">
                             <div class="meal-name">${escapeHtml(meal.foodName)}</div>
                             <div class="meal-time">${meal.mealType} • ${time}</div>
                             ${cals ? `<div class="meal-macros">${cals} ${macroStr}</div>` : ''}
                         </div>
-                        <button class="meal-delete" onclick="deleteMeal('${meal.id}')">Delete</button>
+                        <button class="meal-delete" onclick="event.stopPropagation(); deleteMeal('${meal.id}')">Delete</button>
                     </div>
                 `;
             }).join('');
@@ -708,8 +1647,349 @@
             return div.innerHTML;
         }
 
+        // Notification Helper
+        function showNotification(message, duration = 3000) {
+            const toast = document.getElementById('notificationToast');
+            const msgEl = document.getElementById('notificationMessage');
+            msgEl.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+
         // Initial render
         renderMeals();
+
+        // Custom Food Modal Logic
+        const customFoodModal = document.getElementById('customFoodModalOverlay');
+        const customFoodForm = document.getElementById('customFoodForm');
+        const expansionOverlay = document.getElementById('expansion-overlay');
+
+        // Store source button rect for closing animation
+        let sourceButtonRect = null;
+
+        function openCustomFoodModal(btnElement) {
+            // 1. Get position of button (Start State)
+            // Fix: Target the inner green square div, not the container (which includes text and is rectangular)
+            const actualBtn = btnElement ? btnElement.querySelector('div') : null;
+            const btnRect = actualBtn ? actualBtn.getBoundingClientRect() : { top: window.innerHeight / 2, left: window.innerWidth / 2, width: 0, height: 0 };
+            sourceButtonRect = btnRect; // Store for close animation
+
+            // 2. Setup Overlay at Start Position
+            expansionOverlay.style.transition = 'none';
+            expansionOverlay.style.width = btnRect.width + 'px';
+            expansionOverlay.style.height = btnRect.height + 'px';
+            expansionOverlay.style.left = btnRect.left + 'px';
+            expansionOverlay.style.top = btnRect.top + 'px';
+            expansionOverlay.style.borderRadius = '10px'; // Button radius
+            expansionOverlay.style.opacity = '1';
+
+            // 3. Force reflow
+            expansionOverlay.offsetHeight;
+
+            // 4. Measure Actual Target Size
+            // We need to show the modal (but invisible) to measure it
+            // Prepare overlay for fade-in: unhide, but opacity 0
+            customFoodModal.style.transition = 'none';
+            customFoodModal.style.opacity = '0';
+            customFoodModal.classList.remove('hidden');
+
+            // Hide the inner modal content initially so it doesn't pop in before animation ends
+            const modalEl = customFoodModal.querySelector('.modal');
+            modalEl.style.opacity = '0';
+
+            // Measure
+            const targetRect = modalEl.getBoundingClientRect();
+
+            // 5. Start Animations
+
+            // A. Fade in Background Overlay (Blur)
+            // Force reflow for overlay transition
+            customFoodModal.offsetHeight;
+            customFoodModal.style.transition = 'all 0.4s ease';
+            customFoodModal.style.opacity = '1';
+
+            // B. Animate Expansion Overlay to Target
+            // Use the measured dimensions directly
+            expansionOverlay.style.transition = 'all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            expansionOverlay.style.width = targetRect.width + 'px';
+            expansionOverlay.style.height = targetRect.height + 'px';
+            expansionOverlay.style.left = targetRect.left + 'px';
+            expansionOverlay.style.top = targetRect.top + 'px';
+            expansionOverlay.style.borderRadius = '16px'; // Modal radius matches CSS
+
+            // 6. Show Modal Content after animation
+            setTimeout(() => {
+                // Show inner modal
+                modalEl.style.transition = 'opacity 0.1s ease';
+                modalEl.style.opacity = '1';
+
+                // Fade out green expansion overlay to reveal modal
+                expansionOverlay.style.transition = 'opacity 0.2s ease';
+                expansionOverlay.style.opacity = '0';
+            }, 200);
+
+            // Load Last Used Unit
+            const lastUnit = localStorage.getItem('lifestats_last_custom_unit');
+            const chip = document.getElementById('lastUnitChip');
+            if (lastUnit) {
+                chip.textContent = lastUnit;
+                chip.dataset.value = lastUnit;
+                chip.style.display = 'block';
+            } else {
+                chip.style.display = 'none';
+            }
+        }
+
+        let manualCalorieEntry = false;
+
+        function closeCustomFoodModal() {
+            // Reverse Animation
+            const modalEl = customFoodModal.querySelector('.modal');
+            const currentRect = modalEl.getBoundingClientRect();
+
+            // 1. Prepare Overlay at current modal position
+            expansionOverlay.style.transition = 'none';
+            expansionOverlay.style.width = currentRect.width + 'px';
+            expansionOverlay.style.height = currentRect.height + 'px';
+            expansionOverlay.style.left = currentRect.left + 'px';
+            expansionOverlay.style.top = currentRect.top + 'px';
+            expansionOverlay.style.borderRadius = '16px';
+            expansionOverlay.style.opacity = '1'; // Make it visible again
+
+            // 2. Hide Modal Content Immediately (fade out ideally, but snap for responsiveness)
+            modalEl.style.opacity = '0';
+
+            // 3. Force Reflow
+            expansionOverlay.offsetHeight;
+
+            // 4. Animate Back to Source
+            const targetRect = sourceButtonRect || { top: window.innerHeight / 2, left: window.innerWidth / 2, width: 0, height: 0 };
+
+            expansionOverlay.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; // Slightly faster close
+            expansionOverlay.style.width = targetRect.width + 'px';
+            expansionOverlay.style.height = targetRect.height + 'px';
+            expansionOverlay.style.left = targetRect.left + 'px';
+            expansionOverlay.style.top = targetRect.top + 'px';
+            expansionOverlay.style.borderRadius = '10px';
+
+            // 5. Fade Out Background Blur Concurrently
+            customFoodModal.style.transition = 'opacity 0.3s ease';
+            customFoodModal.style.opacity = '0';
+
+            // 6. Cleanup after animation
+            setTimeout(() => {
+                customFoodModal.classList.add('hidden');
+                customFoodForm.reset();
+                expansionOverlay.style.opacity = '0';
+
+                manualCalorieEntry = false; // Reset manual flag
+                // Reset sections
+                document.getElementById('moreNutritionSection').classList.remove('open');
+                document.getElementById('moreNutritionSectionArrow').textContent = '▼';
+                document.getElementById('advancedNutritionSection').classList.remove('open');
+                document.getElementById('advancedNutritionSectionArrow').textContent = '▼';
+            }, 300);
+        }
+
+        function toggleExpand(elementId) {
+            const content = document.getElementById(elementId);
+            const arrow = document.getElementById(elementId + 'Arrow');
+            content.classList.toggle('open');
+            arrow.textContent = content.classList.contains('open') ? '▲' : '▼';
+        }
+
+        // --- Smart Serving Unit Logic ---
+
+        // Normalization Map
+        const UNIT_MAP = {
+            'g': 'g', 'gram': 'g', 'grams': 'g',
+            'oz': 'oz', 'ounce': 'oz', 'ounces': 'oz',
+            'cup': 'cup', 'cups': 'cup',
+            'serving': 'serving', 'srv': 'serving',
+            'piece': 'piece', 'pieces': 'piece'
+        };
+
+        function parseServingUnitInput(unitText, currentQty) {
+            unitText = unitText.trim();
+            if (!unitText) {
+                return { qty: currentQty, unit: 'serving', status: 'normalized' };
+            }
+
+            // Regex to split optional number and text
+            // Matches: start, optional float/int, spaces, rest string
+            const match = unitText.match(/^([0-9]*\.?[0-9]+)?\s*(.*)$/);
+
+            if (match) {
+                const numStr = match[1];
+                let textStr = match[2].toLowerCase().trim();
+
+                let newQty = currentQty;
+                let newUnit = textStr;
+
+                // If number found in string, override qty
+                if (numStr) {
+                    newQty = parseFloat(numStr);
+                    // Special case: if text is empty but number exists, use default 'serving' or keep current?
+                    // Spec says: "100 g" -> qty=100, unit="g". "100" -> qty=100, unit=""?
+                    // Let's assume if text empty, default to 'serving' or 'piece'? 
+                    // Better: if no text, keep textStr empty, handled by map fallback or raw
+                    if (!textStr) textStr = 'serving';
+                }
+
+                // Normalize unit
+                if (UNIT_MAP[textStr]) {
+                    newUnit = UNIT_MAP[textStr];
+                    return { qty: newQty, unit: newUnit, status: 'normalized' };
+                }
+                // else return raw
+                return { qty: newQty, unit: textStr || 'serving', status: 'raw' };
+            }
+
+            return { qty: currentQty, unit: unitText, status: 'raw' };
+        }
+
+        function handleChipClick(chipText) {
+            const qtyInput = document.getElementById('customServingSize');
+            const unitInput = document.getElementById('customServingUnit');
+
+            if (chipText === '100g') {
+                qtyInput.value = 100;
+                unitInput.value = 'g';
+                qtyInput.focus();
+            } else {
+                qtyInput.value = 1;
+                unitInput.value = chipText;
+                unitInput.focus();
+            }
+        }
+
+        // Blur Handler for Unit Input
+        document.getElementById('customServingUnit').addEventListener('blur', (e) => {
+            const unitVal = e.target.value;
+            const qtyInput = document.getElementById('customServingSize');
+            const currentQty = parseFloat(qtyInput.value) || 1; // Default to 1 if empty/invalid
+
+            const result = parseServingUnitInput(unitVal, currentQty);
+
+            if (result.status === 'normalized') {
+                qtyInput.value = result.qty;
+                e.target.value = result.unit;
+            }
+            // If raw, leave as is (as per requirement)
+        });
+
+        // Auto-calc logic
+        const macroInputs = document.querySelectorAll('.macro-watch');
+        macroInputs.forEach(input => {
+            input.addEventListener('input', calculateCaloriesFromMacros);
+        });
+
+        // Detect manual calorie entry
+        document.getElementById('customCalories').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if (!isNaN(val) && val > 0) {
+                manualCalorieEntry = true;
+            } else {
+                manualCalorieEntry = false; // Reset if cleared or 0
+                // Optional: Recalculate immediately if they clear it?
+                // logic: if they clear it, they might want autofill back immediately. 
+                // Let's trigger it.
+                calculateCaloriesFromMacros();
+            }
+        });
+
+        function calculateCaloriesFromMacros() {
+            if (manualCalorieEntry) return;
+
+            const p = parseFloat(document.getElementById('customProtein').value) || 0;
+            const c = parseFloat(document.getElementById('customCarbs').value) || 0;
+            const f = parseFloat(document.getElementById('customFat').value) || 0;
+
+            // Only update if there are some values
+            if (p > 0 || c > 0 || f > 0) {
+                const total = Math.round((p * 4) + (c * 4) + (f * 9));
+                document.getElementById('customCalories').value = total;
+            }
+        }
+
+        async function handleCustomFoodSubmit(e) {
+            e.preventDefault();
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Saving...';
+            submitBtn.disabled = true;
+
+            // Parse Serving Unit (Safety check)
+            const rawUnit = document.getElementById('customServingUnit').value;
+            const currentQty = parseFloat(document.getElementById('customServingSize').value) || 1;
+            const parsed = parseServingUnitInput(rawUnit, currentQty);
+
+            // Update visible fields just in case (optional, but good for consistency)
+            if (parsed.status === 'normalized') {
+                document.getElementById('customServingSize').value = parsed.qty;
+                document.getElementById('customServingUnit').value = parsed.unit;
+            }
+
+            // Save Unit to LocalStorage for next time
+            if (parsed.unit) {
+                localStorage.setItem('lifestats_last_custom_unit', parsed.unit);
+            }
+
+            const foodData = {
+                foodName: document.getElementById('customFoodName').value,
+                brandName: document.getElementById('customBrand').value,
+                servingSize: parsed.qty,
+                servingUnit: parsed.unit,
+                calories: parseInt(document.getElementById('customCalories').value),
+                protein: parseFloat(document.getElementById('customProtein').value) || 0,
+                carbs: parseFloat(document.getElementById('customCarbs').value) || 0,
+                fat: parseFloat(document.getElementById('customFat').value) || 0,
+                // Advanced
+                cholesterol: parseFloat(document.getElementById('customCholesterol').value) || 0,
+                sodium: parseFloat(document.getElementById('customSodium').value) || 0,
+                fiber: parseFloat(document.getElementById('customFiber').value) || 0,
+                sugar: parseFloat(document.getElementById('customSugar').value) || 0,
+                saturatedFat: parseFloat(document.getElementById('customSatFat').value) || 0,
+                transFat: parseFloat(document.getElementById('customTransFat').value) || 0,
+                polyunsaturatedFat: parseFloat(document.getElementById('customPolyFat').value) || 0,
+                monounsaturatedFat: parseFloat(document.getElementById('customMonoFat').value) || 0,
+                addedSugar: parseFloat(document.getElementById('customAddedSugar').value) || 0,
+                vitaminD: parseFloat(document.getElementById('customVitD').value) || 0,
+                calcium: parseFloat(document.getElementById('customCalcium').value) || 0,
+                iron: parseFloat(document.getElementById('customIron').value) || 0,
+                potassium: parseFloat(document.getElementById('customPotassium').value) || 0,
+                vitaminC: parseFloat(document.getElementById('customVitC').value) || 0,
+            };
+
+            const result = await storage.saveCustomFood(foodData);
+
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+
+            if (result) {
+                closeCustomFoodModal();
+                // Select the food in the main form so user can log it immediately
+                selectFood(result);
+                showNotification('Custom food added, add meal to track it!');
+            }
+        }
+
+        // Close custom food modal on background click
+        customFoodModal.addEventListener('click', (e) => {
+            if (e.target === customFoodModal) {
+                closeCustomFoodModal();
+            }
+        });
+
+        // Close on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !customFoodModal.classList.contains('hidden')) {
+                closeCustomFoodModal();
+            }
+        });
 
         // Register service worker for PWA
         if ('serviceWorker' in navigator) {

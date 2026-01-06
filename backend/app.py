@@ -78,7 +78,63 @@ def parse_serving_size(serving_text):
         return float(size_str), unit
         
     # Fallback
-    return 1.0, serving_text
+    return 1.0, 'serving'
+
+def normalize_food_data(food_id, food_name, brand_name, serving):
+    """Convert FatSecret serving object into normalized frontend dictionary."""
+    
+    # 1. Try to parse from detailed serving_description first "1 bag", "1/2 cup"
+    # This is usually the most accurate human-readable string
+    serving_desc = serving.get('serving_description', '')
+    parsed_size, parsed_unit = parse_serving_size(serving_desc)
+    
+    # Check if we got a generic fallback "serving" but the API has a better measurement unit
+    # e.g. measurement_description="g", serving_description="1 serving (30g)" -> we might want "serving"
+    # But if serving_description="1 bag", we definitely want "bag"
+    
+    # If parse_serving_size returned default "serving" unit, check for explicit measurement description
+    if parsed_unit == 'serving':
+        # See if API has a specific unit like "g" or "oz"
+        api_unit = serving.get('measurement_description', 'serving')
+        if api_unit != 'serving':
+            # However, usually serving_description is better. 
+            # If serving_description was "100g", parsed would be 100, "g".
+            # If serving_description was "1 serving", parsed is 1, "serving".
+            # If API explicitly says "g", it might be 100g.
+            
+            # Let's trust serving_description IF it has content.
+            # If it's empty, use API fields.
+            if not serving_desc:
+                parsed_size = float(serving.get('number_of_units', 1.0))
+                parsed_unit = api_unit
+    
+    return {
+        'fdcId': food_id,
+        'description': food_name,
+        'brandName': brand_name or 'Generic',
+        'servingSize': parsed_size,
+        'servingUnit': parsed_unit,
+        'preCalculated': True,
+        'calories': int(float(serving.get('calories', 0))),
+        'protein': float(serving.get('protein', 0)),
+        'carbs': float(serving.get('carbohydrate', 0)),
+        'fat': float(serving.get('fat', 0)),
+        # Helper to get float or None
+        'cholesterol': float(serving.get('cholesterol')) if serving.get('cholesterol') is not None else None,
+        'sodium': float(serving.get('sodium')) if serving.get('sodium') is not None else None,
+        'fiber': float(serving.get('fiber')) if serving.get('fiber') is not None else None,
+        'sugar': float(serving.get('sugar')) if serving.get('sugar') is not None else None,
+        'saturatedFat': float(serving.get('saturated_fat')) if serving.get('saturated_fat') is not None else None,
+        'transFat': float(serving.get('trans_fat')) if serving.get('trans_fat') is not None else None,
+        'polyunsaturatedFat': float(serving.get('polyunsaturated_fat')) if serving.get('polyunsaturated_fat') is not None else None,
+        'monounsaturatedFat': float(serving.get('monounsaturated_fat')) if serving.get('monounsaturated_fat') is not None else None,
+        'addedSugar': float(serving.get('added_sugars')) if serving.get('added_sugars') is not None else None,
+        'vitaminD': float(serving.get('vitamin_d')) if serving.get('vitamin_d') is not None else None,
+        'calcium': float(serving.get('calcium')) if serving.get('calcium') is not None else None,
+        'iron': float(serving.get('iron')) if serving.get('iron') is not None else None,
+        'potassium': float(serving.get('potassium')) if serving.get('potassium') is not None else None,
+        'vitaminC': float(serving.get('vitamin_c')) if serving.get('vitamin_c') is not None else None
+    }
 
 
 @app.route('/api/search-food', methods=['GET'])
@@ -91,10 +147,36 @@ def search_food():
     
     # Check Cache
     normalized_query = query.lower().strip()
+    
+    # 0. Search Local DB (food_cache) for Custom Foods & Cached Items
+    # This ensures custom foods appear first
+    from supabase_client import search_food_in_db
+    local_results = search_food_in_db(normalized_query)
+    
+    # 1. Check Search Cache (FatSecret Results)
     cached_data = supabase_client.get_cached_results(normalized_query)
+    
+    # Check if local_only request (Optimization for instant results)
+    local_only = request.args.get('local_only', 'false').lower() == 'true'
+    
+    if local_only:
+        # For instant search, just return what we have locally + cached
+        # No need to merge complex logic, just dump what we have quickly
+        if cached_data:
+             local_ids = {f['fdcId'] for f in local_results}
+             filtered_cache = [f for f in cached_data.get('foods', []) if f.get('fdcId') not in local_ids]
+             return jsonify({'foods': local_results + filtered_cache})
+        return jsonify({'foods': local_results})
+
     if cached_data:
         print(f"Cache hit for: {normalized_query}")
-        return jsonify(cached_data)
+        # Merge: Local First + Cached Search Results
+        # deduplicate by ID if needed, but simplistic merge is often okay for now
+        # We filter out local results from cached_data if they are duplicates
+        local_ids = {f['fdcId'] for f in local_results}
+        filtered_cache = [f for f in cached_data.get('foods', []) if f.get('fdcId') not in local_ids]
+        
+        return jsonify({'foods': local_results + filtered_cache})
     
     try:
         print(f"Cache miss for: {normalized_query}. Calling FatSecret API...")
@@ -119,44 +201,150 @@ def search_food():
         if isinstance(fs_foods, dict):
             fs_foods = [fs_foods]
             
+        from supabase_client import get_cached_food, cache_food
+        
         for food in fs_foods:
+            food_id = food.get('food_id')
+
+            food_name = food.get('food_name', '')
+            brand_name = food.get('brand_name')
+
+            # 1. Try Cache (Fastest)
+            # cache returns the normalized dict now
+            cached_food = get_cached_food(food_id) if food_id else None
+            
+            if cached_food:
+                foods.append(cached_food)
+                continue
+            
+            # 2. Skip Detailed API Fetch during search
+            # We rely on cache (already checked above) or fallback (below)
+            # This optimizes performance and API usage.
+
+
+            # 3. Fallback: Parse description from search result (Lowest Fidelity)
+            # This happens if API failed or returned no serving data
             description = food.get('food_description', '')
             nutrients = parse_fatsecret_food(description)
-            
-            # Extract serving info from description
-            # Format usually: "Per 100g - ..." or "Per 1 medium - ..."
             serving_text = description.split(' - ')[0].replace('Per ', '')
-            
             parsed_size, parsed_unit = parse_serving_size(serving_text)
             
             foods.append({
-                'fdcId': food.get('food_id'), # Mapping food_id to fdcId for frontend compatibility
-                'description': food.get('food_name', ''),
-                'brandName': food.get('brand_name', 'Generic'),
+                'fdcId': food_id,
+                'description': food_name,
+                'brandName': brand_name or 'Generic',
                 'servingSize': parsed_size,
                 'servingUnit': parsed_unit,
                 'preCalculated': True,
                 'calories': nutrients.get('calories', 0),
                 'protein': nutrients.get('protein', 0),
                 'carbs': nutrients.get('carbs', 0),
-                'fat': nutrients.get('fat', 0)
+                'fat': nutrients.get('fat', 0),
+                'cholesterol': None,
+                'sodium': None,
+                'fiber': None,
+                'sugar': None,
+                'saturatedFat': None,
+                'transFat': None,
+                'polyunsaturatedFat': None,
+                'monounsaturatedFat': None,
+                'addedSugar': None,
+                'vitaminD': None,
+                'calcium': None,
+                'iron': None,
+                'potassium': None,
+                'vitaminC': None
             })
         
         result = {'foods': foods}
         
-        # Save to Cache
+        # Save to Cache (API results only, to keep cache clean)
         supabase_client.cache_results(normalized_query, result)
         
-        return jsonify(result)
+        # Merge Local Results for Response
+        # We perform the same merge logic as the cache-hit case
+        local_ids = {f['fdcId'] for f in local_results}
+        filtered_api_foods = [f for f in foods if f.get('fdcId') not in local_ids]
+        
+        return jsonify({'foods': local_results + filtered_api_foods})
     
-    except requests.Timeout:
-        return jsonify({'error': 'Request timeout'}), 504
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-from db import init_db, get_user_meals, add_meal, delete_meal, get_db_connection
+@app.route('/api/get-food-details', methods=['GET'])
+def get_food_details():
+    """Fetch detailed food data on demand."""
+    food_id = request.args.get('food_id')
+    if not food_id:
+        return jsonify({'error': 'food_id required'}), 400
+        
+    try:
+        from supabase_client import get_cached_food, cache_food
+        
+        # 1. Check Cache
+        cached_food = get_cached_food(food_id)
+        if cached_food:
+            return jsonify(cached_food)
+            
+        # 2. Fetch from API
+        response = requests.get(
+            f'{FATSECRET_BASE_URL}/food',
+            params={'food_id': food_id},
+            timeout=5
+        )
+        
+        if response.status_code != 200:
+            return jsonify({'error': 'Failed to fetch details'}), response.status_code
+            
+        data = response.json()
+        
+        # 3. Normalize and Cache
+        raw_serving = data.get('food', {}).get('servings', {}).get('serving', {})
+        if isinstance(raw_serving, list):
+            raw_serving = raw_serving[0]
+            
+        if raw_serving:
+            food_name = data.get('food', {}).get('food_name', '')
+            brand_name = data.get('food', {}).get('brand_name')
+            
+            normalized_food = normalize_food_data(food_id, food_name, brand_name, raw_serving)
+            cache_food(food_id, normalized_food, source='fatsecret')
+            return jsonify(normalized_food)
+            
+        return jsonify({'error': 'No serving data found'}), 404
+        
+    except Exception as e:
+        print(f"Error fetching details for {food_id}: {e}")
+        return jsonify({'error': str(e)}), 500
 
+@app.route('/api/add-custom-food', methods=['POST'])
+def add_custom_food_route():
+    """Create a new custom food."""
+    data = request.json
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+        
+    # Basic Validation
+    required_fields = ['foodName', 'servingSize', 'servingUnit', 'calories']
+    for field in required_fields:
+        if field not in data:
+            return jsonify({'error': f'Missing required field: {field}'}), 400
+            
+    try:
+        from supabase_client import add_custom_food
+        
+        result = add_custom_food(data)
+        if result:
+            return jsonify(result)
+        else:
+            return jsonify({'error': 'Failed to save custom food'}), 500
+            
+    except Exception as e:
+        print(f"Error adding custom food: {e}")
+        return jsonify({'error': str(e)}), 500
+
+from db import init_db, get_user_meals, add_meal, delete_meal, update_meal, get_db_connection
 # Initialize DB on startup (safely fails if no URL)
 init_db()
 
@@ -194,6 +382,26 @@ def delete_meal_route(meal_id):
         
     try:
         success = delete_meal(meal_id, user_id)
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Meal not found or unauthorized'}), 404
+    except Exception as e:
+        print(f"DB Error: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/meals/<meal_id>', methods=['PUT'])
+def update_meal_route(meal_id):
+    user_id = request.args.get('userId')
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    data = request.json
+    if not data:
+        return jsonify({'error': 'No update data provided'}), 400
+        
+    try:
+        success = update_meal(meal_id, user_id, data)
         if success:
             return jsonify({'success': True})
         else:
