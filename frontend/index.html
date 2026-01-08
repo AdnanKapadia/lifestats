@@ -34,7 +34,7 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             min-height: 100vh;
             padding: 20px;
-            padding-bottom: 100px;
+            padding-bottom: 120px;
         }
 
         .container {
@@ -813,6 +813,82 @@
         .tab-item:nth-child(3).active .tab-icon {
             transform: scale(1.15);
         }
+
+        /* Event Types Styles */
+        .event-types-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .event-type-row {
+            background: rgba(39, 39, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .event-type-row:hover {
+            background: rgba(39, 39, 42, 0.6);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .event-type-icon {
+            font-size: 32px;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+
+        .event-type-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .event-type-name {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #e4e4e7;
+            margin-bottom: 4px;
+        }
+
+        .event-type-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .event-type-category {
+            font-size: 0.75em;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #a1a1aa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .event-type-unit {
+            font-size: 0.85em;
+            color: #71717a;
+        }
+
+        .category-chip.active {
+            background: rgba(46, 204, 113, 0.2);
+            border-color: #2ECC71;
+            color: #2ECC71;
+        }
     </style>
 </head>
 
@@ -821,11 +897,47 @@
     <div id="page1" class="page-content">
         <div class="container">
             <h1>📊 Stats</h1>
+
+            <!-- Category Filter -->
+            <div class="card" style="margin-bottom: 16px;">
+                <div class="section-title">Filter by Category</div>
+                <div class="chip-container" id="categoryFilterChips">
+                    <div class="chip category-chip active" data-category="all"
+                        onclick="filterEventTypesByCategory('all')">All</div>
+                    <div class="chip category-chip" data-category="Nutrition"
+                        onclick="filterEventTypesByCategory('Nutrition')">🍎 Nutrition</div>
+                    <div class="chip category-chip" data-category="Fitness"
+                        onclick="filterEventTypesByCategory('Fitness')">💪 Fitness</div>
+                    <div class="chip category-chip" data-category="Health"
+                        onclick="filterEventTypesByCategory('Health')">⚖️ Health</div>
+                    <div class="chip category-chip" data-category="Custom"
+                        onclick="filterEventTypesByCategory('Custom')">⭐ Custom</div>
+                </div>
+            </div>
+
+            <!-- Event Types List -->
             <div class="card">
-                <div class="section-title">Coming Soon</div>
-                <div class="empty-state">
-                    <div class="empty-state-emoji">📊</div>
-                    <p>Statistics and analytics will be displayed here</p>
+                <div class="section-title">Event Types</div>
+                <div id="eventTypesList" class="event-types-list">
+                    <!-- Event types will be inserted here -->
+                    <div class="empty-state">
+                        <div class="empty-state-emoji">⏳</div>
+                        <p>Loading event types...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Event Type Button (Fixed Bottom Right) -->
+            <div style="position: fixed; bottom: 90px; right: 20px; z-index: 80;">
+                <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.2s ease;"
+                    id="addEventTypeBtnContainer" onclick="openAddEventTypeModal()"
+                    onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'"
+                    onmouseleave="this.style.transform='scale(1)'">
+                    <div
+                        style="background: #2ECC71; width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(46, 204, 113, 0.4); transition: all 0.2s;">
+                        <span style="font-size: 32px; color: #ffffff; line-height: 1;">+</span>
+                    </div>
+                    <span style="font-size: 10px; margin-top: 4px; color: #a1a1aa; font-weight: 500;">Add Type</span>
                 </div>
             </div>
         </div>
@@ -848,8 +960,17 @@
     <!-- Page 3: Food Logging (Current Page) -->
     <div id="page3" class="page-content active">
         <div class="container">
-            <h1>🍎 LifeStats</h1>
-            <div class="user-id" id="userIdDisplay">User ID: Loading...</div>
+            <!-- Header with back button -->
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <button onclick="switchPage(1)"
+                    style="background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; color: #e4e4e7; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9em;">
+                    ← Back
+                </button>
+                <div style="flex: 1;">
+                    <h1 style="margin: 0; font-size: 1.5em;">🍎 Food Logger</h1>
+                    <div class="user-id" id="userIdDisplay" style="margin-top: 4px;">User ID: Loading...</div>
+                </div>
+            </div>
 
             <!-- Animation Overlay -->
             <div id="expansion-overlay"></div>
@@ -985,11 +1106,79 @@
     <div id="page5" class="page-content">
         <div class="container">
             <h1>⚙️ Settings</h1>
+
+            <div class="card">
+                <div class="section-title">System</div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="color: #a1a1aa; font-size: 0.9em; margin-bottom: 8px;">
+                        Troubleshooting issues? Try forcing an update to clear the cache.
+                    </div>
+                    <button onclick="forceUpdate()" class="primary-btn"
+                        style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.5);">
+                        Force Update
+                    </button>
+                    <div style="text-align: center; color: #52525b; font-size: 0.8em; margin-top: 8px;">
+                        App Version: 1.0.0
+                    </div>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="section-title">Coming Soon</div>
                 <div class="empty-state">
                     <div class="empty-state-emoji">⚙️</div>
-                    <p>Settings and preferences will be displayed here</p>
+                    <p>More settings will be available soon</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 6: Event Tracking (Dynamic) -->
+    <div id="page6" class="page-content">
+        <div class="container">
+            <!-- Header with back button -->
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <button onclick="closeEventTrackingPage()"
+                    style="background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; color: #e4e4e7; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9em;">
+                    ← Back
+                </button>
+                <h1 id="eventTrackingTitle" style="margin: 0; flex: 1;">Event Tracking</h1>
+            </div>
+
+            <!-- Log Event Form -->
+            <div class="card">
+                <div class="section-title">Log Event</div>
+                <form id="eventTrackingForm" onsubmit="handleEventSubmit(event)">
+                    <div id="eventFormFields">
+                        <!-- Dynamic form fields will be inserted here -->
+                    </div>
+                    <button type="submit" class="primary-btn">Add Event</button>
+                </form>
+            </div>
+
+            <!-- Event History -->
+            <div class="card">
+                <div class="section-title">History</div>
+                <div id="eventHistoryList" class="meals-list">
+                    <!-- Event history will be inserted here -->
+                    <div class="empty-state">
+                        <div class="empty-state-emoji">📋</div>
+                        <p>No events logged yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 7: Home (Template) -->
+    <div id="page7" class="page-content center-page">
+        <div class="container">
+            <h1>🏠 Home</h1>
+            <div class="card">
+                <div class="section-title">Welcome</div>
+                <div class="empty-state">
+                    <div class="empty-state-emoji">👋</div>
+                    <p>Welcome to LifeStats</p>
                 </div>
             </div>
         </div>
@@ -1005,9 +1194,9 @@
             <div class="tab-icon">🎯</div>
             <div class="tab-label">Goals</div>
         </div>
-        <div class="tab-item active" onclick="switchPage(3)">
-            <div class="tab-icon">🍎</div>
-            <div class="tab-label">Food</div>
+        <div class="tab-item active" onclick="switchPage(7)">
+            <div class="tab-icon">🏠</div>
+            <div class="tab-label">Home</div>
         </div>
         <div class="tab-item" onclick="switchPage(4)">
             <div class="tab-icon">⚡</div>
@@ -1316,10 +1505,108 @@
         </div>
     </div>
 
+    <!-- Add Event Type Modal -->
+    <div id="addEventTypeModalOverlay" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Add Event Type</div>
+                <button class="close-btn" onclick="closeAddEventTypeModal()">&times;</button>
+            </div>
+
+            <form id="addEventTypeForm" onsubmit="handleAddEventTypeSubmit(event)">
+                <div class="form-group">
+                    <label for="eventTypeName">Name *</label>
+                    <input type="text" id="eventTypeName" placeholder="e.g., Morning Run" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="eventTypeCategory">Category *</label>
+                    <select id="eventTypeCategory" required
+                        style="width: 100%; padding: 12px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7; font-size: 1em;">
+                        <option value="Nutrition">🍎 Nutrition</option>
+                        <option value="Fitness">💪 Fitness</option>
+                        <option value="Health">⚖️ Health</option>
+                        <option value="Custom">⭐ Custom</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="eventTypeIcon">Icon</label>
+                    <input type="text" id="eventTypeIcon" placeholder="📊" value="📊" maxlength="2">
+                </div>
+
+                <div class="form-group">
+                    <label for="eventTypeColor">Color</label>
+                    <input type="color" id="eventTypeColor" value="#9C27B0"
+                        style="width: 100%; height: 50px; padding: 4px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; cursor: pointer;">
+                </div>
+
+                <div class="form-group">
+                    <label for="eventTypePrimaryUnit">Primary Unit</label>
+                    <input type="text" id="eventTypePrimaryUnit" placeholder="e.g., reps, minutes, oz">
+                </div>
+
+                <div class="form-group">
+                    <label for="eventTypeAggregation">Aggregation Type</label>
+                    <select id="eventTypeAggregation"
+                        style="width: 100%; padding: 12px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7; font-size: 1em;">
+                        <option value="sum_today">Sum Today (Daily Total)</option>
+                        <option value="sum">Sum (Lifetime Total)</option>
+                        <option value="last">Last Value</option>
+                        <option value="average">Average</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="eventTypeTracking">Tracking Type</label>
+                    <select id="eventTypeTracking"
+                        style="width: 100%; padding: 12px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7; font-size: 1em;">
+                        <option value="count">Count (Plus Button)</option>
+                        <option value="rating">Rating (5 Stars)</option>
+                        <option value="number">Number (Input Box)</option>
+                    </select>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeAddEventTypeModal()">Cancel</button>
+                    <button type="submit" class="primary-btn">Create Event Type</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="/storage.js"></script>
     <script>
         // ===== PAGE NAVIGATION =====
+        async function forceUpdate() {
+            if (confirm('This will update the app to the latest version. This involves clearing the cache and reloading. Continue?')) {
+                try {
+                    // 1. Unregister Service Worker
+                    if ('serviceWorker' in navigator) {
+                        const registrations = await navigator.serviceWorker.getRegistrations();
+                        for (const registration of registrations) {
+                            await registration.unregister();
+                        }
+                    }
+
+                    // 2. Clear Caches
+                    if ('caches' in window) {
+                        const keys = await caches.keys();
+                        await Promise.all(
+                            keys.map(key => caches.delete(key))
+                        );
+                    }
+                } catch (error) {
+                    console.error('Error during update:', error);
+                    alert('Error clearing cache. The page will reload anyway.');
+                } finally {
+                    // 3. Reload Window
+                    window.location.reload(true);
+                }
+            }
+        }
+
         function switchPage(pageNumber) {
             // Hide all pages
             document.querySelectorAll('.page-content').forEach(page => {
@@ -1335,7 +1622,23 @@
             // Update tab bar active state
             document.querySelectorAll('.tab-item').forEach((tab, index) => {
                 tab.classList.remove('active');
-                if (index + 1 === pageNumber) {
+
+                // Map active pages to tabs
+                // Stats (0) -> Page 1, Page 3 (Food), Page 6 (Events)
+                // Goals (1) -> Page 2
+                // Home (2) -> Page 7
+                // Activity (3) -> Page 4
+                // Settings (4) -> Page 5
+
+                let isActive = false;
+
+                if (index === 0 && (pageNumber === 1 || pageNumber === 3 || pageNumber === 6)) isActive = true;
+                if (index === 1 && pageNumber === 2) isActive = true;
+                if (index === 2 && pageNumber === 7) isActive = true;
+                if (index === 3 && pageNumber === 4) isActive = true;
+                if (index === 4 && pageNumber === 5) isActive = true;
+
+                if (isActive) {
                     tab.classList.add('active');
                 }
             });
@@ -2243,6 +2546,471 @@
                 window.location.reload();
             });
         }
+
+        // ===== EVENT TYPES FUNCTIONS =====
+        let allEventTypes = [];
+        let currentCategoryFilter = 'all';
+
+        async function loadEventTypes(userId, category = null) {
+            try {
+                const url = new URL(`/api/event-types`, window.location.origin);
+                if (userId) url.searchParams.append('userId', userId);
+                if (category && category !== 'all') url.searchParams.append('category', category);
+
+                // Calculate local start of day
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const startOfDay = today.getTime();
+
+                const [eventsResponse, statsResponse] = await Promise.all([
+                    fetch(url),
+                    userId ? fetch(`/api/stats/today?userId=${userId}&startOfDay=${startOfDay}`) : Promise.resolve({ ok: false })
+                ]);
+
+                if (!eventsResponse.ok) throw new Error('Failed to fetch event types');
+
+                allEventTypes = await eventsResponse.json();
+
+                let todaysStats = {};
+                if (statsResponse.ok) {
+                    todaysStats = await statsResponse.json();
+                }
+
+                displayEventTypes(allEventTypes, todaysStats);
+            } catch (error) {
+                console.error('Error loading event types:', error);
+                document.getElementById('eventTypesList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-emoji">❌</div>
+                        <p>Failed to load event types</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayEventTypes(eventTypes, todaysStats = {}) {
+            const container = document.getElementById('eventTypesList');
+
+            if (!eventTypes || eventTypes.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-emoji">📊</div>
+                        <p>No event types found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = eventTypes.map(et => {
+                let rightSideContent = '';
+                const trackingType = et.trackingType || 'count';
+
+                if (trackingType === 'count') {
+                    rightSideContent = `
+                        <button class="quick-log-btn" onclick="quickLogEvent(event, '${et.id}', '${et.category}', ${JSON.stringify(et).replace(/"/g, "&quot;")})"
+                            style="background: #2ECC71; border: none; border-radius: 50%; width: 40px; height: 40px; color: white; font-size: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);">
+                            +
+                        </button>
+                    `;
+                } else if (trackingType === 'rating') {
+                    rightSideContent = `
+                        <div class="rating-stars" style="display: flex; gap: 4px;" onclick="event.stopPropagation()">
+                            ${[1, 2, 3, 4, 5].map(i => `
+                                <span onclick="quickLogEvent(event, '${et.id}', '${et.category}', ${JSON.stringify(et).replace(/"/g, "&quot;")}, ${i})" 
+                                      style="cursor: pointer; font-size: 20px; color: #555;">★</span>
+                            `).join('')}
+                        </div>
+                    `;
+                } else if (trackingType === 'number') {
+                    rightSideContent = `
+                        <div style="display: flex; gap: 8px; align-items: center;" onclick="event.stopPropagation()">
+                            <input type="number" 
+                                   id="quick_input_${et.id}"
+                                   placeholder="#" 
+                                   style="width: 60px; padding: 6px; border-radius: 8px; border: 1px solid #3f3f46; background: rgba(0,0,0,0.2); color: white; text-align: center;"
+                                   onclick="event.stopPropagation()">
+                            <button onclick="quickLogEventNumber(event, '${et.id}', '${et.category}', ${JSON.stringify(et).replace(/"/g, "&quot;")})"
+                                    style="background: #2ECC71; border: none; border-radius: 8px; padding: 6px 12px; color: white; cursor: pointer;">
+                                ✓
+                            </button>
+                        </div>
+                    `;
+                }
+
+                // Today's Stats Logic
+                let statsHtml = '';
+                if (todaysStats[et.id] && todaysStats[et.id].value > 0) {
+                    const stat = todaysStats[et.id];
+                    // Only show if aggregation is relevant
+                    const unit = stat.unit || et.primaryUnit || '';
+                    statsHtml = `<div style="font-size: 0.85em; color: #a1a1aa; margin-top: 4px;">Today: <span style="color: ${et.color}; font-weight: bold;">${parseFloat(stat.value.toFixed(1))} ${unit}</span></div>`;
+                }
+
+                return `
+                <div class="event-type-row" data-category="${et.category}" onclick='openEventTrackingPage(${JSON.stringify(et).replace(/'/g, "&apos;")})' style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="event-type-icon" style="background: ${et.color}20; color: ${et.color};">
+                            ${et.icon || '📊'}
+                        </div>
+                        <div class="event-type-info">
+                            <div class="event-type-name">${et.name}</div>
+                            <div class="event-type-meta">
+                                <span class="event-type-category">${et.category}</span>
+                            </div>
+                            ${statsHtml}
+                        </div>
+                    </div>
+                    <div class="event-type-actions">
+                        ${rightSideContent}
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function filterEventTypesByCategory(category) {
+            currentCategoryFilter = category;
+
+            // Update active chip
+            document.querySelectorAll('.category-chip').forEach(chip => {
+                chip.classList.remove('active');
+                if (chip.dataset.category === category) {
+                    chip.classList.add('active');
+                }
+            });
+
+            // Filter event types
+            if (category === 'all') {
+                displayEventTypes(allEventTypes);
+            } else {
+                const filtered = allEventTypes.filter(et => et.category === category);
+                displayEventTypes(filtered);
+            }
+        }
+
+        function openAddEventTypeModal() {
+            const modal = document.getElementById('addEventTypeModalOverlay');
+            modal.classList.remove('hidden');
+            // Reset form
+            document.getElementById('addEventTypeForm').reset();
+            document.getElementById('eventTypeIcon').value = '📊';
+            document.getElementById('eventTypeColor').value = '#9C27B0';
+        }
+
+        function closeAddEventTypeModal() {
+            const modal = document.getElementById('addEventTypeModalOverlay');
+            modal.classList.add('hidden');
+        }
+
+        async function handleAddEventTypeSubmit(event) {
+            event.preventDefault();
+
+            const userId = localStorage.getItem('lifestats_userId');
+            if (!userId) {
+                alert('Please set your User ID in settings first');
+                return;
+            }
+
+            const formData = {
+                name: document.getElementById('eventTypeName').value,
+                category: document.getElementById('eventTypeCategory').value,
+                icon: document.getElementById('eventTypeIcon').value || '📊',
+                color: document.getElementById('eventTypeColor').value,
+                primaryUnit: document.getElementById('eventTypePrimaryUnit').value || '',
+                aggregationType: document.getElementById('eventTypeAggregation').value,
+                trackingType: document.getElementById('eventTypeTracking').value,
+                fieldSchema: {
+                    fields: [
+                        {
+                            name: 'value',
+                            type: 'number',
+                            required: true,
+                            label: 'Value',
+                            unit: document.getElementById('eventTypePrimaryUnit').value || ''
+                        }
+                    ]
+                }
+            };
+
+            try {
+                const response = await fetch(`/api/event-types?userId=${userId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to create event type');
+                }
+
+                const newEventType = await response.json();
+
+                // Show success notification
+                showNotification('Event type created successfully!');
+
+                // Close modal
+                closeAddEventTypeModal();
+
+                // Reload event types
+                await loadEventTypes(userId, currentCategoryFilter === 'all' ? null : currentCategoryFilter);
+
+            } catch (error) {
+                console.error('Error creating event type:', error);
+                alert(`Failed to create event type: ${error.message}`);
+            }
+        }
+
+        // Close modal on background click
+        document.getElementById('addEventTypeModalOverlay')?.addEventListener('click', (e) => {
+            if (e.target.id === 'addEventTypeModalOverlay') {
+                closeAddEventTypeModal();
+            }
+        });
+
+        // Close on ESC key for add event type modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !document.getElementById('addEventTypeModalOverlay').classList.contains('hidden')) {
+                closeAddEventTypeModal();
+            }
+        });
+
+        // Load event types when switching to stats page
+        const originalSwitchPage = switchPage;
+        switchPage = function (pageNumber) {
+            originalSwitchPage(pageNumber);
+
+            // If switching to stats page (page 1), load event types
+            if (pageNumber === 1) {
+                const userId = localStorage.getItem('lifestats_userId');
+                if (userId) {
+                    loadEventTypes(userId);
+                }
+            }
+        };
+
+        // ===== EVENT TRACKING PAGE FUNCTIONS =====
+        let currentEventType = null;
+
+        function openEventTrackingPage(eventType) {
+            // Special case for 'Meal' event type - go to Food Page
+            if (eventType.id === 'meal') {
+                switchPage(3);
+                return;
+            }
+
+            currentEventType = eventType;
+
+            // Update title
+            document.getElementById('eventTrackingTitle').innerHTML = `${eventType.icon || '📊'} ${eventType.name}`;
+
+            // Render form fields
+            renderEventForm(eventType.fieldSchema);
+
+            // Load event history
+            const userId = localStorage.getItem('lifestats_userId');
+            if (userId) {
+                loadEventHistory(eventType.id, userId);
+            }
+
+            // Switch to page 6
+            switchPage(6);
+        }
+
+        function closeEventTrackingPage() {
+            currentEventType = null;
+            switchPage(1); // Return to Stats tab
+        }
+
+        function renderEventForm(fieldSchema) {
+            const container = document.getElementById('eventFormFields');
+
+            if (!fieldSchema || !fieldSchema.fields) {
+                container.innerHTML = '<p style="color: #71717a;">No fields defined for this event type.</p>';
+                return;
+            }
+
+            container.innerHTML = fieldSchema.fields.map(field => {
+                const required = field.required ? '*' : '';
+                const requiredAttr = field.required ? 'required' : '';
+
+                if (field.type === 'number') {
+                    return `
+                        <div class="form-group">
+                            <label for="field_${field.name}">${field.label || field.name}${required}</label>
+                            <input type="number" 
+                                   id="field_${field.name}" 
+                                   name="${field.name}"
+                                   placeholder="${field.unit ? `Enter ${field.unit}` : '0'}" 
+                                   step="any" 
+                                   ${requiredAttr}>
+                            ${field.unit ? `<small style="color: #71717a; font-size: 0.85em; margin-top: 4px; display: block;">Unit: ${field.unit}</small>` : ''}
+                        </div>
+                    `;
+                } else if (field.type === 'string') {
+                    return `
+                        <div class="form-group">
+                            <label for="field_${field.name}">${field.label || field.name}${required}</label>
+                            <input type="text" 
+                                   id="field_${field.name}" 
+                                   name="${field.name}"
+                                   placeholder="${field.label || field.name}" 
+                                   ${requiredAttr}>
+                        </div>
+                    `;
+                } else if (field.type === 'enum') {
+                    return `
+                        <div class="form-group">
+                            <label for="field_${field.name}">${field.label || field.name}${required}</label>
+                            <select id="field_${field.name}" 
+                                    name="${field.name}"
+                                    ${requiredAttr}
+                                    style="width: 100%; padding: 12px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7; font-size: 1em;">
+                                ${field.values.map(val => `<option value="${val}">${val}</option>`).join('')}
+                            </select>
+                        </div>
+                    `;
+                }
+                return '';
+            }).join('');
+        }
+
+        async function handleEventSubmit(event) {
+            event.preventDefault();
+
+            const userId = localStorage.getItem('lifestats_userId');
+            if (!userId) {
+                alert('Please set your User ID in settings first');
+                return;
+            }
+
+            if (!currentEventType) {
+                alert('No event type selected');
+                return;
+            }
+
+            // Collect form data
+            const formData = {};
+            const form = document.getElementById('eventTrackingForm');
+            const inputs = form.querySelectorAll('input, select');
+
+            inputs.forEach(input => {
+                if (input.name) {
+                    const value = input.type === 'number' ? parseFloat(input.value) : input.value;
+                    formData[input.name] = value;
+                }
+            });
+
+            const eventData = {
+                id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                userId: userId,
+                eventTypeId: currentEventType.id,
+                timestamp: Date.now(),
+                category: currentEventType.category,
+                data: formData,
+                notes: ''
+            };
+
+            try {
+                const response = await fetch(`/api/events`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(eventData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to log event');
+                }
+
+                // Show success notification
+                showNotification('Event logged successfully!');
+
+                // Reset form
+                form.reset();
+
+                // Reload event history
+                await loadEventHistory(currentEventType.id, userId);
+
+            } catch (error) {
+                console.error('Error logging event:', error);
+                alert(`Failed to log event: ${error.message}`);
+            }
+        }
+
+        async function loadEventHistory(eventTypeId, userId) {
+            try {
+                const url = new URL(`/api/events`, window.location.origin);
+                url.searchParams.append('userId', userId);
+                url.searchParams.append('eventTypeId', eventTypeId);
+                url.searchParams.append('limit', '50');
+
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to fetch events');
+
+                const events = await response.json();
+                displayEventHistory(events);
+            } catch (error) {
+                console.error('Error loading event history:', error);
+                document.getElementById('eventHistoryList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-emoji">❌</div>
+                        <p>Failed to load event history</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayEventHistory(events) {
+            const container = document.getElementById('eventHistoryList');
+
+            if (!events || events.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-emoji">📋</div>
+                        <p>No events logged yet</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Group events by date
+            const groupedEvents = {};
+            events.forEach(event => {
+                const date = new Date(event.timestamp);
+                const dateKey = date.toLocaleDateString();
+                if (!groupedEvents[dateKey]) {
+                    groupedEvents[dateKey] = [];
+                }
+                groupedEvents[dateKey].push(event);
+            });
+
+            container.innerHTML = Object.entries(groupedEvents).map(([date, dateEvents]) => `
+                <div style="margin-bottom: 20px;">
+                    <div style="font-weight: 600; color: #a1a1aa; margin-bottom: 8px; font-size: 0.9em;">${date}</div>
+                    ${dateEvents.map(event => {
+                const time = new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const dataStr = Object.entries(event.data).map(([key, val]) => `${key}: ${val}`).join(', ');
+
+                return `
+                            <div class="meal-item" style="margin-bottom: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="font-weight: 500; color: #e4e4e7;">${dataStr}</div>
+                                        <div style="font-size: 0.85em; color: #71717a; margin-top: 2px;">${time}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+            }).join('')}
+                </div>
+            `).join('');
+        }
+
+
     </script>
 </body>
 

@@ -449,6 +449,308 @@ def health():
         'environment': env_vars
     })
 
+
+# ============================================================================
+# EVENT TYPE API ROUTES
+# ============================================================================
+
+@app.route('/api/event-types', methods=['GET'])
+def get_event_types_route():
+    """Get all event types (system + user-defined)."""
+    user_id = request.args.get('userId')
+    category = request.args.get('category')
+    
+    try:
+        from db import get_event_types
+        event_types = get_event_types(user_id=user_id, category=category)
+        return jsonify(event_types)
+    except Exception as e:
+        print(f"Error fetching event types: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/event-types/<event_type_id>', methods=['GET'])
+def get_event_type_route(event_type_id):
+    """Get a specific event type."""
+    try:
+        from db import get_event_type
+        event_type = get_event_type(event_type_id)
+        if event_type:
+            return jsonify(event_type)
+        else:
+            return jsonify({'error': 'Event type not found'}), 404
+    except Exception as e:
+        print(f"Error fetching event type: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/event-types', methods=['POST'])
+def create_event_type_route():
+    """Create a custom event type."""
+    data = request.json
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    if not data or 'name' not in data or 'fieldSchema' not in data:
+        return jsonify({'error': 'name and fieldSchema required'}), 400
+    
+    try:
+        from db import create_event_type
+        event_type = create_event_type(user_id, data)
+        return jsonify(event_type), 201
+    except Exception as e:
+        print(f"Error creating event type: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/event-types/<event_type_id>', methods=['PUT'])
+def update_event_type_route(event_type_id):
+    """Update a custom event type."""
+    user_id = request.args.get('userId')
+    data = request.json
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    if not data:
+        return jsonify({'error': 'No update data provided'}), 400
+    
+    try:
+        from db import update_event_type
+        success = update_event_type(event_type_id, user_id, data)
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Event type not found or unauthorized'}), 404
+    except Exception as e:
+        print(f"Error updating event type: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/event-types/<event_type_id>', methods=['DELETE'])
+def delete_event_type_route(event_type_id):
+    """Delete (soft delete) a custom event type."""
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    try:
+        from db import delete_event_type
+        success = delete_event_type(event_type_id, user_id)
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Event type not found or unauthorized'}), 404
+    except Exception as e:
+        print(f"Error deleting event type: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+
+# ============================================================================
+# EVENT API ROUTES
+# ============================================================================
+
+@app.route('/api/events', methods=['POST'])
+def log_event_route():
+    """Log a new event."""
+    data = request.json
+    
+    if not data or 'userId' not in data or 'eventTypeId' not in data:
+        return jsonify({'error': 'userId and eventTypeId required'}), 400
+    
+    try:
+        from db import log_event
+        event = log_event(data)
+        return jsonify(event), 201
+    except Exception as e:
+        print(f"Error logging event: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/events', methods=['GET'])
+def get_events_route():
+    """Get events with optional filtering."""
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    # Build filters from query params
+    filters = {}
+    if request.args.get('category'):
+        filters['category'] = request.args.get('category')
+    if request.args.get('eventTypeId'):
+        filters['eventTypeId'] = request.args.get('eventTypeId')
+    if request.args.get('startDate'):
+        filters['startDate'] = int(request.args.get('startDate'))
+    if request.args.get('endDate'):
+        filters['endDate'] = int(request.args.get('endDate'))
+    if request.args.get('limit'):
+        filters['limit'] = int(request.args.get('limit'))
+    
+    try:
+        from db import get_events
+        events = get_events(user_id, filters if filters else None)
+        return jsonify(events)
+    except Exception as e:
+        print(f"Error fetching events: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/events/<event_id>', methods=['GET'])
+def get_event_route(event_id):
+    """Get a specific event."""
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    try:
+        from db import get_event
+        event = get_event(event_id, user_id)
+        if event:
+            return jsonify(event)
+        else:
+            return jsonify({'error': 'Event not found'}), 404
+    except Exception as e:
+        print(f"Error fetching event: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/events/<event_id>', methods=['PUT'])
+def update_event_route(event_id):
+    """Update an event."""
+    user_id = request.args.get('userId')
+    data = request.json
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    if not data:
+        return jsonify({'error': 'No update data provided'}), 400
+    
+    try:
+        from db import update_event
+        success = update_event(event_id, user_id, data)
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Event not found or unauthorized'}), 404
+    except Exception as e:
+        print(f"Error updating event: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/events/<event_id>', methods=['DELETE'])
+def delete_event_route(event_id):
+    """Delete an event."""
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    try:
+        from db import delete_event
+        success = delete_event(event_id, user_id)
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Event not found or unauthorized'}), 404
+    except Exception as e:
+        print(f"Error deleting event: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+
+# ============================================================================
+# STATS API ROUTES
+# ============================================================================
+
+@app.route('/api/stats/summary', methods=['GET'])
+def get_stats_summary_route():
+    """Get overall stats summary across all categories."""
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    start_date = request.args.get('startDate')
+    end_date = request.args.get('endDate')
+    
+    try:
+        from db import get_stats_summary
+        stats = get_stats_summary(
+            user_id,
+            int(start_date) if start_date else None,
+            int(end_date) if end_date else None
+        )
+        return jsonify(stats)
+    except Exception as e:
+        print(f"Error fetching stats summary: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/stats/category/<category>', methods=['GET'])
+def get_category_stats_route(category):
+    """Get detailed stats for a specific category."""
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    start_date = request.args.get('startDate')
+    end_date = request.args.get('endDate')
+    
+    try:
+        from db import get_category_stats
+        stats = get_category_stats(
+            user_id,
+            category,
+            int(start_date) if start_date else None,
+            int(end_date) if end_date else None
+        )
+        return jsonify(stats)
+    except Exception as e:
+        print(f"Error fetching category stats: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/stats/event-type/<event_type_id>', methods=['GET'])
+def get_event_type_stats_route(event_type_id):
+    """Get detailed stats for a specific event type."""
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    start_date = request.args.get('startDate')
+    end_date = request.args.get('endDate')
+    
+    try:
+        from db import get_event_type_stats
+        stats = get_event_type_stats(
+            user_id,
+            event_type_id,
+            int(start_date) if start_date else None,
+            int(end_date) if end_date else None
+        )
+        return jsonify(stats)
+    except Exception as e:
+        print(f"Error fetching event type stats: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/stats/today', methods=['GET'])
+def get_todays_stats_route():
+    """Get aggregated stats for today."""
+    user_id = request.args.get('userId')
+    start_of_day = request.args.get('startOfDay')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    try:
+        from db import get_todays_stats
+        # Parse startOfDay if provided
+        start_timestamp = int(start_of_day) if start_of_day else None
+        stats = get_todays_stats(user_id, start_timestamp)
+        return jsonify(stats)
+    except Exception as e:
+        print(f"Error fetching today's stats: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     app.run(debug=True, host='0.0.0.0', port=port)
