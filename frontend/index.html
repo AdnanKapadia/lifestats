@@ -753,7 +753,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 70px;
+            min-height: 70px;
             background: rgba(39, 39, 42, 0.95);
             -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
@@ -761,8 +761,8 @@
             display: flex;
             justify-content: space-around;
             align-items: center;
-            padding: 0 8px;
-            padding-bottom: env(safe-area-inset-bottom, 0);
+            padding: 10px 8px;
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
             z-index: 90;
             box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
         }
@@ -1148,6 +1148,20 @@
             <h1>⚙️ Settings</h1>
 
             <div class="card">
+                <div class="section-title">Account</div>
+                <div class="user-id-container" id="userIdDisplay"
+                    style="background: rgba(39, 39, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.2s ease;">
+                    <div style="color: #a1a1aa; font-size: 0.9em; margin-bottom: 4px;">User ID</div>
+                    <div style="color: #2ECC71; font-size: 1.5em; font-weight: 700; font-family: monospace;">Loading...
+                    </div>
+                    <div
+                        style="color: #71717a; font-size: 0.8em; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                        <span>✏️</span> Tap to edit or link device
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
                 <div class="section-title">System</div>
                 <div style="display: flex; flex-direction: column; gap: 12px;">
                     <div style="color: #a1a1aa; font-size: 0.9em; margin-bottom: 8px;">
@@ -1160,7 +1174,10 @@
                     <div style="text-align: center; color: #52525b; font-size: 0.8em; margin-top: 8px;">
                         Build: 1.0.0
                     </div>
-                    <div class="user-id" id="userIdDisplay" style="margin-top: 16px;">User ID: Loading...</div>
+                    <div style="text-align: center; color: #52525b; font-size: 0.8em; margin-top: 8px;">
+                        Build: 1.0.0
+                    </div>
+
                 </div>
             </div>
 
@@ -1184,6 +1201,7 @@
                     ← Back
                 </button>
                 <h1 id="eventTrackingTitle" style="margin: 0; flex: 1;">Event Tracking</h1>
+                <div id="eventTrackingHeaderActions"></div>
             </div>
 
             <!-- Log Event Form -->
@@ -1620,7 +1638,11 @@
                     </select>
                 </div>
 
-                <div class="modal-footer">
+                <div class="modal-footer"
+                    style="display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
+                    <button type="button" id="deleteEventTypeBtn" class="meal-delete hidden"
+                        onclick="handleDeleteEventType()"
+                        style="margin-right: auto; padding: 10px 16px;">Delete</button>
                     <button type="button" class="btn-secondary" onclick="closeAddEventTypeModal()">Cancel</button>
                     <button type="submit" class="primary-btn">Create Event Type</button>
                 </div>
@@ -1763,8 +1785,10 @@
         const fatInput = document.getElementById('fatInput');
 
         // Display user ID
+        // Display user ID
         const userIdDisplay = document.getElementById('userIdDisplay');
-        userIdDisplay.textContent = `User ID: ${storage.userId} (Tap to edit)`;
+        const userIdText = userIdDisplay.children[1]; // The monospace div
+        userIdText.textContent = storage.userId;
 
         // Edit User ID
         userIdDisplay.addEventListener('click', () => {
@@ -2801,8 +2825,18 @@
             renumberAdditionalUnits();
         }
 
+        // Global state for editing
+        let editingEventTypeId = null;
+
         function openAddEventTypeModal() {
+            editingEventTypeId = null; // Reset edit mode
             const modal = document.getElementById('addEventTypeModalOverlay');
+            modal.querySelector('.modal-title').textContent = 'Add Event Type';
+            modal.querySelector('button[type="submit"]').textContent = 'Create Event Type';
+
+            // Hide delete button
+            document.getElementById('deleteEventTypeBtn').classList.add('hidden');
+
             modal.classList.remove('hidden');
             // Reset form
             document.getElementById('addEventTypeForm').reset();
@@ -2812,11 +2846,93 @@
             // Clear additional units
             document.getElementById('additionalUnitsContainer').innerHTML = '';
             additionalUnitCounter = 0;
+
+            // Show all fields by default
+            document.querySelectorAll('#addEventTypeForm .form-group').forEach(el => el.style.display = 'block');
+        }
+
+        function openEditEventTypeModal(eventType) {
+            editingEventTypeId = eventType.id;
+            const modal = document.getElementById('addEventTypeModalOverlay');
+            modal.querySelector('.modal-title').textContent = 'Edit Event Type';
+            modal.querySelector('button[type="submit"]').textContent = 'Save Changes';
+
+            // Show delete button
+            document.getElementById('deleteEventTypeBtn').classList.remove('hidden');
+
+            modal.classList.remove('hidden');
+            document.getElementById('addEventTypeForm').reset();
+
+            // Populate basic fields
+            document.getElementById('eventTypeName').value = eventType.name;
+            document.getElementById('eventTypeCategory').value = eventType.category;
+            document.getElementById('eventTypeIcon').value = eventType.icon;
+            document.getElementById('eventTypeColor').value = eventType.color;
+            document.getElementById('eventTypeAggregation').value = eventType.aggregationType;
+            document.getElementById('eventTypeTracking').value = eventType.trackingType || 'number';
+
+            // Populate Units
+            document.getElementById('additionalUnitsContainer').innerHTML = '';
+            additionalUnitCounter = 0;
+
+            if (eventType.fieldSchema && eventType.fieldSchema.fields && eventType.fieldSchema.fields.length > 0) {
+                // Primary Unit (First field)
+                const primaryField = eventType.fieldSchema.fields[0];
+                document.getElementById('eventTypePrimaryLabel').value = primaryField.label;
+                document.getElementById('eventTypePrimaryUnit').value = primaryField.unit;
+
+                // Additional Units (Rest)
+                for (let i = 1; i < eventType.fieldSchema.fields.length; i++) {
+                    const field = eventType.fieldSchema.fields[i];
+                    addAdditionalUnitField(); // Adds empty row
+
+                    // Get the last added row (current counter - 1)
+                    const rows = document.querySelectorAll('.additional-unit-row');
+                    const row = rows[rows.length - 1];
+
+                    row.querySelector('input[name="unit_label"]').value = field.label;
+                    row.querySelector('input[name="unit_symbol"]').value = field.unit;
+                    row.querySelector('input[name="unit_required"]').checked = field.required;
+                }
+            }
+        }
+
+        async function handleDeleteEventType() {
+            if (!editingEventTypeId) return;
+
+            if (confirm("Are you sure you want to delete this event type?\n\nWARNING: All logged history for this event will be permanently lost!")) {
+                const userId = localStorage.getItem('lifestats_userId');
+                try {
+                    const response = await fetch(`/api/event-types/${editingEventTypeId}?userId=${userId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        showNotification('Event type deleted');
+                        closeAddEventTypeModal();
+
+                        // If we are on the tracking page for this event, go back to Stats
+                        if (currentEventType && currentEventType.id === editingEventTypeId) {
+                            closeEventTrackingPage();
+                        }
+
+                        // Reload list
+                        await loadEventTypes(userId, currentCategoryFilter === 'all' ? null : currentCategoryFilter);
+                    } else {
+                        const err = await response.json();
+                        alert('Failed to delete: ' + (err.error || 'Unknown error'));
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Error deleting event type');
+                }
+            }
         }
 
         function closeAddEventTypeModal() {
             const modal = document.getElementById('addEventTypeModalOverlay');
             modal.classList.add('hidden');
+            editingEventTypeId = null;
         }
 
         async function handleAddEventTypeSubmit(event) {
@@ -2860,18 +2976,12 @@
                 }
             });
 
-            // If we have more than 1 unit, force tracking type to 'number' or keep user choice?
-            // The prompt implies this flexibilty is key.
-            // If they chose 'count', it might be weird with many fields.
-            // But let's trust the user's choice for Tracking Type (it mainly affects the List View UI).
-            // However, for data entry, we use the generated form based on schema.
-
             const formData = {
                 name: document.getElementById('eventTypeName').value,
                 category: document.getElementById('eventTypeCategory').value,
                 icon: document.getElementById('eventTypeIcon').value || '📊',
                 color: document.getElementById('eventTypeColor').value,
-                primaryUnit: primaryUnit, // Use the primary unit symbol
+                primaryUnit: primaryUnit,
                 aggregationType: document.getElementById('eventTypeAggregation').value,
                 trackingType: document.getElementById('eventTypeTracking').value,
                 fieldSchema: {
@@ -2880,8 +2990,16 @@
             };
 
             try {
-                const response = await fetch(`/api/event-types?userId=${userId}`, {
-                    method: 'POST',
+                let url = `/api/event-types?userId=${userId}`;
+                let method = 'POST';
+
+                if (editingEventTypeId) {
+                    url = `/api/event-types/${editingEventTypeId}?userId=${userId}`;
+                    method = 'PUT';
+                }
+
+                const response = await fetch(url, {
+                    method: method,
                     headers: {
                         'Content-Type': 'application/json'
                     },
@@ -2890,13 +3008,11 @@
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to create event type');
+                    throw new Error(errorData.error || 'Failed to save event type');
                 }
 
-                const newEventType = await response.json();
-
                 // Show success notification
-                showNotification('Event type created successfully!');
+                showNotification(editingEventTypeId ? 'Event type updated!' : 'Event type created!');
 
                 // Close modal
                 closeAddEventTypeModal();
@@ -2904,9 +3020,19 @@
                 // Reload event types
                 await loadEventTypes(userId, currentCategoryFilter === 'all' ? null : currentCategoryFilter);
 
+                // If we were viewing this event type, refresh the header/view
+                if (currentEventType && editingEventTypeId === currentEventType.id) {
+                    // We need to reload the current event type data
+                    // Since we just reloaded allEventTypes, we can find it there
+                    const updatedEt = allEventTypes.find(et => et.id === editingEventTypeId);
+                    if (updatedEt) {
+                        openEventTrackingPage(updatedEt);
+                    }
+                }
+
             } catch (error) {
-                console.error('Error creating event type:', error);
-                alert(`Failed to create event type: ${error.message}`);
+                console.error('Error saving event type:', error);
+                alert(`Failed to save event type: ${error.message}`);
             }
         }
 
@@ -2952,6 +3078,24 @@
 
             // Update title
             document.getElementById('eventTrackingTitle').innerHTML = `${eventType.icon || '📊'} ${eventType.name}`;
+
+            // Handle Edit Button Placement
+            // We target the right spacer in the header
+            const rightActionContainer = document.getElementById('eventTrackingHeaderActions');
+            if (rightActionContainer) {
+                if (eventType.userId) {
+                    rightActionContainer.innerHTML = `
+                        <button onclick='openEditEventTypeModal(${JSON.stringify(eventType).replace(/'/g, "&apos;")})'
+                            style="background: #2ECC71; border: none; border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);">
+                            <span style="font-size: 1.2em;">✏️</span>
+                        </button>
+                    `;
+                    rightActionContainer.style.width = 'auto'; // Release fixed width
+                } else {
+                    rightActionContainer.innerHTML = '';
+                    rightActionContainer.style.width = '40px'; // Restore spacer for layout balance
+                }
+            }
 
             // Render form fields
             renderEventForm(eventType.fieldSchema);
