@@ -889,6 +889,46 @@
             border-color: #2ECC71;
             color: #2ECC71;
         }
+
+        /* Rating Stars */
+        .rating-star-btn {
+            font-size: 32px;
+            color: #555;
+            cursor: pointer;
+            transition: transform 0.1s ease, color 0.2s ease;
+            user-select: none;
+            padding: 0 2px;
+        }
+
+        .rating-star-btn:active {
+            transform: scale(0.9);
+        }
+
+        .rating-star-btn.active {
+            color: #FFD700;
+            /* Gold */
+        }
+
+        .check-btn {
+            background: #2ECC71;
+            border: none;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            color: white;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-left: 8px;
+            box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .check-btn:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 
@@ -968,7 +1008,7 @@
                 </button>
                 <div style="flex: 1;">
                     <h1 style="margin: 0; font-size: 1.5em;">🍎 Food Logger</h1>
-                    <div class="user-id" id="userIdDisplay" style="margin-top: 4px;">User ID: Loading...</div>
+
                 </div>
             </div>
 
@@ -1118,8 +1158,9 @@
                         Force Update
                     </button>
                     <div style="text-align: center; color: #52525b; font-size: 0.8em; margin-top: 8px;">
-                        App Version: 1.0.0
+                        Build: 1.0.0
                     </div>
+                    <div class="user-id" id="userIdDisplay" style="margin-top: 16px;">User ID: Loading...</div>
                 </div>
             </div>
 
@@ -1542,9 +1583,21 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="eventTypePrimaryUnit">Primary Unit</label>
-                    <input type="text" id="eventTypePrimaryUnit" placeholder="e.g., reps, minutes, oz">
+                    <label>Primary Unit (Required)</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="eventTypePrimaryLabel" placeholder="Label (e.g. Distance)" required
+                            style="flex: 1">
+                        <input type="text" id="eventTypePrimaryUnit" placeholder="Unit (e.g. km)" required
+                            style="flex: 1">
+                    </div>
                 </div>
+
+                <div id="additionalUnitsContainer">
+                    <!-- Dynamic units go here -->
+                </div>
+
+                <button type="button" class="btn-secondary" onclick="addAdditionalUnitField()"
+                    style="width: 100%; margin-bottom: 20px; border-style: dashed;">+ Add Another Unit</button>
 
                 <div class="form-group">
                     <label for="eventTypeAggregation">Aggregation Type</label>
@@ -1561,9 +1614,9 @@
                     <label for="eventTypeTracking">Tracking Type</label>
                     <select id="eventTypeTracking"
                         style="width: 100%; padding: 12px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7; font-size: 1em;">
+                        <option value="number">Number (Input Box)</option>
                         <option value="count">Count (Plus Button)</option>
                         <option value="rating">Rating (5 Stars)</option>
-                        <option value="number">Number (Input Box)</option>
                     </select>
                 </div>
 
@@ -2613,12 +2666,17 @@
                         </button>
                     `;
                 } else if (trackingType === 'rating') {
+                    // New Two-Step Rating UI
                     rightSideContent = `
-                        <div class="rating-stars" style="display: flex; gap: 4px;" onclick="event.stopPropagation()">
-                            ${[1, 2, 3, 4, 5].map(i => `
-                                <span onclick="quickLogEvent(event, '${et.id}', '${et.category}', ${JSON.stringify(et).replace(/"/g, "&quot;")}, ${i})" 
-                                      style="cursor: pointer; font-size: 20px; color: #555;">★</span>
-                            `).join('')}
+                        <div class="rating-container" id="rating_container_${et.id}" data-rating="0" style="display: flex; align-items: center;" onclick="event.stopPropagation()">
+                            <div style="display: flex;">
+                                ${[1, 2, 3, 4, 5].map(i => `
+                                    <span class="rating-star-btn" id="star_${et.id}_${i}" onclick="selectRating('${et.id}', ${i})">★</span>
+                                `).join('')}
+                            </div>
+                            <button class="check-btn" onclick="submitRating('${et.id}', '${et.category}', ${JSON.stringify(et).replace(/"/g, "&quot;")})">
+                                ✓
+                            </button>
                         </div>
                     `;
                 } else if (trackingType === 'number') {
@@ -2687,6 +2745,62 @@
             }
         }
 
+        let additionalUnitCounter = 0;
+
+        function getOrdinal(n) {
+            const s = ["th", "st", "nd", "rd"];
+            const v = n % 100;
+            return n + (s[(v - 20) % 10] || s[v] || s[0]);
+        }
+
+        function renumberAdditionalUnits() {
+            const rows = document.querySelectorAll('.additional-unit-row');
+            rows.forEach((row, index) => {
+                const number = index + 2; // Primary is 1, so start at 2
+                const label = row.querySelector('.unit-row-label');
+                if (label) {
+                    label.textContent = `${getOrdinal(number)} Unit`;
+                }
+            });
+        }
+
+        function addAdditionalUnitField() {
+            const container = document.getElementById('additionalUnitsContainer');
+            const id = `additional_unit_${additionalUnitCounter++}`;
+
+            const div = document.createElement('div');
+            div.className = 'form-group additional-unit-row';
+            div.id = id;
+            div.style.background = 'rgba(39, 39, 42, 0.3)';
+            div.style.padding = '12px';
+            div.style.borderRadius = '8px';
+            div.style.marginBottom = '12px';
+
+            div.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                     <label class="unit-row-label" style="margin-bottom: 0; color: #e4e4e7;">Additional Unit</label>
+                     <div style="display: flex; align-items: center; gap: 12px;">
+                        <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; margin-bottom: 0;">
+                            <input type="checkbox" name="unit_required" style="width: auto; margin: 0;">
+                            <span style="font-size: 0.8em; color: #a1a1aa;">Required</span>
+                        </label>
+                        <button type="button" class="meal-delete" onclick="removeAdditionalUnitField('${id}')" style="padding: 4px 8px; font-size: 0.8em;">Delete</button>
+                     </div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" name="unit_label" placeholder="Label (e.g. Calories)" required style="flex: 1">
+                    <input type="text" name="unit_symbol" placeholder="Unit (e.g. kcal)" required style="flex: 1">
+                </div>
+            `;
+            container.appendChild(div);
+            renumberAdditionalUnits();
+        }
+
+        function removeAdditionalUnitField(id) {
+            document.getElementById(id)?.remove();
+            renumberAdditionalUnits();
+        }
+
         function openAddEventTypeModal() {
             const modal = document.getElementById('addEventTypeModalOverlay');
             modal.classList.remove('hidden');
@@ -2694,6 +2808,10 @@
             document.getElementById('addEventTypeForm').reset();
             document.getElementById('eventTypeIcon').value = '📊';
             document.getElementById('eventTypeColor').value = '#9C27B0';
+
+            // Clear additional units
+            document.getElementById('additionalUnitsContainer').innerHTML = '';
+            additionalUnitCounter = 0;
         }
 
         function closeAddEventTypeModal() {
@@ -2710,24 +2828,54 @@
                 return;
             }
 
+            const primaryLabel = document.getElementById('eventTypePrimaryLabel').value;
+            const primaryUnit = document.getElementById('eventTypePrimaryUnit').value;
+
+            // Construct fields array
+            const fields = [
+                {
+                    name: primaryLabel.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+                    type: 'number',
+                    required: true,
+                    label: primaryLabel,
+                    unit: primaryUnit
+                }
+            ];
+
+            // Add additional units
+            const additionalRows = document.querySelectorAll('.additional-unit-row');
+            additionalRows.forEach(row => {
+                const label = row.querySelector('input[name="unit_label"]').value;
+                const unit = row.querySelector('input[name="unit_symbol"]').value;
+                const required = row.querySelector('input[name="unit_required"]').checked;
+
+                if (label && unit) {
+                    fields.push({
+                        name: label.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+                        type: 'number',
+                        required: required,
+                        label: label,
+                        unit: unit
+                    });
+                }
+            });
+
+            // If we have more than 1 unit, force tracking type to 'number' or keep user choice?
+            // The prompt implies this flexibilty is key.
+            // If they chose 'count', it might be weird with many fields.
+            // But let's trust the user's choice for Tracking Type (it mainly affects the List View UI).
+            // However, for data entry, we use the generated form based on schema.
+
             const formData = {
                 name: document.getElementById('eventTypeName').value,
                 category: document.getElementById('eventTypeCategory').value,
                 icon: document.getElementById('eventTypeIcon').value || '📊',
                 color: document.getElementById('eventTypeColor').value,
-                primaryUnit: document.getElementById('eventTypePrimaryUnit').value || '',
+                primaryUnit: primaryUnit, // Use the primary unit symbol
                 aggregationType: document.getElementById('eventTypeAggregation').value,
                 trackingType: document.getElementById('eventTypeTracking').value,
                 fieldSchema: {
-                    fields: [
-                        {
-                            name: 'value',
-                            type: 'number',
-                            required: true,
-                            label: 'Value',
-                            unit: document.getElementById('eventTypePrimaryUnit').value || ''
-                        }
-                    ]
+                    fields: fields
                 }
             };
 
@@ -3009,6 +3157,112 @@
                 </div>
             `).join('');
         }
+
+        // ===== QUICK LOGGING FUNCTIONS =====
+
+        function selectRating(eventTypeId, value) {
+            const container = document.getElementById(`rating_container_${eventTypeId}`);
+            if (!container) return;
+
+            // Set data attribute
+            container.dataset.rating = value;
+
+            // Update visual state
+            for (let i = 1; i <= 5; i++) {
+                const star = document.getElementById(`star_${eventTypeId}_${i}`);
+                if (i <= value) {
+                    star.classList.add('active');
+                    star.style.color = '#FFD700';
+                } else {
+                    star.classList.remove('active');
+                    star.style.color = '#555';
+                }
+            }
+        }
+
+        async function submitRating(eventTypeId, category, eventTypeObj) {
+            event.stopPropagation(); // prevent row click
+
+            const container = document.getElementById(`rating_container_${eventTypeId}`);
+            const value = parseInt(container.dataset.rating);
+
+            if (!value || value === 0) {
+                alert('Please select a rating first');
+                return;
+            }
+
+            // Log it
+            await quickLogEvent(null, eventTypeId, category, eventTypeObj, value);
+
+            // Reset visual state
+            selectRating(eventTypeId, 0);
+        }
+
+        async function quickLogEventNumber(event, eventTypeId, category, eventTypeObj) {
+            event.stopPropagation();
+            const input = document.getElementById(`quick_input_${eventTypeId}`);
+            const value = parseFloat(input.value);
+
+            if (isNaN(value)) {
+                alert('Please enter a valid number');
+                return;
+            }
+
+            await quickLogEvent(null, eventTypeId, category, eventTypeObj, value);
+
+            // Clear input
+            input.value = '';
+        }
+
+        async function quickLogEvent(event, eventTypeId, category, eventTypeObj, value = 1) {
+            if (event) event.stopPropagation();
+
+            const userId = localStorage.getItem('lifestats_userId');
+            if (!userId) return;
+
+            // Construct payload based on schema
+            // For simple tracking, we assume the single 'value' field is what we want
+            // If schema has multiple fields, we might need a default mapping
+            const formData = {
+                value: value
+            };
+
+            const eventData = {
+                id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                userId: userId,
+                eventTypeId: eventTypeId,
+                timestamp: Date.now(),
+                category: category,
+                data: formData,
+                notes: 'Quick log'
+            };
+
+            try {
+                // Optimistic UI update (optional, but good for UX)
+                showNotification('Logging...');
+
+                const response = await fetch(`/api/events`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(eventData)
+                });
+
+                if (!response.ok) throw new Error('Failed to log');
+
+                showNotification('Saved! ✅');
+
+                // Refresh stats
+                if (navigator.vibrate) navigator.vibrate(50);
+                await loadEventTypes(userId, currentCategoryFilter === 'all' ? null : currentCategoryFilter);
+
+            } catch (error) {
+                console.error('Quick log error:', error);
+                showNotification('Failed to save ❌');
+            }
+        }
+
 
 
     </script>
