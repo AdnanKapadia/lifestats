@@ -461,7 +461,11 @@ def ios_health_webhook():
     Upserts a 'steps' event for the given date.
     Body: { "steps": 1234, "date": "2023-10-27", "userId": "..." }
     """
-    data = request.json
+    # Use force=True to handle cases where Content-Type header is missing (common in Shortcuts)
+    try:
+        data = request.get_json(force=True)
+    except Exception:
+        data = None
     
     if not data or 'userId' not in data or 'steps' not in data or 'date' not in data:
         return jsonify({'error': 'userId, steps, and date required'}), 400
