@@ -197,6 +197,11 @@ def init_db():
                 EXCEPTION
                     WHEN duplicate_column THEN NULL;
                 END;
+                BEGIN
+                    ALTER TABLE event_types ADD COLUMN is_favorite BOOLEAN DEFAULT false;
+                EXCEPTION
+                    WHEN duplicate_column THEN NULL;
+                END;
             END $$;
         """)
         
@@ -342,6 +347,22 @@ def seed_event_types():
                         {'name': 'duration', 'type': 'number', 'required': True, 'unit': 'minutes', 'label': 'Duration'},
                         {'name': 'distance', 'type': 'number', 'unit': 'miles', 'label': 'Distance'},
                         {'name': 'calories_burned', 'type': 'number', 'unit': 'kcal', 'label': 'Calories Burned'}
+                    ]
+                }
+            },
+            {
+                'id': 'steps',
+                'user_id': None,
+                'category': 'Fitness',
+                'name': 'Steps',
+                'icon': '👣',
+                'color': '#FF5722',
+                'aggregation_type': 'max',  # We want the highest value to represent the day (accumulating)
+                'primary_unit': 'steps',
+                'tracking_type': 'number',
+                'field_schema': {
+                    'fields': [
+                        {'name': 'count', 'type': 'number', 'required': True, 'unit': 'steps', 'label': 'Count'}
                     ]
                 }
             }
@@ -619,6 +640,7 @@ def get_event_types(user_id=None, category=None, include_inactive=False):
                 'aggregationType': et['aggregation_type'],
                 'primaryUnit': et['primary_unit'],
                 'trackingType': et.get('tracking_type', 'count'),
+                'isFavorite': et.get('is_favorite', False),
                 'isActive': et['is_active'],
                 'createdAt': et['created_at'].isoformat() if et['created_at'] else None,
                 'updatedAt': et['updated_at'].isoformat() if et['updated_at'] else None
@@ -649,7 +671,9 @@ def get_event_type(event_type_id):
             'fieldSchema': et['field_schema'],
             'aggregationType': et['aggregation_type'],
             'primaryUnit': et['primary_unit'],
+            'primaryUnit': et['primary_unit'],
             'trackingType': et.get('tracking_type', 'count'),
+            'isFavorite': et.get('is_favorite', False),
             'isActive': et['is_active'],
             'createdAt': et['created_at'].isoformat() if et['created_at'] else None,
             'updatedAt': et['updated_at'].isoformat() if et['updated_at'] else None
@@ -669,8 +693,8 @@ def create_event_type(user_id, event_type_data):
         event_type_id = f"custom_{user_id[:8]}_{event_type_id}"
         
         cur.execute("""
-            INSERT INTO event_types (id, user_id, category, name, icon, color, field_schema, aggregation_type, primary_unit, tracking_type)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO event_types (id, user_id, category, name, icon, color, field_schema, aggregation_type, primary_unit, tracking_type, is_favorite)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING *
         """, (
             event_type_id,
@@ -682,7 +706,8 @@ def create_event_type(user_id, event_type_data):
             json.dumps(event_type_data['fieldSchema']),
             event_type_data.get('aggregationType', 'sum'),
             event_type_data.get('primaryUnit', ''),
-            event_type_data.get('trackingType', 'count')
+            event_type_data.get('trackingType', 'count'),
+            event_type_data.get('isFavorite', False)
         ))
         
         result = cur.fetchone()
@@ -698,6 +723,7 @@ def create_event_type(user_id, event_type_data):
             'fieldSchema': result['field_schema'],
             'aggregationType': result['aggregation_type'],
             'primaryUnit': result['primary_unit'],
+            'isFavorite': result.get('is_favorite', False),
             'isActive': result['is_active']
         }
     except Exception as e:
@@ -737,6 +763,9 @@ def update_event_type(event_type_id, user_id, updates):
         if 'trackingType' in updates:
             fields.append("tracking_type = %s")
             values.append(updates['trackingType'])
+        if 'isFavorite' in updates:
+            fields.append("is_favorite = %s")
+            values.append(updates['isFavorite'])
         if 'isActive' in updates:
             fields.append("is_active = %s")
             values.append(updates['isActive'])
@@ -810,6 +839,107 @@ def log_event(event_data):
             'notes': result['notes'],
             'createdAt': result['created_at'].isoformat() if result['created_at'] else None
         }
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
+def upsert_daily_event(user_id, event_type_id, date_str, data, category):
+    """
+    Update or Insert an event for a specific day.
+    Useful for synced data like steps where we want the 'latest' total for the day.
+    """
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        
+        # Check for existing event of this type on this day
+        # We assume timestamp is stored as milliseconds. 
+        # We need to find the range for the given date (UTC? Local? Passed date_str should be handled).
+        # Actually, for simplicity, let's assume the caller passes a timestamp or we construct one.
+        # But 'date_str' implies ISO date "YYYY-MM-DD".
+        # Let's rely on the caller passing a timestamp that falls into that day, 
+        # OR better: The caller passes the EXACT timestamp of the sync.
+        
+        # Wait, if we 'upsert' for a DAY, we need to know the Day boundaries.
+        # But user timezones make this hard on backend.
+        # A simpler 'sync' approach:
+        # Just find the MOST RECENT event of this type for this user.
+        # IF it was today (based on server time? or provided date?), update it.
+        # ELSE create new.
+        
+        # BETTER APPROACH asked by Prompt: "overwrite any existing step count for the current day"
+        # We will require an 'identifier' for the day, or we blindly update the last one if it matches the date.
+        
+        # Let's try to match by exact date-string in 'data' or a specific tag? 
+        # No, let's use a convention: The 'notes' field could store "Synced from iOS: YYYY-MM-DD"
+        # Or just search for event in range.
+        
+        # Provided Plan says: "Checks for an existing event of event_type_id for the given date."
+        # We will expect the caller to convert "YYYY-MM-DD" to a timestamp range or similar.
+        # Let's stick to: We look for an event w/ timestamp roughly in the last 24h?
+        # No, that's sloppy.
+        
+        # Re-reading Plan: "Accept JSON: { steps, date, userId }"
+        # The 'date' is ISO string. 
+        # We can store this 'date' string in the 'notes' or a new field to guarantee uniqueness per day?
+        # Or just query: SELECT * FROM events WHERE ... AND notes = 'iOS Sync: <DATE>'
+        
+        search_note = f"iOS Sync: {date_str}"
+        
+        cur.execute("""
+            SELECT id FROM events 
+            WHERE user_id = %s 
+            AND event_type_id = %s 
+            AND notes = %s
+            LIMIT 1
+        """, (user_id, event_type_id, search_note))
+        
+        existing = cur.fetchone()
+        
+        import time
+        from datetime import datetime
+        # If we have a date string "2023-10-27", we can make a timestamp around noon that day?
+        # Or just Current Time if it's "today".
+        # Let's use Current Time for the timestamp if it's new, but keep the 'date' in notes for the unique constraint.
+        # Actually, if we backfill, we want the timestamp to reflect that date.
+        
+        try:
+            # Parse YYYY-MM-DD
+            dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            # If it's just a date, fromisoformat might fail if not careful, but ISO 8601 usually OK.
+            # If input is '2023-01-01', fromisoformat works in Py 3.7+.
+            # We want a timestamp in MS.
+            # Let's set it to Noon UTC on that day to be safe? 
+            # Or simpler: The user script sends current time ISO.
+            timestamp = int(dt.timestamp() * 1000)
+        except:
+             timestamp = int(time.time() * 1000)
+
+        if existing:
+            # Update
+            event_id = existing['id']
+            cur.execute("""
+                UPDATE events 
+                SET data = %s, timestamp = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (json.dumps(data), timestamp, event_id))
+            action = 'updated'
+            new_id = event_id
+        else:
+            # Insert
+            import uuid
+            new_id = f"evt_{uuid.uuid4().hex[:12]}"
+            cur.execute("""
+                INSERT INTO events (id, user_id, event_type_id, timestamp, category, data, notes)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (new_id, user_id, event_type_id, timestamp, category, json.dumps(data), search_note))
+            action = 'created'
+            
+        conn.commit()
+        return {'id': new_id, 'action': action}
+        
     except Exception as e:
         conn.rollback()
         raise e
@@ -1189,10 +1319,12 @@ def get_todays_stats(user_id, start_timestamp=None):
             elif aggr_type == 'last':
                 # Relying on order (implied by fetch, but better to be explicit if we did DB sort)
                 # Here we just overwrite, so last processed is "last" (if sorted by time)
-                # But fetch didn't sort, so this is flaky. Let's rely on accumulation for now
-                # 'last' doesn't make much sense for "Today's Total" card context usually, 
-                # unless "Last Weight Today".
                 temp_aggregates[et_id] = value
+            elif aggr_type == 'max':
+                if et_id not in temp_aggregates:
+                     temp_aggregates[et_id] = value
+                else:
+                     temp_aggregates[et_id] = max(temp_aggregates[et_id], value)
 
         # Format results
         for et_id, val in temp_aggregates.items():

@@ -451,6 +451,52 @@ def health():
 
 
 # ============================================================================
+# INTEGRATION API ROUTES
+# ============================================================================
+
+@app.route('/api/integrations/ios-health', methods=['POST'])
+def ios_health_webhook():
+    """
+    Webhook for iOS Shortcuts to push daily steps.
+    Upserts a 'steps' event for the given date.
+    Body: { "steps": 1234, "date": "2023-10-27", "userId": "..." }
+    """
+    data = request.json
+    
+    if not data or 'userId' not in data or 'steps' not in data or 'date' not in data:
+        return jsonify({'error': 'userId, steps, and date required'}), 400
+        
+    try:
+        from db import upsert_daily_event
+        
+        user_id = data['userId']
+        date_str = data['date'] # YYYY-MM-DD
+        steps = int(data['steps'])
+        
+        event_data = {
+            'count': steps
+        }
+        
+        # Optional: Add distance if provided
+        if 'distance' in data:
+            event_data['distance'] = float(data['distance'])
+            
+        result = upsert_daily_event(
+            user_id=user_id,
+            event_type_id='steps',
+            date_str=date_str, 
+            data=event_data,
+            category='Fitness'
+        )
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error processing iOS health webhook: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
 # EVENT TYPE API ROUTES
 # ============================================================================
 

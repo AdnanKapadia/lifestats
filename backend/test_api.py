@@ -34,7 +34,7 @@ def test_event_types():
     # 3. Create custom event type
     print("\n3. POST /api/event-types (Create custom type)")
     custom_type = {
-        'name': 'Guitar Practice',
+        'name': f'Guitar Practice {int(time.time())}',
         'category': 'Hobbies',
         'icon': '🎸',
         'color': '#9C27B0',
@@ -56,6 +56,32 @@ def test_event_types():
     if response.status_code == 201:
         created_type = response.json()
         print(f"Created: {created_type['name']} (ID: {created_type['id']})")
+
+        # 4. Modify custom event type (including favorite status)
+        print(f"\n4. PUT /api/event-types/{created_type['id']} (Update custom type)")
+        updates = {
+            'name': 'Updated Guitar Practice',
+            'isFavorite': True,
+            'icon': '🎶'
+        }
+        response = requests.put(
+            f"{BASE_URL}/api/event-types/{created_type['id']}",
+            params={'userId': USER_ID},
+            json=updates
+        )
+        print(f"Status: {response.status_code}")
+        if response.status_code == 200:
+            # Verify update
+            response = requests.get(f"{BASE_URL}/api/event-types/{created_type['id']}")
+            updated_type = response.json()
+            print(f"Updated: {updated_type['name']} (Favorite: {updated_type['isFavorite']})")
+            if updated_type['name'] == 'Updated Guitar Practice' and updated_type['isFavorite'] == True:
+                print("✓ Custom event type updated successfully (including favorite)")
+            else:
+                print("✗ Custom event type update verification failed.")
+        else:
+            print(f"Error updating event type: {response.json()}")
+
         return created_type['id']
     else:
         print(f"Error: {response.json()}")
