@@ -462,7 +462,6 @@ def ios_health_webhook():
     Body: { "steps": 1234, "date": "2023-10-27", "userId": "..." }
     """
 
-    # Use force=True to handle cases where Content-Type header is missing (common in Shortcuts)
     try:
         data = request.get_json(force=True)
     except Exception:
@@ -470,7 +469,13 @@ def ios_health_webhook():
         data = request.form.to_dict() if request.form else request.args.to_dict()
     
     if not data:
-         return jsonify({'error': 'No data received', 'details': 'Request body was empty or not JSON'}), 400
+         # Debug: Return what we actually got
+         raw_body = request.data.decode('utf-8', errors='ignore')
+         return jsonify({
+             'error': 'No data received', 
+             'details': 'Request body was empty or not JSON',
+             'raw_body_received': raw_body
+         }), 400
 
     required = ['userId', 'steps', 'date']
     missing = [k for k in required if k not in data]
