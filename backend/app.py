@@ -461,14 +461,29 @@ def ios_health_webhook():
     Upserts a 'steps' event for the given date.
     Body: { "steps": 1234, "date": "2023-10-27", "userId": "..." }
     """
+    Upserts a 'steps' event for the given date.
+    Body: { "steps": 1234, "date": "2023-10-27", "userId": "..." }
+    """
     # Use force=True to handle cases where Content-Type header is missing (common in Shortcuts)
     try:
         data = request.get_json(force=True)
     except Exception:
-        data = None
+        # Try form data or arguments if JSON fails
+        data = request.form.to_dict() if request.form else request.args.to_dict()
     
-    if not data or 'userId' not in data or 'steps' not in data or 'date' not in data:
-        return jsonify({'error': 'userId, steps, and date required'}), 400
+    if not data:
+         return jsonify({'error': 'No data received', 'details': 'Request body was empty or not JSON'}), 400
+
+    required = ['userId', 'steps', 'date']
+    missing = [k for k in required if k not in data]
+    
+    if missing:
+        return jsonify({
+            'error': 'Missing fields', 
+            'missing': missing,
+            'received_keys': list(data.keys()),
+            'received_data': data
+        }), 400
         
     try:
         from db import upsert_daily_event
