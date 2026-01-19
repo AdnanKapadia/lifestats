@@ -76,6 +76,14 @@ def init_db():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             
+            -- User Favorites Table: Linking users to their favorite event types (system or custom)
+            CREATE TABLE IF NOT EXISTS favorite_event_types (
+                user_id VARCHAR(50) NOT NULL,
+                event_type_id VARCHAR(50) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, event_type_id)
+            );
+            
             -- Events Table: Unified storage for all event types
             CREATE TABLE IF NOT EXISTS events (
                 id VARCHAR(50) PRIMARY KEY,
@@ -602,26 +610,33 @@ def get_event_types(user_id=None, category=None, include_inactive=False):
     try:
         cur = conn.cursor()
         
-        query = "SELECT * FROM event_types WHERE 1=1"
-        params = []
+        # Modified query to include favorite status via JOIN
+        query = """
+            SELECT et.*, 
+                   CASE WHEN fet.user_id IS NOT NULL THEN true ELSE false END as is_user_favorite
+            FROM event_types et
+            LEFT JOIN favorite_event_types fet ON et.id = fet.event_type_id AND fet.user_id = %s
+            WHERE 1=1
+        """
+        params = [user_id]
         
         # Filter by user (system types have NULL user_id)
         if user_id is not None:
-            query += " AND (user_id IS NULL OR user_id = %s)"
+            query += " AND (et.user_id IS NULL OR et.user_id = %s)"
             params.append(user_id)
         else:
-            query += " AND user_id IS NULL"  # Only system types
+            query += " AND et.user_id IS NULL"  # Only system types
         
         # Filter by category
         if category:
-            query += " AND category = %s"
+            query += " AND et.category = %s"
             params.append(category)
         
         # Filter by active status
         if not include_inactive:
-            query += " AND is_active = true"
+            query += " AND et.is_active = true"
         
-        query += " ORDER BY category, name"
+        query += " ORDER BY et.category, et.name"
         
         cur.execute(query, tuple(params))
         event_types = cur.fetchall()
@@ -640,7 +655,7 @@ def get_event_types(user_id=None, category=None, include_inactive=False):
                 'aggregationType': et['aggregation_type'],
                 'primaryUnit': et['primary_unit'],
                 'trackingType': et.get('tracking_type', 'count'),
-                'isFavorite': et.get('is_favorite', False),
+                'isFavorite': et.get('is_user_favorite', False), # Use the computed column
                 'isActive': et['is_active'],
                 'createdAt': et['created_at'].isoformat() if et['created_at'] else None,
                 'updatedAt': et['updated_at'].isoformat() if et['updated_at'] else None
@@ -782,6 +797,31 @@ def update_event_type(event_type_id, user_id, updates):
         updated = cur.rowcount > 0
         conn.commit()
         return updated
+    finally:
+        conn.close()
+
+def toggle_event_type_favorite(user_id, event_type_id, status):
+    """Toggle favorite status for an event type (System or Custom)."""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        
+        if status:
+            # Add to favorites
+            cur.execute("""
+                INSERT INTO favorite_event_types (user_id, event_type_id)
+                VALUES (%s, %s)
+                ON CONFLICT (user_id, event_type_id) DO NOTHING
+            """, (user_id, event_type_id))
+        else:
+            # Remove from favorites
+            cur.execute("""
+                DELETE FROM favorite_event_types
+                WHERE user_id = %s AND event_type_id = %s
+            """, (user_id, event_type_id))
+            
+        conn.commit()
+        return True
     finally:
         conn.close()
 
@@ -1338,3 +1378,238 @@ def get_todays_stats(user_id, start_timestamp=None):
     finally:
         conn.close()
 
+# ============================================================================
+# CHART DATA FUNCTIONS
+# ============================================================================
+
+def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_overrides=None, field_overrides=None):
+    """
+    Get chart data for multiple event types, aggregated by day.
+    
+    Args:
+        user_id: User ID
+        event_type_ids: List of event type IDs to chart
+        start_date: Start timestamp in milliseconds
+        end_date: End timestamp in milliseconds  
+        aggregation_overrides: Dict of {eventTypeId: aggregationType} for per-series overrides
+        field_overrides: Dict of {eventTypeId: fieldName} for specifying which field to extract
+    
+    Returns:
+        {
+            labels: ["2026-01-12", "2026-01-13", ...],
+            datasets: [
+                {
+                    eventTypeId: "steps",
+                    name: "Steps",
+                    unit: "steps",
+                    color: "#4CAF50",
+                    aggregationType: "sum",
+                    field: "value",
+                    data: [5432, 8123, ...]
+                },
+                ...
+            ]
+        }
+    """
+    from datetime import datetime, timedelta
+    
+    if aggregation_overrides is None:
+        aggregation_overrides = {}
+    if field_overrides is None:
+        field_overrides = {}
+    
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        
+        # 1. Get event type metadata
+        placeholders = ','.join(['%s'] * len(event_type_ids))
+        cur.execute(f"""
+            SELECT id, name, icon, color, aggregation_type, primary_unit, field_schema
+            FROM event_types
+            WHERE id IN ({placeholders})
+        """, tuple(event_type_ids))
+        
+        event_types = {et['id']: et for et in cur.fetchall()}
+        
+        # 2. Generate date labels from start to end
+        start_dt = datetime.fromtimestamp(start_date / 1000)
+        end_dt = datetime.fromtimestamp(end_date / 1000)
+        
+        labels = []
+        current = start_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_day = end_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        while current <= end_day:
+            labels.append(current.strftime('%Y-%m-%d'))
+            current += timedelta(days=1)
+        
+        # Separate meal type from other event types
+        has_meal = 'meal' in event_type_ids
+        other_event_type_ids = [et_id for et_id in event_type_ids if et_id != 'meal']
+        
+        # Structure: { eventTypeId: { 'YYYY-MM-DD': [values], ... } }
+        grouped = {et_id: {label: [] for label in labels} for et_id in event_type_ids}
+        
+        # 3a. Handle MEAL type specially (from meals table)
+        if has_meal:
+            meal_field = field_overrides.get('meal', 'calories')
+            # Map frontend field names to DB column names
+            meal_field_map = {
+                'calories': 'calories',
+                'protein': 'protein',
+                'carbs': 'carbs',
+                'fat': 'fat',
+                'fiber': 'fiber',
+                'sugar': 'sugar',
+                'cholesterol': 'cholesterol',
+                'sodium': 'sodium',
+                'saturatedFat': 'saturated_fat',
+                'transFat': 'trans_fat',
+                'polyunsaturatedFat': 'polyunsaturated_fat',
+                'monounsaturatedFat': 'monounsaturated_fat',
+                'addedSugar': 'added_sugar',
+                'vitaminD': 'vitamin_d',
+                'calcium': 'calcium',
+                'iron': 'iron',
+                'potassium': 'potassium',
+                'vitaminC': 'vitamin_c'
+            }
+            db_field = meal_field_map.get(meal_field, 'calories')
+            
+            cur.execute(f"""
+                SELECT 
+                    {db_field} as value,
+                    timestamp,
+                    DATE(to_timestamp(timestamp / 1000.0)) as meal_date
+                FROM meals
+                WHERE user_id = %s 
+                AND timestamp >= %s 
+                AND timestamp <= %s
+                ORDER BY timestamp ASC
+            """, (user_id, start_date, end_date))
+            
+            meal_rows = cur.fetchall()
+            for row in meal_rows:
+                date_str = row['meal_date'].strftime('%Y-%m-%d')
+                if date_str in grouped['meal']:
+                    val = row['value']
+                    if val is not None:
+                        grouped['meal'][date_str].append(float(val))
+        
+        # 3b. Query events for other event types
+        if other_event_type_ids:
+            other_placeholders = ','.join(['%s'] * len(other_event_type_ids))
+            cur.execute(f"""
+                SELECT 
+                    event_type_id,
+                    data,
+                    timestamp,
+                    DATE(to_timestamp(timestamp / 1000.0)) as event_date
+                FROM events
+                WHERE user_id = %s 
+                AND event_type_id IN ({other_placeholders})
+                AND timestamp >= %s 
+                AND timestamp <= %s
+                ORDER BY timestamp ASC
+            """, (user_id, *other_event_type_ids, start_date, end_date))
+            
+            events = cur.fetchall()
+            
+            for event in events:
+                et_id = event['event_type_id']
+                date_str = event['event_date'].strftime('%Y-%m-%d')
+                
+                if date_str not in grouped[et_id]:
+                    continue
+                
+                # Extract numeric value from data
+                data = event['data']
+                value = 0
+                
+                # Use field override if specified
+                selected_field = field_overrides.get(et_id)
+                if selected_field and selected_field in data:
+                    val = data[selected_field]
+                    if isinstance(val, (int, float)) and not isinstance(val, bool):
+                        value = float(val)
+                elif 'value' in data:
+                    value = float(data['value'])
+                elif 'count' in data:
+                    value = float(data['count'])
+                elif 'amount' in data:
+                    value = float(data['amount'])
+                elif 'duration' in data:
+                    value = float(data['duration'])
+                elif 'reps' in data:
+                    value = float(data['reps'])
+                elif 'rating' in data:
+                    value = float(data['rating'])
+                elif isinstance(data, dict):
+                    # Fallback: take first numeric value
+                    for k, v in data.items():
+                        if isinstance(v, (int, float)) and not isinstance(v, bool):
+                            value = float(v)
+                            break
+                
+                grouped[et_id][date_str].append(value)
+        
+        # 4. Aggregate values by type's aggregation method
+        datasets = []
+        
+        for et_id in event_type_ids:
+            if et_id not in event_types:
+                continue
+                
+            et = event_types[et_id]
+            
+            # Use override aggregation if provided, else use event type default
+            agg_type = aggregation_overrides.get(et_id, et.get('aggregation_type', 'sum'))
+            
+            # Determine selected field and unit for display
+            selected_field = field_overrides.get(et_id)
+            unit = et.get('primary_unit', '')
+            
+            # For meal type, show the specific nutrient name
+            if et_id == 'meal' and selected_field:
+                unit = selected_field  # e.g., "protein", "carbs"
+            
+            data_points = []
+            for label in labels:
+                values = grouped[et_id][label]
+                
+                if not values:
+                    data_points.append(None)  # No data for this day
+                elif agg_type == 'sum' or agg_type == 'sum_today':
+                    data_points.append(sum(values))
+                elif agg_type == 'average':
+                    data_points.append(sum(values) / len(values))
+                elif agg_type == 'count':
+                    data_points.append(len(values))
+                elif agg_type == 'last':
+                    data_points.append(values[-1])
+                elif agg_type == 'max':
+                    data_points.append(max(values))
+                elif agg_type == 'min':
+                    data_points.append(min(values))
+                else:
+                    data_points.append(sum(values))  # Default to sum
+            
+            datasets.append({
+                'eventTypeId': et_id,
+                'name': et.get('name', et_id),
+                'icon': et.get('icon', '📊'),
+                'unit': unit,
+                'color': et.get('color', '#9C27B0'),
+                'aggregationType': agg_type,
+                'field': selected_field,
+                'data': data_points
+            })
+        
+        return {
+            'labels': labels,
+            'datasets': datasets
+        }
+        
+    finally:
+        conn.close()

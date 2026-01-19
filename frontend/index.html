@@ -21,6 +21,9 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/icon-512.png">
 
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -743,6 +746,17 @@
             transform: scale(0.95);
         }
 
+        /* Goals Tab Chips */
+        .goals-range-chip.active {
+            background: rgba(46, 204, 113, 0.2);
+            border-color: #2ECC71;
+            color: #2ECC71;
+        }
+
+        .goals-metric-chip.selected {
+            font-weight: 500;
+        }
+
         /* Page Container Styles */
         .page-content {
             display: none;
@@ -991,12 +1005,74 @@
     <!-- Page 2: Goals -->
     <div id="page2" class="page-content">
         <div class="container">
-            <h1>🎯 Goals</h1>
+            <h1>📈 Insights</h1>
+
+            <!-- Event Type Selection -->
             <div class="card">
-                <div class="section-title">Coming Soon</div>
-                <div class="empty-state">
-                    <div class="empty-state-emoji">🎯</div>
-                    <p>Your goals and targets will be displayed here</p>
+                <div class="section-title">Select Metrics to Chart</div>
+                <div id="goalsEventTypeChips" class="chip-container" style="flex-wrap: wrap; gap: 8px;">
+                    <!-- Event type chips will be inserted here -->
+                    <div class="empty-state" style="padding: 20px 0;">
+                        <p>Loading event types...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Time Range Selection -->
+            <div class="card">
+                <div class="section-title">Time Range</div>
+                <div class="chip-container" style="margin-bottom: 12px;">
+                    <div class="chip goals-range-chip" data-range="7d" onclick="setGoalsTimeRange('7d')">7 Days</div>
+                    <div class="chip goals-range-chip active" data-range="30d" onclick="setGoalsTimeRange('30d')">30
+                        Days</div>
+                    <div class="chip goals-range-chip" data-range="1y" onclick="setGoalsTimeRange('1y')">1 Year</div>
+                    <div class="chip goals-range-chip" data-range="all" onclick="setGoalsTimeRange('all')">All Time
+                    </div>
+                    <div class="chip goals-range-chip" data-range="custom" onclick="toggleCustomDatePicker()">📅 Custom
+                    </div>
+                </div>
+
+                <!-- Custom Date Picker (hidden by default) -->
+                <div id="customDatePicker"
+                    style="display: none; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div style="display: flex; gap: 12px; align-items: flex-end;">
+                        <div style="flex: 1;">
+                            <label
+                                style="display: block; margin-bottom: 4px; font-size: 0.85em; color: #a1a1aa;">From</label>
+                            <input type="date" id="goalsStartDate"
+                                style="width: 100%; padding: 10px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label
+                                style="display: block; margin-bottom: 4px; font-size: 0.85em; color: #a1a1aa;">To</label>
+                            <input type="date" id="goalsEndDate"
+                                style="width: 100%; padding: 10px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7;">
+                        </div>
+                        <button onclick="applyCustomDateRange()"
+                            style="padding: 10px 16px; background: #2ECC71; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                            Apply
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aggregation Controls (shown when metrics selected) -->
+            <div id="goalsAggregationCard" class="card" style="display: none;">
+                <div class="section-title">Aggregation Settings</div>
+                <div id="goalsAggregationControls" style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Per-series aggregation dropdowns inserted here -->
+                </div>
+            </div>
+
+            <!-- Chart Container -->
+            <div class="card">
+                <div id="goalsChartContainer" style="position: relative; width: 100%; min-height: 300px;">
+                    <canvas id="goalsChart"></canvas>
+                    <div id="goalsChartEmpty" class="empty-state"
+                        style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <div class="empty-state-emoji">📊</div>
+                        <p>Select metrics above to see your data</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1005,15 +1081,17 @@
     <!-- Page 3: Food Logging (Current Page) -->
     <div id="page3" class="page-content active">
         <div class="container">
-            <!-- Header with back button -->
+            <!-- Header with back button and favorite -->
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
                 <button onclick="switchPage(1)"
                     style="background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; color: #e4e4e7; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9em;">
                     ← Back
                 </button>
                 <div style="flex: 1;">
-                    <h1 style="margin: 0; font-size: 1.5em;">🍎 Food Logger</h1>
-
+                    <h1 style="margin: 0; font-size: 1.5em;">🍽️ Meal</h1>
+                </div>
+                <div id="mealFavoriteContainer">
+                    <!-- Favorite button will be inserted here by JS -->
                 </div>
             </div>
 
@@ -1265,8 +1343,8 @@
             <div class="tab-label">Stats</div>
         </div>
         <div class="tab-item" onclick="switchPage(2)">
-            <div class="tab-icon">🎯</div>
-            <div class="tab-label">Goals</div>
+            <div class="tab-icon">📈</div>
+            <div class="tab-label">Insights</div>
         </div>
         <div class="tab-item active" onclick="switchPage(7)">
             <div class="tab-icon">🏠</div>
@@ -1297,6 +1375,408 @@
             <script>
                 // ... (Existing scripts) ...
 
+                // ===== GOALS TAB CHARTING =====
+                let goalsChart = null;
+                let goalsSelectedEventTypes = [];
+                let goalsTimeRange = '30d';
+                let goalsCustomStartDate = null;
+                let goalsCustomEndDate = null;
+                let goalsAggregationOverrides = {};
+                let goalsFieldOverrides = {};
+
+                // Available fields for meal type
+                const mealFields = [
+                    { value: 'calories', label: 'Calories (kcal)' },
+                    { value: 'protein', label: 'Protein (g)' },
+                    { value: 'carbs', label: 'Carbs (g)' },
+                    { value: 'fat', label: 'Fat (g)' },
+                    { value: 'fiber', label: 'Fiber (g)' },
+                    { value: 'sugar', label: 'Sugar (g)' },
+                    { value: 'sodium', label: 'Sodium (mg)' },
+                    { value: 'cholesterol', label: 'Cholesterol (mg)' },
+                    { value: 'saturatedFat', label: 'Saturated Fat (g)' },
+                    { value: 'transFat', label: 'Trans Fat (g)' },
+                    { value: 'calcium', label: 'Calcium (mg)' },
+                    { value: 'iron', label: 'Iron (mg)' },
+                    { value: 'potassium', label: 'Potassium (mg)' },
+                    { value: 'vitaminC', label: 'Vitamin C (mg)' },
+                    { value: 'vitaminD', label: 'Vitamin D (mcg)' }
+                ];
+
+                function initGoalsTab() {
+                    // Populate event type chips when allEventTypes is loaded
+                    if (typeof allEventTypes !== 'undefined' && allEventTypes.length > 0) {
+                        renderGoalsEventTypeChips();
+                    }
+                    // Set default dates for custom picker
+                    const today = new Date();
+                    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    document.getElementById('goalsEndDate').value = today.toISOString().split('T')[0];
+                    document.getElementById('goalsStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+                }
+
+                function renderGoalsEventTypeChips() {
+                    const container = document.getElementById('goalsEventTypeChips');
+                    if (!container) return;
+
+                    // Filter out inactive types
+                    const chartableTypes = (typeof allEventTypes !== 'undefined' ? allEventTypes : [])
+                        .filter(et => et.isActive !== false);
+
+                    if (chartableTypes.length === 0) {
+                        container.innerHTML = `
+                            <div class="empty-state" style="padding: 20px 0;">
+                                <p>No event types available. Create some on the Stats tab!</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    container.innerHTML = chartableTypes.map(et => {
+                        const isSelected = goalsSelectedEventTypes.includes(et.id);
+                        const activeStyle = isSelected
+                            ? `background: ${et.color}25; border-color: ${et.color}; color: ${et.color};`
+                            : '';
+                        return `
+                            <div class="chip goals-metric-chip ${isSelected ? 'selected' : ''}" 
+                                 data-event-type-id="${et.id}"
+                                 style="${activeStyle}"
+                                 onclick="toggleGoalsEventType('${et.id}')">
+                                ${et.icon} ${et.name}
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                function toggleGoalsEventType(eventTypeId) {
+                    const index = goalsSelectedEventTypes.indexOf(eventTypeId);
+                    if (index > -1) {
+                        goalsSelectedEventTypes.splice(index, 1);
+                        delete goalsAggregationOverrides[eventTypeId];
+                    } else {
+                        goalsSelectedEventTypes.push(eventTypeId);
+                    }
+                    renderGoalsEventTypeChips();
+                    updateGoalsAggregationControls();
+                    loadGoalsChartData();
+                }
+
+                function setGoalsTimeRange(range) {
+                    goalsTimeRange = range;
+
+                    // Update chip styles
+                    document.querySelectorAll('.goals-range-chip').forEach(chip => {
+                        chip.classList.remove('active');
+                        if (chip.dataset.range === range) {
+                            chip.classList.add('active');
+                        }
+                    });
+
+                    // Hide custom date picker for non-custom ranges
+                    if (range !== 'custom') {
+                        document.getElementById('customDatePicker').style.display = 'none';
+                        loadGoalsChartData();
+                    }
+                }
+
+                function toggleCustomDatePicker() {
+                    const picker = document.getElementById('customDatePicker');
+                    const isHidden = picker.style.display === 'none';
+                    picker.style.display = isHidden ? 'block' : 'none';
+
+                    // Set active state on custom chip
+                    document.querySelectorAll('.goals-range-chip').forEach(chip => {
+                        chip.classList.remove('active');
+                        if (chip.dataset.range === 'custom') {
+                            chip.classList.add('active');
+                        }
+                    });
+                    goalsTimeRange = 'custom';
+                }
+
+                function applyCustomDateRange() {
+                    const startInput = document.getElementById('goalsStartDate');
+                    const endInput = document.getElementById('goalsEndDate');
+
+                    if (!startInput.value || !endInput.value) {
+                        alert('Please select both start and end dates');
+                        return;
+                    }
+
+                    goalsCustomStartDate = new Date(startInput.value);
+                    goalsCustomEndDate = new Date(endInput.value);
+                    goalsCustomEndDate.setHours(23, 59, 59, 999); // Include the full end day
+
+                    loadGoalsChartData();
+                }
+
+                function updateGoalsAggregationControls() {
+                    const card = document.getElementById('goalsAggregationCard');
+                    const container = document.getElementById('goalsAggregationControls');
+
+                    if (goalsSelectedEventTypes.length === 0) {
+                        card.style.display = 'none';
+                        return;
+                    }
+
+                    card.style.display = 'block';
+
+                    const types = (typeof allEventTypes !== 'undefined' ? allEventTypes : [])
+                        .filter(et => goalsSelectedEventTypes.includes(et.id));
+
+                    container.innerHTML = types.map(et => {
+                        const currentAgg = goalsAggregationOverrides[et.id] || et.aggregationType || 'sum';
+                        const currentField = goalsFieldOverrides[et.id];
+
+                        // Build field selector for meal type or event types with fieldSchema
+                        let fieldSelector = '';
+                        if (et.id === 'meal') {
+                            const selectedField = currentField || 'calories';
+                            fieldSelector = `
+                                <select 
+                                    onchange="setGoalsField('${et.id}', this.value)"
+                                    style="padding: 8px 12px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7; font-size: 0.9em; min-width: 120px;">
+                                    ${mealFields.map(f => `<option value="${f.value}" ${selectedField === f.value ? 'selected' : ''}>${f.label}</option>`).join('')}
+                                </select>
+                            `;
+                        } else if (et.fieldSchema && et.fieldSchema.fields && et.fieldSchema.fields.length > 1) {
+                            // For event types with multiple fields in their schema
+                            const numericFields = et.fieldSchema.fields.filter(f => f.type === 'number');
+                            if (numericFields.length > 1) {
+                                const selectedField = currentField || numericFields[0].name;
+                                fieldSelector = `
+                                    <select 
+                                        onchange="setGoalsField('${et.id}', this.value)"
+                                        style="padding: 8px 12px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7; font-size: 0.9em; min-width: 100px;">
+                                        ${numericFields.map(f => `<option value="${f.name}" ${selectedField === f.name ? 'selected' : ''}>${f.label || f.name}</option>`).join('')}
+                                    </select>
+                                `;
+                            }
+                        }
+
+                        return `
+                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                <span style="flex: 1; color: #e4e4e7; min-width: 100px;">${et.icon} ${et.name}</span>
+                                ${fieldSelector}
+                                <select 
+                                    onchange="setGoalsAggregation('${et.id}', this.value)"
+                                    style="padding: 8px 12px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7; font-size: 0.9em;">
+                                    <option value="sum" ${currentAgg === 'sum' || currentAgg === 'sum_today' ? 'selected' : ''}>Sum</option>
+                                    <option value="average" ${currentAgg === 'average' ? 'selected' : ''}>Average</option>
+                                    <option value="count" ${currentAgg === 'count' ? 'selected' : ''}>Count</option>
+                                    <option value="last" ${currentAgg === 'last' ? 'selected' : ''}>Last Value</option>
+                                    <option value="max" ${currentAgg === 'max' ? 'selected' : ''}>Max</option>
+                                    <option value="min" ${currentAgg === 'min' ? 'selected' : ''}>Min</option>
+                                </select>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                function setGoalsField(eventTypeId, fieldName) {
+                    goalsFieldOverrides[eventTypeId] = fieldName;
+                    loadGoalsChartData();
+                }
+
+                function setGoalsAggregation(eventTypeId, aggregationType) {
+                    goalsAggregationOverrides[eventTypeId] = aggregationType;
+                    loadGoalsChartData();
+                }
+
+                function getGoalsDateRange() {
+                    const now = new Date();
+                    let startDate, endDate;
+
+                    endDate = new Date(now);
+                    endDate.setHours(23, 59, 59, 999);
+
+                    switch (goalsTimeRange) {
+                        case '7d':
+                            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                            break;
+                        case '30d':
+                            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                            break;
+                        case '1y':
+                            startDate = new Date(now);
+                            startDate.setFullYear(startDate.getFullYear() - 1);
+                            break;
+                        case 'all':
+                            startDate = new Date('2020-01-01'); // Far enough back
+                            break;
+                        case 'custom':
+                            if (goalsCustomStartDate && goalsCustomEndDate) {
+                                startDate = goalsCustomStartDate;
+                                endDate = goalsCustomEndDate;
+                            } else {
+                                startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                            }
+                            break;
+                        default:
+                            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    }
+
+                    startDate.setHours(0, 0, 0, 0);
+
+                    return {
+                        startDate: startDate.getTime(),
+                        endDate: endDate.getTime()
+                    };
+                }
+
+                async function loadGoalsChartData() {
+                    const emptyState = document.getElementById('goalsChartEmpty');
+                    const canvas = document.getElementById('goalsChart');
+
+                    if (goalsSelectedEventTypes.length === 0) {
+                        emptyState.style.display = 'flex';
+                        if (goalsChart) {
+                            goalsChart.destroy();
+                            goalsChart = null;
+                        }
+                        return;
+                    }
+
+                    emptyState.style.display = 'none';
+
+                    const userId = localStorage.getItem('lifestats_userId');
+                    if (!userId) return;
+
+                    const { startDate, endDate } = getGoalsDateRange();
+
+                    try {
+                        let url = `/api/chart-data?userId=${userId}&eventTypeIds=${goalsSelectedEventTypes.join(',')}&startDate=${startDate}&endDate=${endDate}`;
+
+                        if (Object.keys(goalsAggregationOverrides).length > 0) {
+                            url += `&aggregations=${encodeURIComponent(JSON.stringify(goalsAggregationOverrides))}`;
+                        }
+
+                        if (Object.keys(goalsFieldOverrides).length > 0) {
+                            url += `&fields=${encodeURIComponent(JSON.stringify(goalsFieldOverrides))}`;
+                        }
+
+                        const response = await fetch(url);
+                        const data = await response.json();
+
+                        if (data.error) {
+                            console.error('Chart data error:', data.error);
+                            return;
+                        }
+
+                        renderGoalsChart(data);
+                    } catch (error) {
+                        console.error('Error loading chart data:', error);
+                    }
+                }
+
+                function renderGoalsChart(data) {
+                    const canvas = document.getElementById('goalsChart');
+                    const ctx = canvas.getContext('2d');
+
+                    if (goalsChart) {
+                        goalsChart.destroy();
+                    }
+
+                    // Build datasets for Chart.js
+                    const datasets = data.datasets.map((ds, index) => ({
+                        label: `${ds.icon || ''} ${ds.name}`,
+                        data: ds.data,
+                        backgroundColor: ds.color,
+                        borderRadius: 4,
+                        barPercentage: 0.6,
+                        yAxisID: `y${index}`
+                    }));
+
+                    // Determine if we need multiple Y axes
+                    // If ranges differ by more than 10x, use separate axes
+                    const ranges = data.datasets.map(ds => {
+                        const validData = ds.data.filter(v => v !== null);
+                        if (validData.length === 0) return { min: 0, max: 0 };
+                        return {
+                            min: Math.min(...validData),
+                            max: Math.max(...validData)
+                        };
+                    });
+
+                    // Build scales configuration
+                    const scales = {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                display: false
+                            },
+                            ticks: {
+                                color: '#a1a1aa',
+                                maxTicksLimit: goalsTimeRange === '7d' ? 7 : (goalsTimeRange === '1y' ? 12 : 10)
+                            }
+                        }
+                    };
+
+                    data.datasets.forEach((ds, index) => {
+                        const position = index === 0 ? 'left' : 'right';
+                        scales[`y${index}`] = {
+                            type: 'linear',
+                            display: true,
+                            position: position,
+                            grid: {
+                                color: index === 0 ? 'rgba(255, 255, 255, 0.1)' : 'transparent'
+                            },
+                            ticks: {
+                                color: ds.color
+                            },
+                            title: {
+                                display: data.datasets.length > 1,
+                                text: ds.unit || ds.name,
+                                color: ds.color
+                            }
+                        };
+                    });
+
+                    goalsChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: data.labels,
+                            datasets: datasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                mode: 'index',
+                                intersect: false
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'top',
+                                    labels: {
+                                        color: '#e4e4e7',
+                                        usePointStyle: true,
+                                        padding: 20
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(39, 39, 42, 0.95)',
+                                    titleColor: '#e4e4e7',
+                                    bodyColor: '#a1a1aa',
+                                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                                    borderWidth: 1,
+                                    padding: 12,
+                                    callbacks: {
+                                        label: function (context) {
+                                            const ds = data.datasets[context.datasetIndex];
+                                            const value = context.parsed.y;
+                                            if (value === null) return `${ds.name}: No data`;
+                                            return `${ds.name}: ${value.toLocaleString()} ${ds.unit || ''}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: scales
+                        }
+                    });
+                }
+
                 // ===== EVENT TYPE FAVORITING =====
                 async function toggleFavoriteEventType(eventTypeId, currentStatus) {
                     const newStatus = !currentStatus;
@@ -1317,48 +1797,15 @@
                     }
 
                     try {
-                        // If it's a custom event type (has userId), use PUT /api/event-types/:id
-                        // System types currently cannot be updated via API in this implementation without backend changes 
-                        // to allow system type favoriting per user.
-                        // WAIT: The implementation plan said "Update event_types table". 
-                        // System types share the definition. If I favorite "Water", it favors it for EVERYONE if I change the row.
-                        // ERROR IN PLAN: System types are global. We can't add `is_favorite` to the `event_types` table for system types 
-                        // and expect it to be per-user.
-                        // However, for now, let's assume we are only favoriting Custom Types or that the backend handles it.
-                        // Actually, the `event_types` table has `user_id`. System types have `user_id = NULL`.
-                        // If we update a system type row, it affects everyone.
-                        // FOR THIS TASK: The user asked to favorite event types.
-                        // Ideally, we need a separate `user_favorite_event_types` table.
-                        // BUT, to stick to the plan which I already executed (adding column to event_types), 
-                        // I can only support favoriting Custom Event Types properly.
-                        // XOR, I can clone the system type to a user type? No.
-
-                        // Let's implement for Custom Types first as they are fully user-owned.
-                        // If the user tries to favorite a system type, we might need a workaround or disable it.
-                        // But the requested feature implies favoriting ANY type.
-
-                        // Workaround: We will only enable the star button if `eventType.userId` is present (Custom Type).
-                        // OR, checking the `update_event_type` in db.py... 
-                        // It has `WHERE id = %s AND user_id = %s`.
-                        // So you can only update YOUR own types.
-                        // So system types CANNOT be favorited with the current schema.
-                        // I will proceed with enabling it for Custom Types. 
-
-                        // Note: The user request didn't specify "custom only", but technical constraints enforce it 
-                        // unless I change schema again. Given I am in execution, I will stick to what's possible 
-                        // and maybe add a UI hint or just show logic for custom types.
-                        // Actually, looking at `db.py` `update_event_type`:
-                        // `UPDATE event_types SET ... WHERE id = %s AND user_id = %s`
-                        // So yes, only custom types.
-
-                        await fetch(`/api/event-types/${eventTypeId}?userId=${userId}`, {
-                            method: 'PUT',
+                        // Use the new dedicated endpoint for toggling favorites (System & Custom)
+                        await fetch(`/api/event-types/${eventTypeId}/favorite?userId=${userId}`, {
+                            method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ isFavorite: newStatus })
                         });
 
-                        // Refresh lists
-                        loadEventTypes();
+                        // Refresh lists - MUST pass userId so favorites are returned correctly
+                        loadEventTypes(userId);
 
                     } catch (error) {
                         console.error('Error toggling favorite:', error);
@@ -1484,6 +1931,12 @@
                     if (window.originalSwitchPage) window.originalSwitchPage(pageNumber);
                     if (pageNumber === 7) {
                         renderHomeFavorites();
+                    }
+                    if (pageNumber === 2) {
+                        // Initialize Goals tab when navigating to it
+                        if (typeof initGoalsTab === 'function') {
+                            initGoalsTab();
+                        }
                     }
                 }
 
@@ -1951,6 +2404,14 @@
                 if (pageNumber >= 1 && pageNumber <= 5) {
                     switchPage(pageNumber);
                 }
+            }
+
+            // Load event types for favorites on startup (Home is default page)
+            const userId = localStorage.getItem('lifestats_userId');
+            if (userId) {
+                loadEventTypes(userId).then(() => {
+                    renderHomeFavorites();
+                });
             }
         });
 
@@ -2881,6 +3342,11 @@
                 }
 
                 displayEventTypes(allEventTypes, todaysStats);
+
+                // Refresh Goals tab chips if function exists
+                if (typeof renderGoalsEventTypeChips === 'function') {
+                    renderGoalsEventTypeChips();
+                }
             } catch (error) {
                 console.error('Error loading event types:', error);
                 document.getElementById('eventTypesList').innerHTML = `
@@ -3289,7 +3755,75 @@
                     loadEventTypes(userId);
                 }
             }
+
+            // If switching to meal page (page 3), update favorite button
+            if (pageNumber === 3) {
+                updateMealFavoriteButton();
+            }
+
+            // If switching to home page (page 7), render favorites
+            if (pageNumber === 7) {
+                renderHomeFavorites();
+            }
         };
+
+        // Update favorite button for Meal page
+        function updateMealFavoriteButton() {
+            const container = document.getElementById('mealFavoriteContainer');
+            if (!container) return;
+
+            // Find the 'meal' event type in allEventTypes
+            const mealEventType = allEventTypes.find(et => et.id === 'meal');
+            const isFavorite = mealEventType ? mealEventType.isFavorite : false;
+
+            container.innerHTML = `
+                <button id="mealFavoriteBtn" onclick='toggleMealFavorite(${isFavorite})'
+                    style="background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: ${isFavorite ? '#FFD700' : '#a1a1aa'}; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);">
+                    ${isFavorite ? '★' : '☆'}
+                </button>
+            `;
+        }
+
+        // Toggle favorite for Meal event type
+        async function toggleMealFavorite(currentStatus) {
+            const newStatus = !currentStatus;
+            const userId = localStorage.getItem('lifestats_userId');
+            if (!userId) return;
+
+            // Optimistic UI update
+            const btn = document.getElementById('mealFavoriteBtn');
+            if (btn) {
+                btn.innerHTML = newStatus ? '★' : '☆';
+                btn.style.color = newStatus ? '#FFD700' : '#a1a1aa';
+            }
+
+            // Update in allEventTypes
+            const mealIndex = allEventTypes.findIndex(et => et.id === 'meal');
+            if (mealIndex !== -1) {
+                allEventTypes[mealIndex].isFavorite = newStatus;
+            }
+
+            try {
+                await fetch(`/api/event-types/meal/favorite?userId=${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isFavorite: newStatus })
+                });
+
+                // Update button onclick for next toggle
+                if (btn) {
+                    btn.onclick = () => toggleMealFavorite(newStatus);
+                }
+
+            } catch (error) {
+                console.error('Error toggling meal favorite:', error);
+                // Revert on error
+                if (btn) {
+                    btn.innerHTML = currentStatus ? '★' : '☆';
+                    btn.style.color = currentStatus ? '#FFD700' : '#a1a1aa';
+                }
+            }
+        }
 
         // ===== EVENT TRACKING PAGE FUNCTIONS =====
         let currentEventType = null;
@@ -3310,26 +3844,26 @@
             // We target the right spacer in the header
             const rightActionContainer = document.getElementById('eventTrackingHeaderActions');
             if (rightActionContainer) {
-                if (eventType.userId) { // Custom Type
-                    rightActionContainer.innerHTML = `
-                <div style="display: flex; gap: 8px;">
-                     <button id="favoriteBtn" onclick='toggleFavoriteEventType("${eventType.id}", ${eventType.isFavorite})'
+                // Show favorite button for ALL event types (system AND custom)
+                let buttonsHtml = `
+                    <button id="favoriteBtn" onclick='toggleFavoriteEventType("${eventType.id}", ${eventType.isFavorite})'
                         style="background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: ${eventType.isFavorite ? '#FFD700' : '#a1a1aa'}; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);">
                         ${eventType.isFavorite ? '★' : '☆'}
                     </button>
+                `;
+
+                // Only show Edit button for Custom Types
+                if (eventType.userId) {
+                    buttonsHtml += `
                     <button onclick='openEditEventTypeModal(${JSON.stringify(eventType).replace(/'/g, "&apos;")})'
                         style="background: #2ECC71; border: none; border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);">
                         <span style="font-size: 1.2em;">✏️</span>
                     </button>
-                </div>
-            `;
-                    rightActionContainer.style.width = 'auto'; // Release fixed width
-                } else {
-                    // System Type (Can't edit or favorite easily yet due to backend limitations)
-                    // But we can show favorite button if we enable it? No, keep simple.
-                    rightActionContainer.innerHTML = '';
-                    rightActionContainer.style.width = '40px'; // Restore spacer for layout balance
+                    `;
                 }
+
+                rightActionContainer.innerHTML = `<div style="display: flex; gap: 8px;">${buttonsHtml}</div>`;
+                rightActionContainer.style.width = 'auto';
             }
 
             // Render form fields

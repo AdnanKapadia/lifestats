@@ -613,6 +613,27 @@ def delete_event_type_route(event_type_id):
         return jsonify({'error': 'Database error'}), 500
 
 
+@app.route('/api/event-types/<event_type_id>/favorite', methods=['POST'])
+def toggle_event_type_favorite_route(event_type_id):
+    """Toggle favorite status for an event type."""
+    user_id = request.args.get('userId')
+    data = request.json
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    if not data or 'isFavorite' not in data:
+        return jsonify({'error': 'isFavorite boolean required'}), 400
+        
+    try:
+        from db import toggle_event_type_favorite
+        success = toggle_event_type_favorite(user_id, event_type_id, data['isFavorite'])
+        return jsonify({'success': success})
+    except Exception as e:
+        print(f"Error toggling favorite: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+
 # ============================================================================
 # EVENT API ROUTES
 # ============================================================================
@@ -816,6 +837,86 @@ def get_todays_stats_route():
         return jsonify(stats)
     except Exception as e:
         print(f"Error fetching today's stats: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+
+# ============================================================================
+# CHART DATA API ROUTES
+# ============================================================================
+
+@app.route('/api/chart-data', methods=['GET'])
+def get_chart_data_route():
+    """
+    Get chart data for multiple event types, aggregated by day.
+    
+    Query params:
+        userId: Required
+        eventTypeIds: Comma-separated list of event type IDs
+        startDate: Start timestamp in milliseconds
+        endDate: End timestamp in milliseconds
+        aggregations: Optional JSON object of {eventTypeId: aggregationType} overrides
+    """
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    event_type_ids_str = request.args.get('eventTypeIds', '')
+    if not event_type_ids_str:
+        return jsonify({'error': 'eventTypeIds required'}), 400
+    
+    event_type_ids = [et_id.strip() for et_id in event_type_ids_str.split(',') if et_id.strip()]
+    
+    if not event_type_ids:
+        return jsonify({'error': 'At least one eventTypeId required'}), 400
+    
+    start_date = request.args.get('startDate')
+    end_date = request.args.get('endDate')
+    
+    if not start_date or not end_date:
+        return jsonify({'error': 'startDate and endDate required'}), 400
+    
+    try:
+        start_date_int = int(start_date)
+        end_date_int = int(end_date)
+    except ValueError:
+        return jsonify({'error': 'startDate and endDate must be integers (milliseconds)'}), 400
+    
+    # Parse optional aggregation overrides
+    aggregation_overrides = {}
+    aggregations_str = request.args.get('aggregations')
+    if aggregations_str:
+        try:
+            import json
+            aggregation_overrides = json.loads(aggregations_str)
+        except json.JSONDecodeError:
+            return jsonify({'error': 'aggregations must be valid JSON object'}), 400
+    
+    # Parse optional field overrides (which field to extract per event type)
+    field_overrides = {}
+    fields_str = request.args.get('fields')
+    if fields_str:
+        try:
+            import json
+            field_overrides = json.loads(fields_str)
+        except json.JSONDecodeError:
+            return jsonify({'error': 'fields must be valid JSON object'}), 400
+    
+    try:
+        from db import get_chart_data
+        chart_data = get_chart_data(
+            user_id,
+            event_type_ids,
+            start_date_int,
+            end_date_int,
+            aggregation_overrides,
+            field_overrides
+        )
+        return jsonify(chart_data)
+    except Exception as e:
+        print(f"Error fetching chart data: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': 'Database error'}), 500
 
 
