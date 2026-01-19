@@ -1,5 +1,5 @@
 // Simple service worker for offline support
-const CACHE_NAME = 'lifestats-v18';
+const CACHE_NAME = 'lifestats-v19';
 const urlsToCache = [
     '/',
     '/index.html',

@@ -106,6 +106,17 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+
+            -- Goals Table: User defined goals for event types
+            CREATE TABLE IF NOT EXISTS goals (
+                id VARCHAR(50) PRIMARY KEY,
+                user_id VARCHAR(50) NOT NULL,
+                event_type_id VARCHAR(50) NOT NULL,
+                target_value FLOAT NOT NULL,
+                period VARCHAR(20) DEFAULT 'daily',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
         """)
         
         # Schema Migration: Add columns if they don't exist
@@ -802,28 +813,24 @@ def update_event_type(event_type_id, user_id, updates):
         if 'color' in updates:
             fields.append("color = %s")
             values.append(updates['color'])
-        if 'fieldSchema' in updates:
-            fields.append("field_schema = %s")
-            values.append(json.dumps(updates['fieldSchema']))
         if 'aggregationType' in updates:
             fields.append("aggregation_type = %s")
             values.append(updates['aggregationType'])
-        if 'primaryUnit' in updates:
-            fields.append("primary_unit = %s")
-            values.append(updates['primaryUnit'])
         if 'trackingType' in updates:
             fields.append("tracking_type = %s")
             values.append(updates['trackingType'])
-        if 'isFavorite' in updates:
-            fields.append("is_favorite = %s")
-            values.append(updates['isFavorite'])
-        if 'isActive' in updates:
-            fields.append("is_active = %s")
-            values.append(updates['isActive'])
+        if 'primaryUnit' in updates:
+            fields.append("primary_unit = %s")
+            values.append(updates['primaryUnit'])
         
+        # fieldSchema update is more complex, usually replacement
+        if 'fieldSchema' in updates:
+            fields.append("field_schema = %s")
+            values.append(json.dumps(updates['fieldSchema']))
+            
         if not fields:
             return False
-        
+            
         fields.append("updated_at = CURRENT_TIMESTAMP")
         
         query = f"UPDATE event_types SET {', '.join(fields)} WHERE id = %s AND user_id = %s"
@@ -836,13 +843,24 @@ def update_event_type(event_type_id, user_id, updates):
     finally:
         conn.close()
 
-def toggle_event_type_favorite(user_id, event_type_id, status):
-    """Toggle favorite status for an event type (System or Custom)."""
+def delete_event_type(event_type_id, user_id):
+    """Soft delete an event type."""
     conn = get_db_connection()
     try:
         cur = conn.cursor()
-        
-        if status:
+        cur.execute("UPDATE event_types SET is_active = false WHERE id = %s AND user_id = %s", (event_type_id, user_id))
+        deleted = cur.rowcount > 0
+        conn.commit()
+        return deleted
+    finally:
+        conn.close()
+
+def toggle_event_type_favorite(user_id, event_type_id, is_favorite):
+    """Toggle favorite status for an event type."""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        if is_favorite:
             # Add to favorites
             cur.execute("""
                 INSERT INTO favorite_event_types (user_id, event_type_id)
@@ -852,35 +870,87 @@ def toggle_event_type_favorite(user_id, event_type_id, status):
         else:
             # Remove from favorites
             cur.execute("""
-                DELETE FROM favorite_event_types
+                DELETE FROM favorite_event_types 
                 WHERE user_id = %s AND event_type_id = %s
             """, (user_id, event_type_id))
-            
         conn.commit()
         return True
     finally:
         conn.close()
 
-def delete_event_type(event_type_id, user_id):
-    """Soft delete a custom event type (only user-defined types can be deleted)."""
+
+# ============================================================================
+# GOALS FUNCTIONS
+# ============================================================================
+
+def set_goal(user_id, event_type_id, target_value, period='daily'):
+    """Set or update a goal for an event type."""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        
+        # Check if goal exists to update or insert
+        # We assume one goal per event_type per user for now (for 'daily' period)
+        # Using a deterministic ID generation or just querying first
+        
+        # Let's check first
+        cur.execute("""
+            SELECT id FROM goals 
+            WHERE user_id = %s AND event_type_id = %s AND period = %s
+        """, (user_id, event_type_id, period))
+        existing = cur.fetchone()
+        
+        goal_id = existing['id'] if existing else f"goal_{user_id[:8]}_{event_type_id}_{period}"
+        
+        if existing:
+             cur.execute("""
+                UPDATE goals 
+                SET target_value = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (target_value, goal_id))
+        else:
+            cur.execute("""
+                INSERT INTO goals (id, user_id, event_type_id, target_value, period)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (goal_id, user_id, event_type_id, target_value, period))
+            
+        conn.commit()
+        return {'id': goal_id, 'userId': user_id, 'eventTypeId': event_type_id, 'targetValue': target_value, 'period': period}
+    finally:
+        conn.close()
+
+def get_user_goals(user_id):
+    """Get all goals for a user."""
     conn = get_db_connection()
     try:
         cur = conn.cursor()
         cur.execute("""
-            UPDATE event_types 
-            SET is_active = false, updated_at = CURRENT_TIMESTAMP 
-            WHERE id = %s AND user_id = %s
-        """, (event_type_id, user_id))
+            SELECT * FROM goals WHERE user_id = %s
+        """, (user_id,))
+        goals = cur.fetchall()
+        
+        return [{
+            'id': g['id'],
+            'userId': g['user_id'],
+            'eventTypeId': g['event_type_id'],
+            'targetValue': g['target_value'],
+            'period': g['period'],
+            'createdAt': g['created_at'].isoformat() if g['created_at'] else None
+        } for g in goals]
+    finally:
+        conn.close()
+
+def delete_goal(goal_id, user_id):
+    """Delete a goal."""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM goals WHERE id = %s AND user_id = %s", (goal_id, user_id))
         deleted = cur.rowcount > 0
         conn.commit()
         return deleted
     finally:
         conn.close()
-
-
-# ============================================================================
-# EVENT FUNCTIONS
-# ============================================================================
 
 def log_event(event_data):
     """Log a new event."""
@@ -1335,7 +1405,11 @@ def get_todays_stats(user_id, start_timestamp=None):
         # 2. Calculate MEAL calories (special case)
         # Only if 'meal' exists and is active (checked implicitly by inclusion in stats)
         cur.execute("""
-            SELECT SUM(calories) as total_calories 
+            SELECT 
+                SUM(calories) as total_calories,
+                SUM(protein) as total_protein,
+                SUM(carbs) as total_carbs,
+                SUM(fat) as total_fat
             FROM meals 
             WHERE user_id = %s AND timestamp >= %s
         """, (user_id, start_timestamp))
@@ -1346,6 +1420,13 @@ def get_todays_stats(user_id, start_timestamp=None):
                 'value': meal_stats['total_calories'] if meal_stats['total_calories'] else 0,
                 'unit': 'kcal'
             }
+            # Inject Virtual Macro Stats
+            if meal_stats['total_protein'] is not None:
+                results['protein'] = {'value': meal_stats['total_protein'], 'unit': 'g'}
+            if meal_stats['total_carbs'] is not None:
+                results['carbs'] = {'value': meal_stats['total_carbs'], 'unit': 'g'}
+            if meal_stats['total_fat'] is not None:
+                results['fat'] = {'value': meal_stats['total_fat'], 'unit': 'g'}
             
         # 3. Calculate OTHER Events based on aggr type
         cur.execute("""

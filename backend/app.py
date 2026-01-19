@@ -745,6 +745,68 @@ def delete_event_route(event_id):
         return jsonify({'error': 'Database error'}), 500
 
 
+
+# ============================================================================
+# GOALS API ROUTES
+# ============================================================================
+
+@app.route('/api/goals', methods=['POST'])
+def set_goal_route():
+    """Set or update a goal."""
+    data = request.json
+    
+    if not data or 'userId' not in data or 'eventTypeId' not in data or 'targetValue' not in data:
+        return jsonify({'error': 'userId, eventTypeId and targetValue required'}), 400
+    
+    try:
+        from db import set_goal
+        result = set_goal(
+            data['userId'],
+            data['eventTypeId'],
+            float(data['targetValue']),
+            data.get('period', 'daily')
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        print(f"Error setting goal: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/goals', methods=['GET'])
+def get_goals_route():
+    """Get all goals for a user."""
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    try:
+        from db import get_user_goals
+        goals = get_user_goals(user_id)
+        return jsonify(goals)
+    except Exception as e:
+        print(f"Error fetching goals: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/goals/<goal_id>', methods=['DELETE'])
+def delete_goal_route(goal_id):
+    """Delete a goal."""
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    try:
+        from db import delete_goal
+        success = delete_goal(goal_id, user_id)
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Goal not found or unauthorized'}), 404
+    except Exception as e:
+        print(f"Error deleting goal: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+
 # ============================================================================
 # STATS API ROUTES
 # ============================================================================
