@@ -1046,12 +1046,14 @@
             flex: 1;
             height: 100%;
             overflow-y: scroll;
+            overflow-x: hidden;
+            /* Prevent horizontal scroll */
             scroll-snap-type: y mandatory;
             position: relative;
             z-index: 1;
             /* Hide scrollbar */
             scrollbar-width: none;
-            /* Firefox */
+            width: 100%;
         }
 
         .picker-col::-webkit-scrollbar {
@@ -1060,8 +1062,8 @@
 
         .picker-list {
             padding-top: 30px;
-            /* (ContainerHeight 100 - ItemHeight 40) / 2 */
             padding-bottom: 30px;
+            width: 100%;
         }
 
         .picker-item {
@@ -1071,10 +1073,13 @@
             justify-content: center;
             font-size: 1.1em;
             color: #71717a;
-            /* Zinc 500 */
             scroll-snap-align: center;
             transition: color 0.2s, transform 0.2s;
             font-weight: 500;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+            white-space: nowrap;
         }
 
         .picker-highlight {
