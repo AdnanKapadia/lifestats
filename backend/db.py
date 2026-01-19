@@ -96,6 +96,16 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            
+            -- User Profiles Table: Stores user profile information
+            CREATE TABLE IF NOT EXISTS user_profiles (
+                user_id VARCHAR(50) PRIMARY KEY,
+                sex VARCHAR(10),
+                birthdate DATE,
+                height_inches FLOAT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
         """)
         
         # Schema Migration: Add columns if they don't exist
@@ -1623,7 +1633,12 @@ def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_ov
                 values = grouped[et_id][label]
                 
                 if not values:
-                    data_points.append(None)  # No data for this day
+                    # For cumulative metrics (sum/count), missing data implies 0.
+                    # For state metrics (average/min/max/last), missing data is just missing (gap).
+                    if agg_type in ['sum', 'sum_today', 'count']:
+                         data_points.append(0)
+                    else:
+                         data_points.append(None)
                 elif agg_type == 'sum' or agg_type == 'sum_today':
                     data_points.append(sum(values))
                 elif agg_type == 'average':
@@ -1655,5 +1670,100 @@ def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_ov
             'datasets': datasets
         }
         
+    finally:
+        conn.close()
+
+
+# ============================================================================
+# USER PROFILE FUNCTIONS
+# ============================================================================
+
+def get_user_profile(user_id):
+    """Get user profile by user ID."""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM user_profiles WHERE user_id = %s", (user_id,))
+        profile = cur.fetchone()
+        
+        if not profile:
+            return None
+        
+        return {
+            'userId': profile['user_id'],
+            'sex': profile['sex'],
+            'birthdate': profile['birthdate'].isoformat() if profile['birthdate'] else None,
+            'heightInches': profile['height_inches'],
+            'createdAt': profile['created_at'].isoformat() if profile['created_at'] else None,
+            'updatedAt': profile['updated_at'].isoformat() if profile['updated_at'] else None
+        }
+    finally:
+        conn.close()
+
+
+def create_or_update_user_profile(user_id, profile_data):
+    """Create or update user profile."""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        
+        cur.execute("""
+            INSERT INTO user_profiles (user_id, sex, birthdate, height_inches, updated_at)
+            VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+            ON CONFLICT (user_id) DO UPDATE SET
+                sex = EXCLUDED.sex,
+                birthdate = EXCLUDED.birthdate,
+                height_inches = EXCLUDED.height_inches,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING *
+        """, (
+            user_id,
+            profile_data.get('sex'),
+            profile_data.get('birthdate'),
+            profile_data.get('heightInches')
+        ))
+        
+        result = cur.fetchone()
+        conn.commit()
+        
+        return {
+            'userId': result['user_id'],
+            'sex': result['sex'],
+            'birthdate': result['birthdate'].isoformat() if result['birthdate'] else None,
+            'heightInches': result['height_inches'],
+            'createdAt': result['created_at'].isoformat() if result['created_at'] else None,
+            'updatedAt': result['updated_at'].isoformat() if result['updated_at'] else None
+        }
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
+
+def get_latest_body_weight(user_id):
+    """Get the most recent body weight from events table."""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        
+        # Get the latest weight event for this user
+        cur.execute("""
+            SELECT data, timestamp
+            FROM events
+            WHERE user_id = %s AND event_type_id = 'weight'
+            ORDER BY timestamp DESC
+            LIMIT 1
+        """, (user_id,))
+        
+        result = cur.fetchone()
+        
+        if not result:
+            return None
+        
+        return {
+            'weight': result['data'].get('weight'),
+            'timestamp': result['timestamp']
+        }
     finally:
         conn.close()

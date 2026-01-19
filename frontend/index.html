@@ -975,6 +975,48 @@
         .check-btn:active {
             transform: scale(0.95);
         }
+
+        /* Profile Form Styles */
+        .sex-selector {
+            display: flex;
+            background: rgba(39, 39, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .sex-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #71717a;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sex-btn.active {
+            background: #2ECC71;
+            color: white;
+            box-shadow: 0 2px 8px rgba(46, 204, 113, 0.3);
+        }
+
+        .scroll-select {
+            appearance: none;
+            -webkit-appearance: none;
+            background: rgba(39, 39, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e4e4e7;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1em;
+            text-align: center;
+            width: 100%;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -1036,7 +1078,20 @@
 
             <!-- Event Type Selection -->
             <div class="card">
-                <div class="section-title">Select Metrics to Chart</div>
+                <div class="section-title"
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span>Metrics</span>
+                    <div style="display: flex; background: rgba(39, 39, 42, 0.6); border-radius: 8px; padding: 2px;">
+                        <button onclick="setGoalsChartMode('time')" id="goalsModeTime"
+                            style="background: #2ECC71; color: white; border: none; padding: 4px 12px; border-radius: 6px; font-size: 0.8em; cursor: pointer; transition: all 0.2s;">
+                            Trend
+                        </button>
+                        <button onclick="setGoalsChartMode('correlation')" id="goalsModeCorrelation"
+                            style="background: transparent; color: #a1a1aa; border: none; padding: 4px 12px; border-radius: 6px; font-size: 0.8em; cursor: pointer; transition: all 0.2s;">
+                            Correlation
+                        </button>
+                    </div>
+                </div>
                 <div id="goalsEventTypeChips" class="chip-container" style="flex-wrap: wrap; gap: 8px;">
                     <!-- Event type chips will be inserted here -->
                     <div class="empty-state" style="padding: 20px 0;">
@@ -1224,15 +1279,155 @@
 
     </div>
 
-    <!-- Page 4: Activity -->
+    <!-- Page 4: Me -->
     <div id="page4" class="page-content">
         <div class="container">
-            <h1>⚡ Activity</h1>
-            <div class="card">
-                <div class="section-title">Coming Soon</div>
+            <h1>👤 Me</h1>
+
+            <!-- Profile Setup Form (shown when no profile exists) -->
+            <div id="profileSetupCard" class="card hidden">
+                <div class="section-title">Set Up Your Profile</div>
+                <form id="profileSetupForm" onsubmit="handleProfileSubmit(event)">
+                    <!-- Sex -->
+                    <div class="form-group">
+                        <label>Sex</label>
+                        <div class="sex-selector">
+                            <button type="button" class="sex-btn" onclick="selectSex('male')"
+                                id="btnSexMale">Male</button>
+                            <button type="button" class="sex-btn" onclick="selectSex('female')"
+                                id="btnSexFemale">Female</button>
+                        </div>
+                        <input type="hidden" id="profileSex" required>
+                    </div>
+
+                    <!-- Birthdate -->
+                    <div class="form-group">
+                        <label>Birthdate</label>
+                        <div style="display: flex; gap: 8px;">
+                            <div style="flex: 2;">
+                                <select id="dobMonth" class="scroll-select" required onchange="updateDayOptions()">
+                                    <option value="" disabled selected>Month</option>
+                                    <option value="0">January</option>
+                                    <option value="1">February</option>
+                                    <option value="2">March</option>
+                                    <option value="3">April</option>
+                                    <option value="4">May</option>
+                                    <option value="5">June</option>
+                                    <option value="6">July</option>
+                                    <option value="7">August</option>
+                                    <option value="8">September</option>
+                                    <option value="9">October</option>
+                                    <option value="10">November</option>
+                                    <option value="11">December</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <select id="dobDay" class="scroll-select" required>
+                                    <option value="" disabled selected>Day</option>
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                            <div style="flex: 1.5;">
+                                <select id="dobYear" class="scroll-select" required onchange="updateDayOptions()">
+                                    <option value="" disabled selected>Year</option>
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Height -->
+                    <div class="form-group">
+                        <label>Height</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div style="flex: 1;">
+                                <select id="profileHeightFeet" class="scroll-select" required>
+                                    <option value="" disabled selected>Ft</option>
+                                    <!-- 1-8 -->
+                                    <option value="1">1'</option>
+                                    <option value="2">2'</option>
+                                    <option value="3">3'</option>
+                                    <option value="4">4'</option>
+                                    <option value="5">5'</option>
+                                    <option value="6">6'</option>
+                                    <option value="7">7'</option>
+                                    <option value="8">8'</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <select id="profileHeightInches" class="scroll-select" required>
+                                    <option value="" disabled selected>In</option>
+                                    <!-- 0-11 -->
+                                    <option value="0">0"</option>
+                                    <option value="1">1"</option>
+                                    <option value="2">2"</option>
+                                    <option value="3">3"</option>
+                                    <option value="4">4"</option>
+                                    <option value="5">5"</option>
+                                    <option value="6">6"</option>
+                                    <option value="7">7"</option>
+                                    <option value="8">8"</option>
+                                    <option value="9">9"</option>
+                                    <option value="10">10"</option>
+                                    <option value="11">11"</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="profileWeight">Current Weight (lbs)</label>
+                        <input type="number" id="profileWeight" placeholder="Enter weight" min="1" step="0.1" required
+                            style="padding: 12px; background: rgba(39, 39, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #e4e4e7; font-size: 1em; width: 100%; box-sizing: border-box;">
+                    </div>
+
+                    <button type="submit" class="primary-btn">Save Profile</button>
+                </form>
+            </div>
+
+            <!-- Profile Display (shown when profile exists) -->
+            <div id="profileDisplayCard" class="card hidden">
+                <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Profile</span>
+                    <button onclick="showProfileEditForm()"
+                        style="background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; color: #a1a1aa; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85em;">
+                        ✏️ Edit
+                    </button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px;">
+                    <div
+                        style="background: rgba(39, 39, 42, 0.4); border-radius: 12px; padding: 16px; text-align: center;">
+                        <div style="color: #a1a1aa; font-size: 0.85em; margin-bottom: 4px;">Sex</div>
+                        <div id="profileDisplaySex"
+                            style="color: #e4e4e7; font-size: 1.2em; font-weight: 600; text-transform: capitalize;">-
+                        </div>
+                    </div>
+                    <div
+                        style="background: rgba(39, 39, 42, 0.4); border-radius: 12px; padding: 16px; text-align: center;">
+                        <div style="color: #a1a1aa; font-size: 0.85em; margin-bottom: 4px;">Age</div>
+                        <div id="profileDisplayAge" style="color: #e4e4e7; font-size: 1.2em; font-weight: 600;">-</div>
+                    </div>
+                    <div
+                        style="background: rgba(39, 39, 42, 0.4); border-radius: 12px; padding: 16px; text-align: center;">
+                        <div style="color: #a1a1aa; font-size: 0.85em; margin-bottom: 4px;">Height</div>
+                        <div id="profileDisplayHeight" style="color: #e4e4e7; font-size: 1.2em; font-weight: 600;">-
+                        </div>
+                    </div>
+                    <div
+                        style="background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.3); border-radius: 12px; padding: 16px; text-align: center;">
+                        <div style="color: #2ECC71; font-size: 0.85em; margin-bottom: 4px;">Current Weight</div>
+                        <div id="profileDisplayWeight" style="color: #2ECC71; font-size: 1.4em; font-weight: 700;">-
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="profileLoadingCard" class="card">
                 <div class="empty-state">
-                    <div class="empty-state-emoji">⚡</div>
-                    <p>Activity tracking will be displayed here</p>
+                    <div class="empty-state-emoji">⏳</div>
+                    <p>Loading profile...</p>
                 </div>
             </div>
         </div>
@@ -1364,8 +1559,8 @@
             <div class="tab-label">Home</div>
         </div>
         <div class="tab-item" onclick="switchPage(4)">
-            <div class="tab-icon">⚡</div>
-            <div class="tab-label">Activity</div>
+            <div class="tab-icon">👤</div>
+            <div class="tab-label">Me</div>
         </div>
         <div class="tab-item" onclick="switchPage(5)">
             <div class="tab-icon">⚙️</div>
@@ -1396,6 +1591,7 @@
                 let goalsFieldOverrides = {};
                 let goalsShowAverage = true; // Default enabled
                 let goalsCachedData = null;
+                let goalsChartMode = 'time'; // 'time' or 'correlation'
 
                 // Available fields for meal type
                 const mealFields = [
@@ -1663,6 +1859,30 @@
                     }
                 }
 
+                function setGoalsChartMode(mode) {
+                    goalsChartMode = mode;
+
+                    // Update Mode Toggle UI
+                    const btnTime = document.getElementById('goalsModeTime');
+                    const btnCorr = document.getElementById('goalsModeCorrelation');
+
+                    if (mode === 'time') {
+                        btnTime.style.background = '#2ECC71';
+                        btnTime.style.color = 'white';
+                        btnCorr.style.background = 'transparent';
+                        btnCorr.style.color = '#a1a1aa';
+                    } else {
+                        btnCorr.style.background = '#2ECC71';
+                        btnCorr.style.color = 'white';
+                        btnTime.style.background = 'transparent';
+                        btnTime.style.color = '#a1a1aa';
+                    }
+
+                    if (goalsCachedData) {
+                        renderGoalsChart(goalsCachedData);
+                    }
+                }
+
                 function renderGoalsChart(data) {
                     const canvas = document.getElementById('goalsChart');
                     const ctx = canvas.getContext('2d');
@@ -1671,192 +1891,297 @@
                         goalsChart.destroy();
                     }
 
-                    // Build datasets for Chart.js
-                    let datasets = [];
+                    if (goalsChartMode === 'correlation') {
+                        // CORRELATION MODE (SCATTER)
+                        if (data.datasets.length !== 2) {
+                            alert("Please select exactly 2 metrics for Correlation mode.");
+                            setGoalsChartMode('time'); // Fallback
+                            return;
+                        }
 
-                    data.datasets.forEach((ds, index) => {
-                        // Main Dataset (Bar)
-                        datasets.push({
-                            label: `${ds.icon || ''} ${ds.name}`,
-                            data: ds.data,
-                            backgroundColor: ds.color,
-                            borderRadius: 4,
-                            barThickness: goalsTimeRange === '1y' || goalsTimeRange === '6m' ? 3 : 'flex',
-                            maxBarThickness: 40,
-                            yAxisID: index === 0 ? 'y0' : 'y1',
-                            order: 2 // Render bars below lines
-                        });
+                        const ds1 = data.datasets[0];
+                        const ds2 = data.datasets[1];
+                        const scatterData = [];
 
-                        // Average Line (if enabled)
-                        if (goalsShowAverage) {
-                            const validValues = ds.data.filter(v => v !== null && v !== undefined);
-                            if (validValues.length > 0) {
-                                const sum = validValues.reduce((a, b) => a + b, 0);
-                                const avg = sum / validValues.length;
-                                const avgData = Array(ds.data.length).fill(avg);
+                        // Match data points by index (assuming aligned time buckets)
+                        for (let i = 0; i < ds1.data.length; i++) {
+                            const v1 = ds1.data[i];
+                            const v2 = ds2.data[i];
 
-                                datasets.push({
-                                    label: `${ds.name} (Avg)`,
-                                    data: avgData,
-                                    type: 'line',
-                                    borderColor: ds.color, // Use same color
-                                    borderWidth: 1,
-                                    borderDash: [5, 5],
-                                    pointRadius: 0,
-                                    pointHoverRadius: 0,
-                                    fill: false,
-                                    yAxisID: index === 0 ? 'y0' : 'y1',
-                                    order: 1, // Render line above bars
-                                    tooltip: { enabled: false } // Don't show tooltip for average line to keep it clean? Or show it? Let's hide to avoid clutter.
+                            if (v1 !== null && v1 !== undefined && v2 !== null && v2 !== undefined) {
+                                scatterData.push({
+                                    x: v1,
+                                    y: v2,
+                                    label: data.labels[i] // Store date for tooltip
                                 });
                             }
                         }
-                    });
 
-                    // Determine if we need multiple Y axes
-                    // If ranges differ by more than 10x, use separate axes
-                    const ranges = data.datasets.map(ds => {
-                        const validData = ds.data.filter(v => v !== null);
-                        if (validData.length === 0) return { min: 0, max: 0 };
-                        return {
-                            min: Math.min(...validData),
-                            max: Math.max(...validData)
+                        // Create scatter dataset
+                        const scatterDataset = {
+                            label: `${ds1.name} vs ${ds2.name}`,
+                            data: scatterData,
+                            backgroundColor: ds1.color, // Or mix? Use ds1 for now
+                            borderColor: ds1.color,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
                         };
-                    });
 
-                    // Build scales configuration
-                    const scales = {
-                        x: {
-                            grid: {
-                                display: false,
-                                drawBorder: false
+                        goalsChart = new Chart(ctx, {
+                            type: 'scatter',
+                            data: {
+                                datasets: [scatterDataset]
                             },
-                            ticks: {
-                                color: '#a1a1aa',
-                                font: {
-                                    size: 11
-                                },
-                                maxRotation: 0,
-                                autoSkip: goalsTimeRange !== '7d',
-                                maxTicksLimit: goalsTimeRange === '1d' ? 6 : (goalsTimeRange === '7d' ? 8 : (goalsTimeRange === '30d' ? 5 : (goalsTimeRange === '6m' ? 6 : 12))),
-                                callback: function (val, index) {
-                                    const label = this.getLabelForValue(val); // e.g., "2026-01-18 14:00" or "2026-01-18"
-                                    // Ensure label is parsed as Local Time
-                                    const dateStr = label.includes(':') ? label.replace(' ', 'T') : label + 'T00:00:00';
-                                    const date = new Date(dateStr);
-
-                                    if (goalsTimeRange === '1d') {
-                                        // 12am, 6am, 12pm, 6pm
-                                        const hours = date.getHours();
-                                        if (hours === 0) return '12am';
-                                        if (hours === 6) return '6am';
-                                        if (hours === 12) return '12pm';
-                                        if (hours === 18) return '6pm';
-                                        // Return empty string for others to keep neat if not auto-skipped
-                                        return '';
-                                    } else if (goalsTimeRange === '7d') {
-                                        // Mon, Tue... Sun
-                                        return date.toLocaleDateString('en-US', { weekday: 'short' });
-                                    } else if (goalsTimeRange === '30d') {
-                                        // Number every ~7 days: 21, 28, 4, 11...
-                                        // Actually easiest is to just show dates. 
-                                        // The user said "see 21, 28,, 4, 11, 18 labeled".
-                                        // We can just return the date number. autoSkip handles density.
-                                        return date.getDate();
-                                    } else {
-                                        // 6M, 1Y: Show Month names tick when month changes
-                                        // With autoSkip, simple month name is fine.
-                                        return date.toLocaleDateString('en-US', { month: 'short' });
-                                    }
-                                }
-                            }
-                        }
-                    };
-
-                    data.datasets.forEach((ds, index) => {
-                        const position = index === 0 ? 'left' : 'right';
-                        scales[`y${index}`] = {
-                            type: 'linear',
-                            display: true,
-                            position: position,
-                            grid: {
-                                color: index === 0 ? 'rgba(255, 255, 255, 0.1)' : 'transparent'
-                            },
-                            ticks: {
-                                color: ds.color
-                            },
-                            title: {
-                                display: data.datasets.length > 1,
-                                text: ds.unit || ds.name,
-                                color: ds.color
-                            }
-                        };
-                    });
-
-                    goalsChart = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: data.labels,
-                            datasets: datasets
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            interaction: {
-                                mode: 'index',
-                                intersect: false
-                            },
-                            plugins: {
-                                legend: {
-                                    display: true,
-                                    position: 'top',
-                                    labels: {
-                                        color: '#e4e4e7',
-                                        usePointStyle: true,
-                                        padding: 20,
-                                        filter: function (item, chart) {
-                                            // Hide average lines from legend
-                                            // We can check if the text ends with "(Avg)"
-                                            return !item.text.includes('(Avg)');
-                                        }
-                                    }
-                                },
-                                tooltip: {
-                                    backgroundColor: 'rgba(39, 39, 42, 0.95)',
-                                    titleColor: '#e4e4e7',
-                                    bodyColor: '#a1a1aa',
-                                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                                    borderWidth: 1,
-                                    padding: 12,
-                                    callbacks: {
-                                        title: function (context) {
-                                            // Tooltip title formatting
-                                            const label = context[0].label;
-                                            const dateStr = label.includes(':') ? label.replace(' ', 'T') : label + 'T00:00:00';
-                                            const date = new Date(dateStr);
-
-                                            if (goalsTimeRange === '1d') {
-                                                return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                                            } else if (goalsTimeRange === '1y' || goalsTimeRange === '6m') {
-                                                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                                            }
-                                            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    x: {
+                                        type: 'linear',
+                                        position: 'bottom',
+                                        title: {
+                                            display: true,
+                                            text: `${ds1.name} (${ds1.unit || ''})`,
+                                            color: '#a1a1aa'
                                         },
-                                        label: function (context) {
-                                            const ds = data.datasets[context.datasetIndex];
-                                            const value = context.parsed.y;
-                                            if (value === null) return `${ds.name}: No data`;
-                                            // formatting for small/large numbers
-                                            let displayVal = value;
-                                            if (value % 1 !== 0) displayVal = value.toFixed(1);
-                                            return `${ds.name}: ${displayVal} ${ds.unit || ''}`;
+                                        grid: {
+                                            color: 'rgba(255, 255, 255, 0.1)'
+                                        },
+                                        ticks: { color: '#a1a1aa' }
+                                    },
+                                    y: {
+                                        type: 'linear',
+                                        position: 'left',
+                                        title: {
+                                            display: true,
+                                            text: `${ds2.name} (${ds2.unit || ''})`,
+                                            color: '#a1a1aa'
+                                        },
+                                        grid: {
+                                            color: 'rgba(255, 255, 255, 0.1)'
+                                        },
+                                        ticks: { color: '#a1a1aa' }
+                                    }
+                                },
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: 'rgba(24, 24, 27, 0.9)',
+                                        titleColor: '#fff',
+                                        bodyColor: '#e4e4e7',
+                                        borderColor: '#3f3f46',
+                                        borderWidth: 1,
+                                        padding: 12,
+                                        callbacks: {
+                                            title: function (context) {
+                                                const pt = context[0].raw;
+                                                // format date based on label
+                                                return pt.label.replace('T00:00:00', '');
+                                            },
+                                            label: function (context) {
+                                                const pt = context.raw;
+                                                return [
+                                                    `${ds1.name}: ${pt.x} ${ds1.unit || ''}`,
+                                                    `${ds2.name}: ${pt.y} ${ds2.unit || ''}`
+                                                ];
+                                            }
                                         }
                                     }
                                 }
+                            }
+                        });
+
+
+                    } else {
+                        // TIME SERIES MODE (Existing Logic)
+
+                        // Build datasets for Chart.js
+                        let datasets = [];
+
+                        data.datasets.forEach((ds, index) => {
+                            // Main Dataset (Bar)
+                            datasets.push({
+                                label: `${ds.icon || ''} ${ds.name}`,
+                                data: ds.data,
+                                backgroundColor: ds.color,
+                                borderRadius: 4,
+                                barThickness: goalsTimeRange === '1y' || goalsTimeRange === '6m' ? 3 : 'flex',
+                                maxBarThickness: 40,
+                                yAxisID: index === 0 ? 'y0' : 'y1',
+                                order: 1 // Render bars above (in front of) lines
+                            });
+
+                            // Average Line (if enabled)
+                            if (goalsShowAverage) {
+                                const validValues = ds.data.filter(v => v !== null && v !== undefined);
+                                if (validValues.length > 0) {
+                                    const sum = validValues.reduce((a, b) => a + b, 0);
+                                    const avg = sum / validValues.length;
+                                    const avgData = Array(ds.data.length).fill(avg);
+
+                                    datasets.push({
+                                        label: `${ds.name} (Avg)`,
+                                        data: avgData,
+                                        type: 'line',
+                                        borderColor: ds.color, // Use same color
+                                        borderWidth: 1,
+                                        borderDash: [5, 5],
+                                        pointRadius: 0,
+                                        pointHoverRadius: 0,
+                                        fill: false,
+                                        yAxisID: index === 0 ? 'y0' : 'y1',
+                                        order: 2, // Render line below (behind) bars
+                                        tooltip: { enabled: false } // Don't show tooltip for average line to keep it clean? Or show it? Let's hide to avoid clutter.
+                                    });
+                                }
+                            }
+                        });
+
+                        // Determine if we need multiple Y axes
+                        // If ranges differ by more than 10x, use separate axes
+                        const ranges = data.datasets.map(ds => {
+                            const validData = ds.data.filter(v => v !== null);
+                            if (validData.length === 0) return { min: 0, max: 0 };
+                            return {
+                                min: Math.min(...validData),
+                                max: Math.max(...validData)
+                            };
+                        });
+
+                        // Build scales configuration
+                        const scales = {
+                            x: {
+                                grid: {
+                                    display: false,
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: '#a1a1aa',
+                                    font: {
+                                        size: 11
+                                    },
+                                    maxRotation: 0,
+                                    autoSkip: goalsTimeRange !== '7d',
+                                    maxTicksLimit: goalsTimeRange === '1d' ? 6 : (goalsTimeRange === '7d' ? 8 : (goalsTimeRange === '30d' ? 5 : (goalsTimeRange === '6m' ? 6 : 12))),
+                                    callback: function (val, index) {
+                                        const label = this.getLabelForValue(val); // e.g., "2026-01-18 14:00" or "2026-01-18"
+                                        // Ensure label is parsed as Local Time
+                                        const dateStr = label.includes(':') ? label.replace(' ', 'T') : label + 'T00:00:00';
+                                        const date = new Date(dateStr);
+
+                                        if (goalsTimeRange === '1d') {
+                                            // 12am, 6am, 12pm, 6pm
+                                            const hours = date.getHours();
+                                            if (hours === 0) return '12am';
+                                            if (hours === 6) return '6am';
+                                            if (hours === 12) return '12pm';
+                                            if (hours === 18) return '6pm';
+                                            // Return empty string for others to keep neat if not auto-skipped
+                                            return '';
+                                        } else if (goalsTimeRange === '7d') {
+                                            // Mon, Tue... Sun
+                                            return date.toLocaleDateString('en-US', { weekday: 'short' });
+                                        } else if (goalsTimeRange === '30d') {
+                                            // Number every ~7 days: 21, 28, 4, 11...
+                                            // Actually easiest is to just show dates. 
+                                            // The user said "see 21, 28,, 4, 11, 18 labeled".
+                                            // We can just return the date number. autoSkip handles density.
+                                            return date.getDate();
+                                        } else {
+                                            // 6M, 1Y: Show Month names tick when month changes
+                                            // With autoSkip, simple month name is fine.
+                                            return date.toLocaleDateString('en-US', { month: 'short' });
+                                        }
+                                    }
+                                }
+                            }
+                        };
+
+                        data.datasets.forEach((ds, index) => {
+                            const position = index === 0 ? 'left' : 'right';
+                            scales[`y${index}`] = {
+                                type: 'linear',
+                                display: true,
+                                position: position,
+                                grid: {
+                                    color: index === 0 ? 'rgba(255, 255, 255, 0.1)' : 'transparent'
+                                },
+                                ticks: {
+                                    color: ds.color
+                                },
+                                title: {
+                                    display: data.datasets.length > 1,
+                                    text: ds.unit || ds.name,
+                                    color: ds.color
+                                }
+                            };
+                        });
+
+                        goalsChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: data.labels,
+                                datasets: datasets
                             },
-                            scales: scales
-                        }
-                    });
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: {
+                                    mode: 'index',
+                                    intersect: false
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: true,
+                                        position: 'top',
+                                        labels: {
+                                            color: '#e4e4e7',
+                                            usePointStyle: true,
+                                            padding: 20,
+                                            filter: function (item, chart) {
+                                                // Hide average lines from legend
+                                                // We can check if the text ends with "(Avg)"
+                                                return !item.text.includes('(Avg)');
+                                            }
+                                        }
+                                    },
+                                    tooltip: {
+                                        backgroundColor: 'rgba(39, 39, 42, 0.95)',
+                                        titleColor: '#e4e4e7',
+                                        bodyColor: '#a1a1aa',
+                                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                                        borderWidth: 1,
+                                        padding: 12,
+                                        callbacks: {
+                                            title: function (context) {
+                                                // Tooltip title formatting
+                                                const label = context[0].label;
+                                                const dateStr = label.includes(':') ? label.replace(' ', 'T') : label + 'T00:00:00';
+                                                const date = new Date(dateStr);
+
+                                                if (goalsTimeRange === '1d') {
+                                                    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                                                } else if (goalsTimeRange === '1y' || goalsTimeRange === '6m') {
+                                                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                                }
+                                                return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                                            },
+                                            label: function (context) {
+                                                const ds = data.datasets[context.datasetIndex];
+                                                const value = context.parsed.y;
+                                                if (value === null) return `${ds.name}: No data`;
+                                                // formatting for small/large numbers
+                                                let displayVal = value;
+                                                if (value % 1 !== 0) displayVal = value.toFixed(1);
+                                                return `${ds.name}: ${displayVal} ${ds.unit || ''}`;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: scales
+                            }
+                        });
+                    }
                 }
 
                 // ===== EVENT TYPE FAVORITING =====
@@ -2476,6 +2801,19 @@
 
             // Scroll to top
             window.scrollTo(0, 0);
+
+            // Page Hooks
+            if (pageNumber === 4) {
+                loadProfilePage();
+            } else if (pageNumber === 2) {
+                // Load goals data if needed, or already handled by tab switching inside page
+                initGoalsTab();
+            } else if (pageNumber === 7) {
+                // Refresh home favorites just in case
+                if (typeof renderHomeFavorites === 'function') {
+                    renderHomeFavorites();
+                }
+            }
         }
 
         // Restore page from URL hash on load
@@ -4277,7 +4615,252 @@
 
 
 
+
+        // ===== ME / PROFILE PAGE LOGIC =====
+
+        async function loadProfilePage() {
+            const userId = localStorage.getItem('lifestats_userId');
+            if (!userId) return;
+
+            // Elements
+            const setupCard = document.getElementById('profileSetupCard');
+            const displayCard = document.getElementById('profileDisplayCard');
+            const loadingCard = document.getElementById('profileLoadingCard');
+
+            // Show loading
+            setupCard.classList.add('hidden');
+            displayCard.classList.add('hidden');
+            loadingCard.style.display = 'block';
+
+            // Ensure select options are ready
+            populateDateSelects();
+
+            try {
+                // Fetch profile and weight in parallel
+                const [profileRes, weightRes] = await Promise.all([
+                    fetch(`/api/profile?userId=${userId}`),
+                    fetch(`/api/profile/weight?userId=${userId}`)
+                ]);
+
+                const profile = await profileRes.json();
+                const weightData = await weightRes.json();
+
+                if (profile) {
+                    // Show Display Card
+                    displayCard.classList.remove('hidden');
+
+                    // Fill Data
+                    document.getElementById('profileDisplaySex').textContent = profile.sex || '-';
+                    document.getElementById('profileDisplayAge').textContent = calculateAge(profile.birthdate) || '-';
+
+                    const ft = Math.floor((profile.heightInches || 0) / 12);
+                    const inch = (profile.heightInches || 0) % 12;
+                    document.getElementById('profileDisplayHeight').textContent = `${ft}' ${inch}"`;
+
+                    document.getElementById('profileDisplayWeight').textContent = weightData ? `${weightData.weight} lbs` : '-';
+
+                    loadingCard.style.display = 'none';
+                } else {
+                    // Show Setup Form
+                    setupCard.classList.remove('hidden');
+                    loadingCard.style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                loadingCard.innerHTML = '<div class="empty-state"><p>Error loading profile</p></div>';
+            }
+        }
+
+        async function handleProfileSubmit(event) {
+            event.preventDefault();
+
+            const userId = localStorage.getItem('lifestats_userId');
+            if (!userId) return;
+
+            const sex = document.getElementById('profileSex').value;
+
+            // Reconstruct Date
+            const m = document.getElementById('dobMonth').value;
+            const d = document.getElementById('dobDay').value;
+            const y = document.getElementById('dobYear').value;
+
+            const feet = parseInt(document.getElementById('profileHeightFeet').value || 0);
+            const inches = parseInt(document.getElementById('profileHeightInches').value || 0);
+            const weight = parseFloat(document.getElementById('profileWeight').value);
+
+            if (!sex || !m || !d || !y || !weight || !feet) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            // Pad month/day for ISO format YYYY-MM-DD
+            // Note: Month value is 0-11, so we add 1.
+            const monthNum = parseInt(m) + 1;
+            const birthdate = `${y}-${monthNum.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+
+            const totalInches = (feet * 12) + inches;
+
+            try {
+                // 1. Save Profile
+                const profileData = {
+                    userId: userId,
+                    sex: sex,
+                    birthdate: birthdate,
+                    heightInches: totalInches
+                };
+
+                const profileRes = await fetch('/api/profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(profileData)
+                });
+
+                if (!profileRes.ok) throw new Error('Failed to save profile');
+
+                // 2. Log Weight Event
+                const weightEventData = {
+                    id: `event-weight-${Date.now()}`,
+                    userId: userId,
+                    eventTypeId: 'weight',
+                    timestamp: Date.now(),
+                    category: 'Health',
+                    data: {
+                        weight: weight
+                    },
+                    notes: 'Initial profile weight'
+                };
+
+                await fetch('/api/events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(weightEventData)
+                });
+
+                showNotification('Profile setup complete! ✅');
+
+                // Reload Page View
+                loadProfilePage();
+
+            } catch (error) {
+                console.error('Error saving profile:', error);
+                alert('Failed to save profile. Please try again.');
+            }
+        }
+
+        function showProfileEditForm() {
+            populateDateSelects();
+
+            const userId = localStorage.getItem('lifestats_userId');
+            if (userId) {
+                fetch(`/api/profile?userId=${userId}`)
+                    .then(res => res.json())
+                    .then(profile => {
+                        if (profile) {
+                            // Sex
+                            selectSex(profile.sex);
+
+                            // Date Split
+                            if (profile.birthdate) {
+                                // YYYY-MM-DD
+                                const parts = profile.birthdate.split('-');
+                                if (parts.length === 3) {
+                                    document.getElementById('dobYear').value = parseInt(parts[0]);
+                                    document.getElementById('dobMonth').value = parseInt(parts[1]) - 1; // 0-indexed
+                                    updateDayOptions(); // Refresh days based on month/year
+                                    document.getElementById('dobDay').value = parseInt(parts[2]);
+                                }
+                            }
+
+                            // Height
+                            const ft = Math.floor((profile.heightInches || 0) / 12);
+                            const inch = (profile.heightInches || 0) % 12;
+                            document.getElementById('profileHeightFeet').value = ft;
+                            document.getElementById('profileHeightInches').value = inch;
+                        }
+                    });
+
+                fetch(`/api/profile/weight?userId=${userId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data) {
+                            document.getElementById('profileWeight').value = data.weight;
+                        }
+                    });
+            }
+
+            document.getElementById('profileDisplayCard').classList.add('hidden');
+            document.getElementById('profileSetupCard').classList.remove('hidden');
+        }
+
+        function calculateAge(birthdateStr) {
+            if (!birthdateStr) return null;
+            const birthDate = new Date(birthdateStr);
+            const otherDate = new Date();
+            let years = (otherDate.getFullYear() - birthDate.getFullYear());
+
+            if (otherDate.getMonth() < birthDate.getMonth() ||
+                (otherDate.getMonth() == birthDate.getMonth() && otherDate.getDate() < birthDate.getDate())) {
+                years--;
+            }
+            return years;
+        }
+
+        // ===== HELPER FUNCTIONS FOR NEW UI CONTROLS =====
+
+        function selectSex(value) {
+            document.getElementById('profileSex').value = value;
+            document.getElementById('btnSexMale').classList.toggle('active', value === 'male');
+            document.getElementById('btnSexFemale').classList.toggle('active', value === 'female');
+        }
+
+        function populateDateSelects() {
+            const yearSelect = document.getElementById('dobYear');
+            // If empty (except default), populate
+            if (yearSelect.options.length <= 1) {
+                const currentYear = new Date().getFullYear();
+                for (let y = currentYear; y >= 1900; y--) {
+                    const opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    yearSelect.appendChild(opt);
+                }
+            }
+        }
+
+        function updateDayOptions() {
+            const month = parseInt(document.getElementById('dobMonth').value);
+            const year = parseInt(document.getElementById('dobYear').value);
+            const daySelect = document.getElementById('dobDay');
+
+            if (isNaN(month)) return;
+
+            const currentSelection = parseInt(daySelect.value);
+
+            // Default to 2000 if year not picked yet (for leap year calc safety)
+            const y = isNaN(year) ? 2000 : year;
+            // Day 0 of next month = last day of current month. JS Month is 0-11.
+            const daysInMonth = new Date(y, month + 1, 0).getDate();
+
+            // Clear current options (keep default)
+            while (daySelect.options.length > 1) {
+                daySelect.remove(1);
+            }
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = d;
+                daySelect.appendChild(opt);
+            }
+
+            // Restore selection if valid
+            if (currentSelection && currentSelection <= daysInMonth) {
+                daySelect.value = currentSelection;
+            }
+        }
+
     </script>
 </body>
 
-</html>
+</html>```

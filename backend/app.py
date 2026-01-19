@@ -933,6 +933,65 @@ def get_chart_data_route():
         return jsonify({'error': 'Database error'}), 500
 
 
+# ============================================================================
+# USER PROFILE API ROUTES
+# ============================================================================
+
+@app.route('/api/profile', methods=['GET'])
+def get_profile_route():
+    """Get user profile."""
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    try:
+        from db import get_user_profile
+        profile = get_user_profile(user_id)
+        if profile:
+            return jsonify(profile)
+        else:
+            return jsonify(None)  # No profile exists yet
+    except Exception as e:
+        print(f"Error fetching profile: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/profile', methods=['POST'])
+def save_profile_route():
+    """Create or update user profile."""
+    data = request.json
+    
+    if not data or 'userId' not in data:
+        return jsonify({'error': 'userId required'}), 400
+    
+    try:
+        from db import create_or_update_user_profile
+        profile = create_or_update_user_profile(data['userId'], data)
+        return jsonify(profile)
+    except Exception as e:
+        print(f"Error saving profile: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+@app.route('/api/profile/weight', methods=['GET'])
+def get_latest_weight_route():
+    """Get latest body weight from events."""
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    try:
+        from db import get_latest_body_weight
+        weight = get_latest_body_weight(user_id)
+        if weight:
+            return jsonify(weight)
+        else:
+            return jsonify(None)  # No weight recorded yet
+    except Exception as e:
+        print(f"Error fetching latest weight: {e}")
+        return jsonify({'error': 'Database error'}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     app.run(debug=True, host='0.0.0.0', port=port)
