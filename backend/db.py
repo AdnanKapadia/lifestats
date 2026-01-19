@@ -641,9 +641,34 @@ def get_event_types(user_id=None, category=None, include_inactive=False):
         cur.execute(query, tuple(params))
         event_types = cur.fetchall()
         
+        # Determine last used timestamp for each event type
+        # 1. Get max timestamp from events table grouped by event_type_id
+        et_last_used = {}
+        if user_id:
+            cur.execute("""
+                SELECT event_type_id, MAX(timestamp) as last_ts
+                FROM events
+                WHERE user_id = %s
+                GROUP BY event_type_id
+            """, (user_id,))
+            for row in cur.fetchall():
+                et_last_used[row['event_type_id']] = row['last_ts']
+            
+            # 2. Get max timestamp for meals
+            cur.execute("""
+                SELECT MAX(timestamp) as last_ts
+                FROM meals
+                WHERE user_id = %s
+            """, (user_id,))
+            meal_last = cur.fetchone()
+            if meal_last and meal_last['last_ts']:
+                 et_last_used['meal'] = meal_last['last_ts']
+
         # Convert to list of dicts with parsed field_schema
         results = []
         for et in event_types:
+            last_used = et_last_used.get(et['id'], 0)
+            
             results.append({
                 'id': et['id'],
                 'userId': et['user_id'],
@@ -657,6 +682,7 @@ def get_event_types(user_id=None, category=None, include_inactive=False):
                 'trackingType': et.get('tracking_type', 'count'),
                 'isFavorite': et.get('is_user_favorite', False), # Use the computed column
                 'isActive': et['is_active'],
+                'lastUsed': last_used,
                 'createdAt': et['created_at'].isoformat() if et['created_at'] else None,
                 'updatedAt': et['updated_at'].isoformat() if et['updated_at'] else None
             })
@@ -1382,33 +1408,24 @@ def get_todays_stats(user_id, start_timestamp=None):
 # CHART DATA FUNCTIONS
 # ============================================================================
 
-def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_overrides=None, field_overrides=None):
+def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_overrides=None, field_overrides=None, granularity='day', timezone_offset=0):
     """
-    Get chart data for multiple event types, aggregated by day.
+    Get chart data for multiple event types, aggregated by day or hour.
     
     Args:
         user_id: User ID
         event_type_ids: List of event type IDs to chart
-        start_date: Start timestamp in milliseconds
-        end_date: End timestamp in milliseconds  
+        start_date: Start timestamp in milliseconds (UTC timestamp of user's local start time)
+        end_date: End timestamp in milliseconds (UTC timestamp of user's local end time)
         aggregation_overrides: Dict of {eventTypeId: aggregationType} for per-series overrides
         field_overrides: Dict of {eventTypeId: fieldName} for specifying which field to extract
+        granularity: 'day' (default) or 'hour'
+        timezone_offset: Client timezone offset in minutes (UTC - Local). e.g. PST is 480.
     
     Returns:
         {
             labels: ["2026-01-12", "2026-01-13", ...],
-            datasets: [
-                {
-                    eventTypeId: "steps",
-                    name: "Steps",
-                    unit: "steps",
-                    color: "#4CAF50",
-                    aggregationType: "sum",
-                    field: "value",
-                    data: [5432, 8123, ...]
-                },
-                ...
-            ]
+            datasets: [...]
         }
     """
     from datetime import datetime, timedelta
@@ -1432,25 +1449,49 @@ def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_ov
         
         event_types = {et['id']: et for et in cur.fetchall()}
         
-        # 2. Generate date labels from start to end
-        start_dt = datetime.fromtimestamp(start_date / 1000)
-        end_dt = datetime.fromtimestamp(end_date / 1000)
+        # 2. Generate labels from start to end (Adjusted to Local Time)
+        # Shift timestamps to user's local time frame for iteration
+        tz_offset_ms = timezone_offset * 60 * 1000
+        adjusted_start_ms = start_date - tz_offset_ms
+        adjusted_end_ms = end_date - tz_offset_ms
+        
+        start_dt = datetime.utcfromtimestamp(adjusted_start_ms / 1000)
+        end_dt = datetime.utcfromtimestamp(adjusted_end_ms / 1000)
         
         labels = []
-        current = start_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_day = end_dt.replace(hour=0, minute=0, second=0, microsecond=0)
         
-        while current <= end_day:
-            labels.append(current.strftime('%Y-%m-%d'))
-            current += timedelta(days=1)
+        if granularity == 'hour':
+            # Hourly labels: YYYY-MM-DD HH:00
+            current = start_dt.replace(minute=0, second=0, microsecond=0)
+            # Ensure we cover until end_dt
+            while current <= end_dt:
+                labels.append(current.strftime('%Y-%m-%d %H:00'))
+                current += timedelta(hours=1)
+        else:
+            # Daily labels: YYYY-MM-DD
+            current = start_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_day = end_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            while current <= end_day:
+                labels.append(current.strftime('%Y-%m-%d'))
+                current += timedelta(days=1)
         
         # Separate meal type from other event types
         has_meal = 'meal' in event_type_ids
         other_event_type_ids = [et_id for et_id in event_type_ids if et_id != 'meal']
         
-        # Structure: { eventTypeId: { 'YYYY-MM-DD': [values], ... } }
+        # Structure: { eventTypeId: { 'LABEL': [values], ... } }
         grouped = {et_id: {label: [] for label in labels} for et_id in event_type_ids}
         
+        # Helper to get label from timestamp (Adjusted to Local Time)
+        def get_label_from_ts(ts):
+            adjusted_ts = ts - tz_offset_ms
+            dt = datetime.utcfromtimestamp(adjusted_ts / 1000)
+            if granularity == 'hour':
+                return dt.strftime('%Y-%m-%d %H:00')
+            else:
+                return dt.strftime('%Y-%m-%d')
+
         # 3a. Handle MEAL type specially (from meals table)
         if has_meal:
             meal_field = field_overrides.get('meal', 'calories')
@@ -1477,11 +1518,11 @@ def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_ov
             }
             db_field = meal_field_map.get(meal_field, 'calories')
             
+            # Fetch raw timestamp, no DATE conversion in SQL
             cur.execute(f"""
                 SELECT 
                     {db_field} as value,
-                    timestamp,
-                    DATE(to_timestamp(timestamp / 1000.0)) as meal_date
+                    timestamp
                 FROM meals
                 WHERE user_id = %s 
                 AND timestamp >= %s 
@@ -1491,8 +1532,9 @@ def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_ov
             
             meal_rows = cur.fetchall()
             for row in meal_rows:
-                date_str = row['meal_date'].strftime('%Y-%m-%d')
-                if date_str in grouped['meal']:
+                date_str = get_label_from_ts(row['timestamp'])
+                
+                if date_str and date_str in grouped['meal']:
                     val = row['value']
                     if val is not None:
                         grouped['meal'][date_str].append(float(val))
@@ -1504,8 +1546,7 @@ def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_ov
                 SELECT 
                     event_type_id,
                     data,
-                    timestamp,
-                    DATE(to_timestamp(timestamp / 1000.0)) as event_date
+                    timestamp
                 FROM events
                 WHERE user_id = %s 
                 AND event_type_id IN ({other_placeholders})
@@ -1518,9 +1559,9 @@ def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_ov
             
             for event in events:
                 et_id = event['event_type_id']
-                date_str = event['event_date'].strftime('%Y-%m-%d')
+                date_str = get_label_from_ts(event['timestamp'])
                 
-                if date_str not in grouped[et_id]:
+                if not date_str or date_str not in grouped[et_id]:
                     continue
                 
                 # Extract numeric value from data
@@ -1571,8 +1612,11 @@ def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_ov
             unit = et.get('primary_unit', '')
             
             # For meal type, show the specific nutrient name
-            if et_id == 'meal' and selected_field:
-                unit = selected_field  # e.g., "protein", "carbs"
+            if et_id == 'meal':
+                if selected_field:
+                    unit = selected_field
+                else:
+                    unit = 'kcal'  # Default for meal if no field selected
             
             data_points = []
             for label in labels:

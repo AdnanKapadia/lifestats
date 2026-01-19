@@ -747,10 +747,37 @@
         }
 
         /* Goals Tab Chips */
-        .goals-range-chip.active {
-            background: rgba(46, 204, 113, 0.2);
-            border-color: #2ECC71;
-            color: #2ECC71;
+        .goals-range-selector {
+            display: flex;
+            background: rgba(39, 39, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .goals-range-option {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            color: #a1a1aa;
+            font-size: 0.9em;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .goals-range-option:hover {
+            color: #e4e4e7;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .goals-range-option.active {
+            background: #27272a;
+            color: #e4e4e7;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            font-weight: 600;
         }
 
         .goals-metric-chip.selected {
@@ -1018,43 +1045,7 @@
                 </div>
             </div>
 
-            <!-- Time Range Selection -->
-            <div class="card">
-                <div class="section-title">Time Range</div>
-                <div class="chip-container" style="margin-bottom: 12px;">
-                    <div class="chip goals-range-chip" data-range="7d" onclick="setGoalsTimeRange('7d')">7 Days</div>
-                    <div class="chip goals-range-chip active" data-range="30d" onclick="setGoalsTimeRange('30d')">30
-                        Days</div>
-                    <div class="chip goals-range-chip" data-range="1y" onclick="setGoalsTimeRange('1y')">1 Year</div>
-                    <div class="chip goals-range-chip" data-range="all" onclick="setGoalsTimeRange('all')">All Time
-                    </div>
-                    <div class="chip goals-range-chip" data-range="custom" onclick="toggleCustomDatePicker()">📅 Custom
-                    </div>
-                </div>
 
-                <!-- Custom Date Picker (hidden by default) -->
-                <div id="customDatePicker"
-                    style="display: none; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <div style="display: flex; gap: 12px; align-items: flex-end;">
-                        <div style="flex: 1;">
-                            <label
-                                style="display: block; margin-bottom: 4px; font-size: 0.85em; color: #a1a1aa;">From</label>
-                            <input type="date" id="goalsStartDate"
-                                style="width: 100%; padding: 10px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7;">
-                        </div>
-                        <div style="flex: 1;">
-                            <label
-                                style="display: block; margin-bottom: 4px; font-size: 0.85em; color: #a1a1aa;">To</label>
-                            <input type="date" id="goalsEndDate"
-                                style="width: 100%; padding: 10px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7;">
-                        </div>
-                        <button onclick="applyCustomDateRange()"
-                            style="padding: 10px 16px; background: #2ECC71; border: none; border-radius: 8px; color: white; cursor: pointer;">
-                            Apply
-                        </button>
-                    </div>
-                </div>
-            </div>
 
             <!-- Aggregation Controls (shown when metrics selected) -->
             <div id="goalsAggregationCard" class="card" style="display: none;">
@@ -1066,6 +1057,28 @@
 
             <!-- Chart Container -->
             <div class="card">
+                <!-- Time Range Selection -->
+                <div style="margin-bottom: 20px;">
+                    <div class="goals-range-selector">
+                        <div class="goals-range-option" data-range="1d" onclick="setGoalsTimeRange('1d')">D</div>
+                        <div class="goals-range-option" data-range="7d" onclick="setGoalsTimeRange('7d')">W</div>
+                        <div class="goals-range-option active" data-range="30d" onclick="setGoalsTimeRange('30d')">M
+                        </div>
+                        <div class="goals-range-option" data-range="6m" onclick="setGoalsTimeRange('6m')">6M</div>
+                        <div class="goals-range-option" data-range="1y" onclick="setGoalsTimeRange('1y')">Y</div>
+                    </div>
+                </div>
+
+                <!-- Toggles (Right Aligned) -->
+                <div style="margin-bottom: 10px; display: flex; justify-content: flex-end;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="goalsShowAverage" checked onchange="toggleGoalsAverage(this.checked)"
+                            style="accent-color: #2ECC71; width: 16px; height: 16px; cursor: pointer;">
+                        <label for="goalsShowAverage"
+                            style="color: #a1a1aa; font-size: 0.85em; cursor: pointer; user-select: none;">Show
+                            Avg</label>
+                    </div>
+                </div>
                 <div id="goalsChartContainer" style="position: relative; width: 100%; min-height: 300px;">
                     <canvas id="goalsChart"></canvas>
                     <div id="goalsChartEmpty" class="empty-state"
@@ -1379,10 +1392,10 @@
                 let goalsChart = null;
                 let goalsSelectedEventTypes = [];
                 let goalsTimeRange = '30d';
-                let goalsCustomStartDate = null;
-                let goalsCustomEndDate = null;
                 let goalsAggregationOverrides = {};
                 let goalsFieldOverrides = {};
+                let goalsShowAverage = true; // Default enabled
+                let goalsCachedData = null;
 
                 // Available fields for meal type
                 const mealFields = [
@@ -1408,20 +1421,30 @@
                     if (typeof allEventTypes !== 'undefined' && allEventTypes.length > 0) {
                         renderGoalsEventTypeChips();
                     }
-                    // Set default dates for custom picker
-                    const today = new Date();
-                    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-                    document.getElementById('goalsEndDate').value = today.toISOString().split('T')[0];
-                    document.getElementById('goalsStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
                 }
 
                 function renderGoalsEventTypeChips() {
                     const container = document.getElementById('goalsEventTypeChips');
                     if (!container) return;
 
-                    // Filter out inactive types
+                    // Filter and sort types: Favorites first, then Last Used (desc), then Alphabetical
                     const chartableTypes = (typeof allEventTypes !== 'undefined' ? allEventTypes : [])
-                        .filter(et => et.isActive !== false);
+                        .filter(et => et.isActive !== false)
+                        .sort((a, b) => {
+                            // 1. Favorites first
+                            if (a.isFavorite && !b.isFavorite) return -1;
+                            if (!a.isFavorite && b.isFavorite) return 1;
+
+                            // 2. Last Used (descending)
+                            const lastUsedA = a.lastUsed || 0;
+                            const lastUsedB = b.lastUsed || 0;
+                            if (lastUsedA !== lastUsedB) {
+                                return lastUsedB - lastUsedA;
+                            }
+
+                            // 3. Alphabetical fallback
+                            return a.name.localeCompare(b.name);
+                        });
 
                     if (chartableTypes.length === 0) {
                         container.innerHTML = `
@@ -1465,47 +1488,12 @@
                     goalsTimeRange = range;
 
                     // Update chip styles
-                    document.querySelectorAll('.goals-range-chip').forEach(chip => {
+                    document.querySelectorAll('.goals-range-option').forEach(chip => {
                         chip.classList.remove('active');
                         if (chip.dataset.range === range) {
                             chip.classList.add('active');
                         }
                     });
-
-                    // Hide custom date picker for non-custom ranges
-                    if (range !== 'custom') {
-                        document.getElementById('customDatePicker').style.display = 'none';
-                        loadGoalsChartData();
-                    }
-                }
-
-                function toggleCustomDatePicker() {
-                    const picker = document.getElementById('customDatePicker');
-                    const isHidden = picker.style.display === 'none';
-                    picker.style.display = isHidden ? 'block' : 'none';
-
-                    // Set active state on custom chip
-                    document.querySelectorAll('.goals-range-chip').forEach(chip => {
-                        chip.classList.remove('active');
-                        if (chip.dataset.range === 'custom') {
-                            chip.classList.add('active');
-                        }
-                    });
-                    goalsTimeRange = 'custom';
-                }
-
-                function applyCustomDateRange() {
-                    const startInput = document.getElementById('goalsStartDate');
-                    const endInput = document.getElementById('goalsEndDate');
-
-                    if (!startInput.value || !endInput.value) {
-                        alert('Please select both start and end dates');
-                        return;
-                    }
-
-                    goalsCustomStartDate = new Date(startInput.value);
-                    goalsCustomEndDate = new Date(endInput.value);
-                    goalsCustomEndDate.setHours(23, 59, 59, 999); // Include the full end day
 
                     loadGoalsChartData();
                 }
@@ -1591,26 +1579,22 @@
                     endDate.setHours(23, 59, 59, 999);
 
                     switch (goalsTimeRange) {
+                        case '1d':
+                            startDate = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
+                            break;
                         case '7d':
                             startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
                             break;
                         case '30d':
                             startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
                             break;
+                        case '6m':
+                            startDate = new Date(now);
+                            startDate.setMonth(startDate.getMonth() - 5);
+                            break;
                         case '1y':
                             startDate = new Date(now);
                             startDate.setFullYear(startDate.getFullYear() - 1);
-                            break;
-                        case 'all':
-                            startDate = new Date('2020-01-01'); // Far enough back
-                            break;
-                        case 'custom':
-                            if (goalsCustomStartDate && goalsCustomEndDate) {
-                                startDate = goalsCustomStartDate;
-                                endDate = goalsCustomEndDate;
-                            } else {
-                                startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                            }
                             break;
                         default:
                             startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -1643,9 +1627,11 @@
                     if (!userId) return;
 
                     const { startDate, endDate } = getGoalsDateRange();
+                    const granularity = goalsTimeRange === '1d' ? 'hour' : 'day';
+                    const timezoneOffset = new Date().getTimezoneOffset();
 
                     try {
-                        let url = `/api/chart-data?userId=${userId}&eventTypeIds=${goalsSelectedEventTypes.join(',')}&startDate=${startDate}&endDate=${endDate}`;
+                        let url = `/api/chart-data?userId=${userId}&eventTypeIds=${goalsSelectedEventTypes.join(',')}&startDate=${startDate}&endDate=${endDate}&granularity=${granularity}&timezoneOffset=${timezoneOffset}`;
 
                         if (Object.keys(goalsAggregationOverrides).length > 0) {
                             url += `&aggregations=${encodeURIComponent(JSON.stringify(goalsAggregationOverrides))}`;
@@ -1663,9 +1649,17 @@
                             return;
                         }
 
+                        goalsCachedData = data;
                         renderGoalsChart(data);
                     } catch (error) {
                         console.error('Error loading chart data:', error);
+                    }
+                }
+
+                function toggleGoalsAverage(enabled) {
+                    goalsShowAverage = enabled;
+                    if (goalsCachedData) {
+                        renderGoalsChart(goalsCachedData);
                     }
                 }
 
@@ -1678,14 +1672,46 @@
                     }
 
                     // Build datasets for Chart.js
-                    const datasets = data.datasets.map((ds, index) => ({
-                        label: `${ds.icon || ''} ${ds.name}`,
-                        data: ds.data,
-                        backgroundColor: ds.color,
-                        borderRadius: 4,
-                        barPercentage: 0.6,
-                        yAxisID: `y${index}`
-                    }));
+                    let datasets = [];
+
+                    data.datasets.forEach((ds, index) => {
+                        // Main Dataset (Bar)
+                        datasets.push({
+                            label: `${ds.icon || ''} ${ds.name}`,
+                            data: ds.data,
+                            backgroundColor: ds.color,
+                            borderRadius: 4,
+                            barThickness: goalsTimeRange === '1y' || goalsTimeRange === '6m' ? 3 : 'flex',
+                            maxBarThickness: 40,
+                            yAxisID: index === 0 ? 'y0' : 'y1',
+                            order: 2 // Render bars below lines
+                        });
+
+                        // Average Line (if enabled)
+                        if (goalsShowAverage) {
+                            const validValues = ds.data.filter(v => v !== null && v !== undefined);
+                            if (validValues.length > 0) {
+                                const sum = validValues.reduce((a, b) => a + b, 0);
+                                const avg = sum / validValues.length;
+                                const avgData = Array(ds.data.length).fill(avg);
+
+                                datasets.push({
+                                    label: `${ds.name} (Avg)`,
+                                    data: avgData,
+                                    type: 'line',
+                                    borderColor: ds.color, // Use same color
+                                    borderWidth: 1,
+                                    borderDash: [5, 5],
+                                    pointRadius: 0,
+                                    pointHoverRadius: 0,
+                                    fill: false,
+                                    yAxisID: index === 0 ? 'y0' : 'y1',
+                                    order: 1, // Render line above bars
+                                    tooltip: { enabled: false } // Don't show tooltip for average line to keep it clean? Or show it? Let's hide to avoid clutter.
+                                });
+                            }
+                        }
+                    });
 
                     // Determine if we need multiple Y axes
                     // If ranges differ by more than 10x, use separate axes
@@ -1702,12 +1728,47 @@
                     const scales = {
                         x: {
                             grid: {
-                                color: 'rgba(255, 255, 255, 0.1)',
-                                display: false
+                                display: false,
+                                drawBorder: false
                             },
                             ticks: {
                                 color: '#a1a1aa',
-                                maxTicksLimit: goalsTimeRange === '7d' ? 7 : (goalsTimeRange === '1y' ? 12 : 10)
+                                font: {
+                                    size: 11
+                                },
+                                maxRotation: 0,
+                                autoSkip: goalsTimeRange !== '7d',
+                                maxTicksLimit: goalsTimeRange === '1d' ? 6 : (goalsTimeRange === '7d' ? 8 : (goalsTimeRange === '30d' ? 5 : (goalsTimeRange === '6m' ? 6 : 12))),
+                                callback: function (val, index) {
+                                    const label = this.getLabelForValue(val); // e.g., "2026-01-18 14:00" or "2026-01-18"
+                                    // Ensure label is parsed as Local Time
+                                    const dateStr = label.includes(':') ? label.replace(' ', 'T') : label + 'T00:00:00';
+                                    const date = new Date(dateStr);
+
+                                    if (goalsTimeRange === '1d') {
+                                        // 12am, 6am, 12pm, 6pm
+                                        const hours = date.getHours();
+                                        if (hours === 0) return '12am';
+                                        if (hours === 6) return '6am';
+                                        if (hours === 12) return '12pm';
+                                        if (hours === 18) return '6pm';
+                                        // Return empty string for others to keep neat if not auto-skipped
+                                        return '';
+                                    } else if (goalsTimeRange === '7d') {
+                                        // Mon, Tue... Sun
+                                        return date.toLocaleDateString('en-US', { weekday: 'short' });
+                                    } else if (goalsTimeRange === '30d') {
+                                        // Number every ~7 days: 21, 28, 4, 11...
+                                        // Actually easiest is to just show dates. 
+                                        // The user said "see 21, 28,, 4, 11, 18 labeled".
+                                        // We can just return the date number. autoSkip handles density.
+                                        return date.getDate();
+                                    } else {
+                                        // 6M, 1Y: Show Month names tick when month changes
+                                        // With autoSkip, simple month name is fine.
+                                        return date.toLocaleDateString('en-US', { month: 'short' });
+                                    }
+                                }
                             }
                         }
                     };
@@ -1752,7 +1813,12 @@
                                     labels: {
                                         color: '#e4e4e7',
                                         usePointStyle: true,
-                                        padding: 20
+                                        padding: 20,
+                                        filter: function (item, chart) {
+                                            // Hide average lines from legend
+                                            // We can check if the text ends with "(Avg)"
+                                            return !item.text.includes('(Avg)');
+                                        }
                                     }
                                 },
                                 tooltip: {
@@ -1763,11 +1829,27 @@
                                     borderWidth: 1,
                                     padding: 12,
                                     callbacks: {
+                                        title: function (context) {
+                                            // Tooltip title formatting
+                                            const label = context[0].label;
+                                            const dateStr = label.includes(':') ? label.replace(' ', 'T') : label + 'T00:00:00';
+                                            const date = new Date(dateStr);
+
+                                            if (goalsTimeRange === '1d') {
+                                                return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                                            } else if (goalsTimeRange === '1y' || goalsTimeRange === '6m') {
+                                                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                            }
+                                            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                                        },
                                         label: function (context) {
                                             const ds = data.datasets[context.datasetIndex];
                                             const value = context.parsed.y;
                                             if (value === null) return `${ds.name}: No data`;
-                                            return `${ds.name}: ${value.toLocaleString()} ${ds.unit || ''}`;
+                                            // formatting for small/large numbers
+                                            let displayVal = value;
+                                            if (value % 1 !== 0) displayVal = value.toFixed(1);
+                                            return `${ds.name}: ${displayVal} ${ds.unit || ''}`;
                                         }
                                     }
                                 }
@@ -3370,6 +3452,23 @@
                 `;
                 return;
             }
+
+            // Sort: Favorites first, then Last Used (desc), then Alphabetical
+            eventTypes.sort((a, b) => {
+                // 1. Favorites first
+                if (a.isFavorite && !b.isFavorite) return -1;
+                if (!a.isFavorite && b.isFavorite) return 1;
+
+                // 2. Last Used (descending)
+                const lastUsedA = a.lastUsed || 0;
+                const lastUsedB = b.lastUsed || 0;
+                if (lastUsedA !== lastUsedB) {
+                    return lastUsedB - lastUsedA;
+                }
+
+                // 3. Alphabetical fallback
+                return a.name.localeCompare(b.name);
+            });
 
             container.innerHTML = eventTypes.map(et => {
                 let rightSideContent = '';

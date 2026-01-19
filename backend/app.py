@@ -902,6 +902,17 @@ def get_chart_data_route():
         except json.JSONDecodeError:
             return jsonify({'error': 'fields must be valid JSON object'}), 400
     
+    # Granularity
+    granularity = request.args.get('granularity', 'day')
+    if granularity not in ['day', 'hour']:
+        return jsonify({'error': "granularity must be 'day' or 'hour'"}), 400
+    
+    # Timezone Offset (minutes)
+    try:
+        timezone_offset = int(request.args.get('timezoneOffset', 0))
+    except ValueError:
+        timezone_offset = 0
+
     try:
         from db import get_chart_data
         chart_data = get_chart_data(
@@ -910,7 +921,9 @@ def get_chart_data_route():
             start_date_int,
             end_date_int,
             aggregation_overrides,
-            field_overrides
+            field_overrides,
+            granularity,
+            timezone_offset
         )
         return jsonify(chart_data)
     except Exception as e:
