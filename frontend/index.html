@@ -5320,6 +5320,13 @@
                         <option value="1.725">Heavy Exercise (6-7 days/week)</option>
                     </select>
                 </div>
+
+                <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+                    <input type="checkbox" id="fwMaintenance" onchange="toggleMaintenanceMode(this.checked)"
+                        style="accent-color: #2ECC71; width: 18px; height: 18px; cursor: pointer;">
+                    <label for="fwMaintenance" style="color: #e4e4e7; cursor: pointer; user-select: none;">Maintenance
+                        (Maintain current weight)</label>
+                </div>
                 <button onclick="calculateFitnessPlan()" class="primary-btn" style="margin-top: 20px;">Calculate Plan
                     →</button>
             </div>
@@ -5388,6 +5395,21 @@
             document.getElementById('fitnessWizardOverlay').classList.add('hidden');
         }
 
+        function toggleMaintenanceMode(isMaintenance) {
+            const opacity = isMaintenance ? '0.5' : '1';
+            const pointerEvents = isMaintenance ? 'none' : 'auto';
+
+            const disableInput = (id) => {
+                const el = document.getElementById(id);
+                el.style.opacity = opacity;
+                el.style.pointerEvents = pointerEvents;
+                el.disabled = isMaintenance;
+            };
+
+            disableInput('fwTargetWeight');
+            disableInput('fwWeeks');
+        }
+
         async function calculateFitnessPlan() {
             // 1. Get User Profile Data
             const userId = localStorage.getItem('lifestats_userId');
@@ -5403,11 +5425,12 @@
             const getVal = (id) => parseFloat(document.getElementById(id).value);
 
             // Inputs
-            const targetWeight = getVal('fwTargetWeight');
-            const weeks = getVal('fwWeeks');
+            const isMaintenance = document.getElementById('fwMaintenance').checked;
+            let targetWeight = getVal('fwTargetWeight');
+            let weeks = getVal('fwWeeks');
             const activity = getVal('fwActivity');
 
-            if (!targetWeight || !weeks) {
+            if (!isMaintenance && (!targetWeight || !weeks)) {
                 alert("Please enter target weight and weeks.");
                 return;
             }
@@ -5444,6 +5467,12 @@
                 }
             } catch (e) { }
 
+            // Maintenance Mode Logic
+            if (isMaintenance) {
+                targetWeight = currentWeight;
+                weeks = 0; // Not used for calculation
+            }
+
             // Mifflin-St Jeor
             // Weight in kg, Height in cm
             const weightKg = currentWeight * 0.453592;
@@ -5458,9 +5487,12 @@
 
             // Calculate Deficit
             // 1 lb fat = 3500 kcal
-            const weightDiff = currentWeight - targetWeight;
-            const totalDeficit = weightDiff * 3500;
-            const dailyDeficit = totalDeficit / (weeks * 7);
+            let dailyDeficit = 0;
+            if (!isMaintenance && weeks > 0) {
+                const weightDiff = currentWeight - targetWeight;
+                const totalDeficit = weightDiff * 3500;
+                dailyDeficit = totalDeficit / (weeks * 7);
+            }
 
             // Daily Goal
             let dailyCalories = Math.round(tdee - dailyDeficit);
@@ -5478,7 +5510,10 @@
 
             // Display Results
             document.getElementById('fwResultCalories').innerText = dailyCalories;
-            document.getElementById('fwResultLossRate').innerText = `${weeks} weeks`;
+            // Display Results
+            document.getElementById('fwResultCalories').innerText = dailyCalories;
+            document.getElementById('fwResultLossRate').innerText = isMaintenance ? 'Maintenance' : `${weeks} weeks`;
+            document.getElementById('fwResultProtein').innerText = `${proteinG}g`;
             document.getElementById('fwResultProtein').innerText = `${proteinG}g`;
             document.getElementById('fwResultCarbs').innerText = `${carbG}g`;
             document.getElementById('fwResultFat').innerText = `${fatG}g`;
