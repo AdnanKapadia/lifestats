@@ -1017,6 +1017,81 @@
             width: 100%;
             cursor: pointer;
         }
+
+        /* Wheel Picker Styles */
+        .picker-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(24, 24, 27, 0.6);
+            /* Zinc 900 */
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            height: 100px;
+            overflow: hidden;
+            mask-image: linear-gradient(to bottom,
+                    transparent,
+                    black 20%,
+                    black 80%,
+                    transparent);
+            -webkit-mask-image: linear-gradient(to bottom,
+                    transparent,
+                    black 20%,
+                    black 80%,
+                    transparent);
+        }
+
+        .picker-col {
+            flex: 1;
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            position: relative;
+            z-index: 1;
+            /* Hide scrollbar */
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        .picker-col::-webkit-scrollbar {
+            display: none;
+        }
+
+        .picker-list {
+            padding-top: 30px;
+            /* (ContainerHeight 100 - ItemHeight 40) / 2 */
+            padding-bottom: 30px;
+        }
+
+        .picker-item {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1em;
+            color: #71717a;
+            /* Zinc 500 */
+            scroll-snap-align: center;
+            transition: color 0.2s, transform 0.2s;
+            font-weight: 500;
+        }
+
+        .picker-highlight {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 40px;
+            margin-top: -20px;
+            background: rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Active item simulation (handled by JS intersection usually, but center bar does the visual job) */
     </style>
 </head>
 
@@ -1300,77 +1375,51 @@
                         <input type="hidden" id="profileSex" required>
                     </div>
 
-                    <!-- Birthdate -->
+                    <!-- Birthdate Wheel -->
                     <div class="form-group">
                         <label>Birthdate</label>
-                        <div style="display: flex; gap: 8px;">
-                            <div style="flex: 2;">
-                                <select id="dobMonth" class="scroll-select" required onchange="updateDayOptions()">
-                                    <option value="" disabled selected>Month</option>
-                                    <option value="0">January</option>
-                                    <option value="1">February</option>
-                                    <option value="2">March</option>
-                                    <option value="3">April</option>
-                                    <option value="4">May</option>
-                                    <option value="5">June</option>
-                                    <option value="6">July</option>
-                                    <option value="7">August</option>
-                                    <option value="8">September</option>
-                                    <option value="9">October</option>
-                                    <option value="10">November</option>
-                                    <option value="11">December</option>
-                                </select>
+                        <!-- Hidden inputs to store real values -->
+                        <input type="hidden" id="dobMonth">
+                        <input type="hidden" id="dobDay">
+                        <input type="hidden" id="dobYear">
+
+                        <div class="picker-container">
+                            <div class="picker-highlight"></div>
+
+                            <!-- Month -->
+                            <div class="picker-col" id="col_dobMonth">
+                                <div class="picker-list" id="wheel_dobMonth"></div>
                             </div>
-                            <div style="flex: 1;">
-                                <select id="dobDay" class="scroll-select" required>
-                                    <option value="" disabled selected>Day</option>
-                                    <!-- Populated by JS -->
-                                </select>
+
+                            <!-- Day -->
+                            <div class="picker-col" id="col_dobDay">
+                                <div class="picker-list" id="wheel_dobDay"></div>
                             </div>
-                            <div style="flex: 1.5;">
-                                <select id="dobYear" class="scroll-select" required onchange="updateDayOptions()">
-                                    <option value="" disabled selected>Year</option>
-                                    <!-- Populated by JS -->
-                                </select>
+
+                            <!-- Year -->
+                            <div class="picker-col" id="col_dobYear">
+                                <div class="picker-list" id="wheel_dobYear"></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Height -->
+                    <!-- Height Wheel -->
                     <div class="form-group">
                         <label>Height</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <div style="flex: 1;">
-                                <select id="profileHeightFeet" class="scroll-select" required>
-                                    <option value="" disabled selected>Ft</option>
-                                    <!-- 1-8 -->
-                                    <option value="1">1'</option>
-                                    <option value="2">2'</option>
-                                    <option value="3">3'</option>
-                                    <option value="4">4'</option>
-                                    <option value="5">5'</option>
-                                    <option value="6">6'</option>
-                                    <option value="7">7'</option>
-                                    <option value="8">8'</option>
-                                </select>
+                        <input type="hidden" id="profileHeightFeet">
+                        <input type="hidden" id="profileHeightInches">
+
+                        <div class="picker-container">
+                            <div class="picker-highlight"></div>
+
+                            <!-- Feet -->
+                            <div class="picker-col" id="col_heightFeet">
+                                <div class="picker-list" id="wheel_heightFeet"></div>
                             </div>
-                            <div style="flex: 1;">
-                                <select id="profileHeightInches" class="scroll-select" required>
-                                    <option value="" disabled selected>In</option>
-                                    <!-- 0-11 -->
-                                    <option value="0">0"</option>
-                                    <option value="1">1"</option>
-                                    <option value="2">2"</option>
-                                    <option value="3">3"</option>
-                                    <option value="4">4"</option>
-                                    <option value="5">5"</option>
-                                    <option value="6">6"</option>
-                                    <option value="7">7"</option>
-                                    <option value="8">8"</option>
-                                    <option value="9">9"</option>
-                                    <option value="10">10"</option>
-                                    <option value="11">11"</option>
-                                </select>
+
+                            <!-- Inches -->
+                            <div class="picker-col" id="col_heightInches">
+                                <div class="picker-list" id="wheel_heightInches"></div>
                             </div>
                         </div>
                     </div>
@@ -4618,6 +4667,10 @@
 
         // ===== ME / PROFILE PAGE LOGIC =====
 
+        // Wheel Data
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        let wheelsInitialized = false;
+
         async function loadProfilePage() {
             const userId = localStorage.getItem('lifestats_userId');
             if (!userId) return;
@@ -4632,8 +4685,11 @@
             displayCard.classList.add('hidden');
             loadingCard.style.display = 'block';
 
-            // Ensure select options are ready
-            populateDateSelects();
+            // Initialize Wheels (once)
+            if (!wheelsInitialized) {
+                initAllWheels();
+                wheelsInitialized = true;
+            }
 
             try {
                 // Fetch profile and weight in parallel
@@ -4663,6 +4719,8 @@
                 } else {
                     // Show Setup Form
                     setupCard.classList.remove('hidden');
+                    // Set defaults for wheels
+                    setWheelToDefault();
                     loadingCard.style.display = 'none';
                 }
 
@@ -4680,7 +4738,7 @@
 
             const sex = document.getElementById('profileSex').value;
 
-            // Reconstruct Date
+            // Get from hidden inputs
             const m = document.getElementById('dobMonth').value;
             const d = document.getElementById('dobDay').value;
             const y = document.getElementById('dobYear').value;
@@ -4689,13 +4747,14 @@
             const inches = parseInt(document.getElementById('profileHeightInches').value || 0);
             const weight = parseFloat(document.getElementById('profileWeight').value);
 
-            if (!sex || !m || !d || !y || !weight || !feet) {
+            // Validation
+            if (!sex || m === '' || d === '' || y === '' || isNaN(weight) || !feet) {
                 alert('Please fill in all required fields');
                 return;
             }
 
             // Pad month/day for ISO format YYYY-MM-DD
-            // Note: Month value is 0-11, so we add 1.
+            // Month is 0-indexed from wheel
             const monthNum = parseInt(m) + 1;
             const birthdate = `${y}-${monthNum.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
 
@@ -4749,9 +4808,13 @@
         }
 
         function showProfileEditForm() {
-            populateDateSelects();
-
             const userId = localStorage.getItem('lifestats_userId');
+
+            if (!wheelsInitialized) {
+                initAllWheels();
+                wheelsInitialized = true;
+            }
+
             if (userId) {
                 fetch(`/api/profile?userId=${userId}`)
                     .then(res => res.json())
@@ -4765,18 +4828,24 @@
                                 // YYYY-MM-DD
                                 const parts = profile.birthdate.split('-');
                                 if (parts.length === 3) {
-                                    document.getElementById('dobYear').value = parseInt(parts[0]);
-                                    document.getElementById('dobMonth').value = parseInt(parts[1]) - 1; // 0-indexed
-                                    updateDayOptions(); // Refresh days based on month/year
-                                    document.getElementById('dobDay').value = parseInt(parts[2]);
+                                    const y = parseInt(parts[0]);
+                                    const m = parseInt(parts[1]) - 1; // 0-indexed
+                                    const d = parseInt(parts[2]);
+
+                                    // Scroll wheels to match
+                                    scrollToValue('col_dobYear', y);
+                                    scrollToValue('col_dobMonth', m);
+                                    // Update days then scroll
+                                    updateDayWheel();
+                                    setTimeout(() => scrollToValue('col_dobDay', d), 50);
                                 }
                             }
 
                             // Height
                             const ft = Math.floor((profile.heightInches || 0) / 12);
                             const inch = (profile.heightInches || 0) % 12;
-                            document.getElementById('profileHeightFeet').value = ft;
-                            document.getElementById('profileHeightInches').value = inch;
+                            scrollToValue('col_heightFeet', ft);
+                            scrollToValue('col_heightInches', inch);
                         }
                     });
 
@@ -4806,7 +4875,7 @@
             return years;
         }
 
-        // ===== HELPER FUNCTIONS FOR NEW UI CONTROLS =====
+        // ===== WHEEL PICKER LOGIC =====
 
         function selectSex(value) {
             document.getElementById('profileSex').value = value;
@@ -4814,53 +4883,143 @@
             document.getElementById('btnSexFemale').classList.toggle('active', value === 'female');
         }
 
-        function populateDateSelects() {
-            const yearSelect = document.getElementById('dobYear');
-            // If empty (except default), populate
-            if (yearSelect.options.length <= 1) {
-                const currentYear = new Date().getFullYear();
-                for (let y = currentYear; y >= 1900; y--) {
-                    const opt = document.createElement('option');
-                    opt.value = y;
-                    opt.textContent = y;
-                    yearSelect.appendChild(opt);
-                }
+        function initAllWheels() {
+            // Month
+            initWheel('col_dobMonth', 'wheel_dobMonth', 'dobMonth',
+                monthNames.map((m, i) => ({ val: i, text: m })),
+                updateDayWheel
+            );
+
+            // Year: 1900 - Current
+            const years = [];
+            const currentYear = new Date().getFullYear();
+            for (let y = currentYear; y >= 1900; y--) years.push({ val: y, text: y });
+            initWheel('col_dobYear', 'wheel_dobYear', 'dobYear', years, updateDayWheel);
+
+            // Day (initially 31)
+            initWheel('col_dobDay', 'wheel_dobDay', 'dobDay',
+                Array.from({ length: 31 }, (_, i) => ({ val: i + 1, text: i + 1 }))
+            );
+
+            // Height Feet (1-8)
+            initWheel('col_heightFeet', 'wheel_heightFeet', 'profileHeightFeet',
+                Array.from({ length: 8 }, (_, i) => ({ val: i + 1, text: `${i + 1}'` }))
+            );
+
+            // Height Inches (0-11)
+            initWheel('col_heightInches', 'wheel_heightInches', 'profileHeightInches',
+                Array.from({ length: 12 }, (_, i) => ({ val: i, text: `${i}"` }))
+            );
+        }
+
+        function initWheel(colId, listId, inputId, items, onChangeCallback) {
+            const container = document.getElementById(listId);
+            if (!container) return;
+
+            // Populate
+            container.innerHTML = items.map(item =>
+                `<div class="picker-item" data-value="${item.val}">${item.text}</div>`
+            ).join('');
+
+            // Attach Scroll Listener
+            const col = document.getElementById(colId);
+            col.dataset.inputId = inputId;
+
+            // Function to handle scroll update
+            const handleScroll = () => {
+                const itemHeight = 40;
+                const index = Math.round(col.scrollTop / itemHeight);
+                const safeIndex = Math.max(0, Math.min(index, items.length - 1));
+
+                // Get value
+                const value = items[safeIndex].val;
+                document.getElementById(inputId).value = value;
+
+                // Active class for visual (optional, but good for polish)
+                Array.from(container.children).forEach((child, i) => {
+                    child.style.opacity = i === safeIndex ? '1' : '0.4';
+                    child.style.transform = i === safeIndex ? 'scale(1.1)' : 'scale(1)';
+                });
+
+                if (onChangeCallback) onChangeCallback();
+            };
+
+            col.addEventListener('scroll', handleScroll);
+
+            // Trigger once to set initial value
+            handleScroll();
+        }
+
+        function updateDayWheel() {
+            const month = parseInt(document.getElementById('dobMonth').value);
+            const year = parseInt(document.getElementById('dobYear').value);
+
+            if (isNaN(month) || isNaN(year)) return;
+
+            // Days in month
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // Current selection
+            const currentDayInput = document.getElementById('dobDay');
+            const currentVal = parseInt(currentDayInput.value);
+
+            // Re-populate if needed (simple check: length)
+            const list = document.getElementById('wheel_dobDay');
+            if (list.children.length !== daysInMonth) {
+                // Rebuild
+                const items = Array.from({ length: daysInMonth }, (_, i) => ({ val: i + 1, text: i + 1 }));
+
+                // Detach listener temporarily effectively by just rebuilding innerHTML
+                // But we need to update the closure logic in listeners?
+                // Actually the listener uses `container.children` and math, so strictly replacing innerHTML is fine 
+                // IF we don't rely on closed-over `items` array.
+                // Converting initWheel to be more dynamic is better.
+
+                list.innerHTML = items.map(item =>
+                    `<div class="picker-item" data-value="${item.val}">${item.text}</div>`
+                ).join('');
+
+                // We need to update the active item visual state again
+                // Scroll to preserve value or clamp
+                const newVal = Math.min(currentVal || 1, daysInMonth);
+                scrollToValue('col_dobDay', newVal);
             }
         }
 
-        function updateDayOptions() {
-            const month = parseInt(document.getElementById('dobMonth').value);
-            const year = parseInt(document.getElementById('dobYear').value);
-            const daySelect = document.getElementById('dobDay');
+        // Helper to programmatically scroll a wheel to a value
+        function scrollToValue(colId, value) {
+            const col = document.getElementById(colId);
+            if (!col) return;
+            const list = col.querySelector('.picker-list');
 
-            if (isNaN(month)) return;
+            // Find item with value
+            let targetIndex = -1;
+            Array.from(list.children).forEach((child, index) => {
+                // loose comparison for string/number match
+                if (child.dataset.value == value) targetIndex = index;
+            });
 
-            const currentSelection = parseInt(daySelect.value);
-
-            // Default to 2000 if year not picked yet (for leap year calc safety)
-            const y = isNaN(year) ? 2000 : year;
-            // Day 0 of next month = last day of current month. JS Month is 0-11.
-            const daysInMonth = new Date(y, month + 1, 0).getDate();
-
-            // Clear current options (keep default)
-            while (daySelect.options.length > 1) {
-                daySelect.remove(1);
+            if (targetIndex !== -1) {
+                col.scrollTop = targetIndex * 40;
+            } else if (list.children.length > 0) {
+                col.scrollTop = 0; // Default to top
             }
+        }
 
-            for (let d = 1; d <= daysInMonth; d++) {
-                const opt = document.createElement('option');
-                opt.value = d;
-                opt.textContent = d;
-                daySelect.appendChild(opt);
-            }
-
-            // Restore selection if valid
-            if (currentSelection && currentSelection <= daysInMonth) {
-                daySelect.value = currentSelection;
-            }
+        function setWheelToDefault() {
+            // Defaults: 
+            // Year: 2000 (roughly middleish)
+            scrollToValue('col_dobYear', 2000);
+            // Month: Jan
+            scrollToValue('col_dobMonth', 0);
+            // Day: 1
+            scrollToValue('col_dobDay', 1);
+            // Height: 5' 9"
+            scrollToValue('col_heightFeet', 5);
+            scrollToValue('col_heightInches', 9);
         }
 
     </script>
 </body>
 
-</html>```
+</html>
