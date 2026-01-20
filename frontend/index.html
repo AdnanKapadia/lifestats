@@ -576,6 +576,129 @@
             border-color: #71717a;
         }
 
+        /* Mode Toggle */
+        .custom-food-mode-toggle {
+            display: flex;
+            background: rgba(39, 39, 42, 0.6);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .custom-food-mode-btn {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            border-radius: 8px;
+            color: #a1a1aa;
+            font-size: 0.9em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .custom-food-mode-btn.active {
+            background: #27272a;
+            color: #2ECC71;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            font-weight: 600;
+        }
+
+        /* Meal Builder Styles */
+        .ingredient-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .ingredient-item {
+            display: flex;
+            align-items: center;
+            background: rgba(39, 39, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 12px;
+            gap: 12px;
+        }
+
+        .ingredient-info {
+            flex: 1;
+        }
+
+        .ingredient-name {
+            font-size: 0.95em;
+            color: #e4e4e7;
+            font-weight: 500;
+        }
+
+        .ingredient-detail {
+            font-size: 0.8em;
+            color: #a1a1aa;
+        }
+
+        .ingredient-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ingredient-qty-input {
+            width: 60px;
+            background: rgba(24, 24, 27, 0.6);
+            border: 1px solid #3f3f46;
+            border-radius: 6px;
+            color: #e4e4e7;
+            padding: 4px 8px;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        .ingredient-remove {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            border: none;
+            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ingredient-remove:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .meal-summary-card {
+            background: rgba(46, 204, 113, 0.1);
+            border: 1px solid rgba(46, 204, 113, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        .meal-summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #a1a1aa;
+        }
+
+        .meal-summary-row.total {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(46, 204, 113, 0.2);
+            font-weight: 600;
+            color: #2ECC71;
+            font-size: 1.1em;
+            margin-bottom: 0;
+        }
+
         .macro-row {
             display: flex;
             align-items: center;
@@ -2428,73 +2551,151 @@
 
 
             <form id="customFoodForm" onsubmit="handleCustomFoodSubmit(event)">
-                <!-- Header Info -->
+
+                <!-- Toggle Mode -->
+                <div class="custom-food-mode-toggle">
+                    <div id="modeSimple" class="custom-food-mode-btn active" onclick="setCustomFoodMode('simple')">
+                        Simple Food</div>
+                    <div id="modeMeal" class="custom-food-mode-btn" onclick="setCustomFoodMode('meal')">Create Meal
+                    </div>
+                </div>
+
+                <!-- Header Info (Shared) -->
                 <div style="margin-bottom: 24px; display: grid; gap: 16px;">
                     <div>
                         <input type="text" id="customFoodName" class="custom-food-header-input" required
-                            placeholder="Food Name (e.g. My Smoothie)" style="width: 100%;">
+                            placeholder="Name (e.g. My Breakfast, Apple)" style="width: 100%;">
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
-                        <div style="grid-column: span 1; display: flex; flex-direction: column;">
-                            <input type="text" id="customBrand" class="custom-food-header-input" placeholder="Brand"
-                                value="Homemade" style="font-size: 1em;">
-                            <span style="font-size: 0.7em; color: #64748b; margin-top: 2px;">Brand</span>
+                </div>
+
+                <!-- === SIMPLE MODE === -->
+                <!-- Shared Header Inputs (Brand, Qty, Unit) -->
+                <div style="margin-bottom: 24px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                    <div style="grid-column: span 1; display: flex; flex-direction: column;">
+                        <input type="text" id="customBrand" class="custom-food-header-input" placeholder="Brand"
+                            value="Homemade" style="font-size: 1em;">
+                        <span style="font-size: 0.7em; color: #64748b; margin-top: 2px;">Brand</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <input type="number" id="customServingSize" class="custom-food-header-input" required step="any"
+                            min="0" placeholder="1" style="font-size: 1em;">
+                        <span style="font-size: 0.7em; color: #64748b; margin-top: 2px;">Qty</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <input type="text" id="customServingUnit" class="custom-food-header-input" required
+                            placeholder="Unit" value="serving" style="font-size: 1em;">
+                        <span style="font-size: 0.7em; color: #64748b; margin-top: 2px;">Unit</span>
+                    </div>
+                </div>
+                <!-- Chips for Unit -->
+                <div class="chip-container" style="margin-bottom: 20px;">
+                    <div id="lastUnitChip" class="chip" style="display: none; border-color: #f59e0b; color: #fbbf24;"
+                        onclick="handleChipClick(this.dataset.value)"></div>
+                    <div class="chip" onclick="handleChipClick('100g')">100g</div>
+                    <div class="chip" onclick="handleChipClick('oz')">oz</div>
+                    <div class="chip" onclick="handleChipClick('cup')">cup</div>
+                    <div class="chip" onclick="handleChipClick('piece')">piece</div>
+                    <div class="chip" onclick="handleChipClick('serving')">serving</div>
+                </div>
+
+                <!-- === SIMPLE MODE (Calories & Macros only) === -->
+                <div id="customFoodSimpleMode">
+
+                    <!-- STEP 1: Calories & Macros -->
+                    <div class="calories-hero">
+                        <label>Calories</label>
+                        <input type="number" id="customCalories" required min="0" step="1" placeholder="0">
+                    </div>
+
+                    <div class="macro-row" id="row-protein"
+                        style="background: rgba(96, 165, 250, 0.15); border-color: rgba(96, 165, 250, 0.2);">
+                        <label style="color: #60a5fa;">Protein</label>
+                        <div class="macro-input-group">
+                            <input type="number" id="customProtein" min="0" step="0.1" placeholder="0"
+                                class="macro-watch">
+                            <span style="color: #64748b; font-size: 0.9em;">g</span>
                         </div>
-                        <div style="display: flex; flex-direction: column;">
-                            <input type="number" id="customServingSize" class="custom-food-header-input" required
-                                step="any" min="0" placeholder="1" style="font-size: 1em;">
-                            <span style="font-size: 0.7em; color: #64748b; margin-top: 2px;">Qty</span>
+                    </div>
+
+                    <div class="macro-row" id="row-carbs"
+                        style="background: rgba(192, 132, 252, 0.15); border-color: rgba(192, 132, 252, 0.2);">
+                        <label style="color: #c084fc;">Carbs</label>
+                        <div class="macro-input-group">
+                            <input type="number" id="customCarbs" min="0" step="0.1" placeholder="0"
+                                class="macro-watch">
+                            <span style="color: #64748b; font-size: 0.9em;">g</span>
                         </div>
-                        <div style="display: flex; flex-direction: column;">
-                            <input type="text" id="customServingUnit" class="custom-food-header-input" required
-                                placeholder="Unit" value="serving" style="font-size: 1em;">
-                            <span style="font-size: 0.7em; color: #64748b; margin-top: 2px;">Unit</span>
+                    </div>
+
+                    <div class="macro-row" id="row-fat"
+                        style="background: rgba(242, 198, 75, 0.15); border-color: rgba(242, 198, 75, 0.2);">
+                        <label style="color: #f2c64b;">Fat</label>
+                        <div class="macro-input-group">
+                            <input type="number" id="customFat" min="0" step="0.1" placeholder="0" class="macro-watch">
+                            <span style="color: #64748b; font-size: 0.9em;">g</span>
                         </div>
                     </div>
-                    <!-- Chips for Unit -->
-                    <div class="chip-container">
-                        <div id="lastUnitChip" class="chip"
-                            style="display: none; border-color: #f59e0b; color: #fbbf24;"
-                            onclick="handleChipClick(this.dataset.value)"></div>
-                        <div class="chip" onclick="handleChipClick('100g')">100g</div>
-                        <div class="chip" onclick="handleChipClick('oz')">oz</div>
-                        <div class="chip" onclick="handleChipClick('cup')">cup</div>
-                        <div class="chip" onclick="handleChipClick('piece')">piece</div>
-                        <div class="chip" onclick="handleChipClick('serving')">serving</div>
-                    </div>
                 </div>
 
-                <!-- STEP 1: Calories & Macros -->
-                <div class="calories-hero">
-                    <label>Calories</label>
-                    <input type="number" id="customCalories" required min="0" step="1" placeholder="0">
-                </div>
+                <!-- === MEAL MODE === -->
+                <div id="customFoodMealMode" class="hidden">
+                    <p style="color: #a1a1aa; font-size: 0.9em; margin-bottom: 12px;">Add ingredients to build your
+                        meal.</p>
 
-                <div class="macro-row" id="row-protein"
-                    style="background: rgba(96, 165, 250, 0.15); border-color: rgba(96, 165, 250, 0.2);">
-                    <label style="color: #60a5fa;">Protein</label>
-                    <div class="macro-input-group">
-                        <input type="number" id="customProtein" min="0" step="0.1" placeholder="0" class="macro-watch">
-                        <span style="color: #64748b; font-size: 0.9em;">g</span>
+                    <!-- Ingredient Search -->
+                    <div class="form-group" style="position: relative;">
+                        <input type="text" id="mealIngredientSearch" placeholder="Search to add ingredient..."
+                            autocomplete="off">
+                        <!-- Reusing search results style -->
+                        <div id="mealSearchResults" class="search-results"></div>
                     </div>
-                </div>
 
-                <div class="macro-row" id="row-carbs"
-                    style="background: rgba(192, 132, 252, 0.15); border-color: rgba(192, 132, 252, 0.2);">
-                    <label style="color: #c084fc;">Carbs</label>
-                    <div class="macro-input-group">
-                        <input type="number" id="customCarbs" min="0" step="0.1" placeholder="0" class="macro-watch">
-                        <span style="color: #64748b; font-size: 0.9em;">g</span>
+                    <!-- Ingredients List -->
+                    <div id="mealIngredientsList" class="ingredient-list">
+                        <!-- Empty State -->
+                        <div class="empty-state" style="padding: 20px;">
+                            <div style="font-size: 2em; margin-bottom: 8px;">🥣</div>
+                            <div style="font-size: 0.9em;">No ingredients added yet</div>
+                        </div>
                     </div>
-                </div>
 
-                <div class="macro-row" id="row-fat"
-                    style="background: rgba(242, 198, 75, 0.15); border-color: rgba(242, 198, 75, 0.2);">
-                    <label style="color: #f2c64b;">Fat</label>
-                    <div class="macro-input-group">
-                        <input type="number" id="customFat" min="0" step="0.1" placeholder="0" class="macro-watch">
-                        <span style="color: #64748b; font-size: 0.9em;">g</span>
+                    <!-- Meal Summary -->
+                    <!-- Meal Summary (Colorful Cards) -->
+                    <div style="margin-top: 24px;">
+                        <div class="calories-hero">
+                            <label>Total Calories</label>
+                            <span id="mealTotalCalories" style="font-size: 2em; font-weight: 700; color: #fff;">0</span>
+                        </div>
+
+                        <div class="macro-row"
+                            style="background: rgba(96, 165, 250, 0.15); border-color: rgba(96, 165, 250, 0.2);">
+                            <label style="color: #60a5fa;">Protein</label>
+                            <div class="macro-input-group">
+                                <span id="mealTotalProtein"
+                                    style="color: #fff; font-size: 1.1em; font-weight: 500;">0g</span>
+                            </div>
+                        </div>
+
+                        <div class="macro-row"
+                            style="background: rgba(192, 132, 252, 0.15); border-color: rgba(192, 132, 252, 0.2);">
+                            <label style="color: #c084fc;">Carbs</label>
+                            <div class="macro-input-group">
+                                <span id="mealTotalCarbs"
+                                    style="color: #fff; font-size: 1.1em; font-weight: 500;">0g</span>
+                            </div>
+                        </div>
+
+                        <div class="macro-row"
+                            style="background: rgba(242, 198, 75, 0.15); border-color: rgba(242, 198, 75, 0.2);">
+                            <label style="color: #f2c64b;">Fat</label>
+                            <div class="macro-input-group">
+                                <span id="mealTotalFat"
+                                    style="color: #fff; font-size: 1.1em; font-weight: 500;">0g</span>
+                            </div>
+                        </div>
                     </div>
+
+
                 </div>
 
                 <!-- STEP 2: More Nutrition -->
@@ -3452,6 +3653,244 @@
         renderMeals();
 
         // Custom Food Modal Logic
+        let customMealMode = 'simple'; // 'simple' or 'meal'
+        let customMealIngredients = [];
+        let mealIngredientSearchTimeout;
+
+        function setCustomFoodMode(mode) {
+            customMealMode = mode;
+            const simpleDiv = document.getElementById('customFoodSimpleMode');
+            const mealDiv = document.getElementById('customFoodMealMode');
+            const btnSimple = document.getElementById('modeSimple');
+            const btnMeal = document.getElementById('modeMeal');
+
+            if (mode === 'simple') {
+                simpleDiv.classList.remove('hidden');
+                mealDiv.classList.add('hidden');
+                btnSimple.classList.add('active');
+                btnMeal.classList.remove('active');
+
+                // Re-enable manual inputs
+                toggleManualInputs(true);
+            } else {
+                simpleDiv.classList.add('hidden');
+                mealDiv.classList.remove('hidden');
+                btnSimple.classList.remove('active');
+                btnMeal.classList.add('active');
+
+                // Disable manual inputs (they will be populated by logic)
+                toggleManualInputs(false);
+                recalculateMealTotals(); // Ensure totals are synced
+            }
+        }
+
+        function toggleManualInputs(enable) {
+            // Nutrition fields are always locked in Meal Mode
+            const nutritionInputs = ['customCalories', 'customProtein', 'customCarbs', 'customFat'];
+            nutritionInputs.forEach(id => {
+                document.getElementById(id).readOnly = !enable;
+            });
+
+            // Serving Size & Unit are editable in both modes.
+            // In Simple Mode: Defines the single item.
+            // In Meal Mode: Defines the batch size (e.g. "4 servings").
+            // The aggregated calories will be saved as the total for this batch size.
+        }
+
+        // --- Meal Ingredient Search ---
+        const mealSearchInput = document.getElementById('mealIngredientSearch');
+        const mealSearchResults = document.getElementById('mealSearchResults');
+
+        if (mealSearchInput) {
+            mealSearchInput.addEventListener('input', (e) => {
+                clearTimeout(mealIngredientSearchTimeout);
+                const query = e.target.value.trim();
+
+                if (query.length < 2) {
+                    mealSearchResults.style.display = 'none';
+                    return;
+                }
+
+                // 1. Instant Local Search
+                performMealIngredientSearch(query, true);
+
+                // 2. Debounced API Search
+                mealIngredientSearchTimeout = setTimeout(() => performMealIngredientSearch(query, false), 500);
+            });
+        }
+
+        async function performMealIngredientSearch(query, localOnly = false) {
+            try {
+                let url = `/api/search-food?q=${encodeURIComponent(query)}`;
+                if (localOnly) url += '&local_only=true';
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.foods && data.foods.length > 0) {
+                    renderMealSearchResults(data.foods);
+                } else if (!localOnly) {
+                    mealSearchResults.innerHTML = '<div class="search-result-item">No results found</div>';
+                    mealSearchResults.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Ingredient search error:', err);
+            }
+        }
+
+        function renderMealSearchResults(foods) {
+            mealSearchResults.innerHTML = foods.map(food => {
+                const brand = food.brandName ? `• ${food.brandName}` : '';
+                let calText = `${food.calories} kcal`;
+                if (food.servingSize) calText += ` (${food.servingSize}${food.servingUnit || 'g'})`;
+
+                return `
+                    <div class="search-result-item" onclick='addIngredientToMeal(${JSON.stringify(food).replace(/'/g, "&#39;")})'>
+                        <div class="search-result-name">${escapeHtml(food.description)}</div>
+                        <div class="search-result-details">${calText} ${brand}</div>
+                    </div>
+                `;
+            }).join('');
+            mealSearchResults.style.display = 'block';
+        }
+
+        async function addIngredientToMeal(food) {
+            // Close search
+            mealSearchResults.style.display = 'none';
+            mealSearchInput.value = '';
+
+            // Fetch details if needed (same as main search)
+            if (food.fdcId) {
+                try {
+                    const resp = await fetch(`/api/get-food-details?food_id=${food.fdcId}`);
+                    if (resp.ok) food = await resp.json();
+                } catch (e) { console.error('Failed to get details', e); }
+            }
+
+            // Default qty
+            const newIngredient = {
+                ...food,
+                uuid: 'ing-' + Date.now(),
+                userQty: food.servingSize || 100, // Default to base size
+                userUnit: food.servingUnit || 'g'
+            };
+
+            // Normalize base values if preCalculated/servingSize missing (mostly for FatSecret raw)
+            if (!newIngredient.servingSize) {
+                // Assume values are per 100g if no serving size
+                newIngredient.basePer100g = true;
+            }
+
+            customMealIngredients.push(newIngredient);
+            renderMealIngredients();
+            recalculateMealTotals();
+        }
+
+        function removeIngredientFromMeal(uuid) {
+            customMealIngredients = customMealIngredients.filter(i => i.uuid !== uuid);
+            renderMealIngredients();
+            recalculateMealTotals();
+        }
+
+        function updateIngredientQty(uuid, newQty) {
+            const ing = customMealIngredients.find(i => i.uuid === uuid);
+            if (ing) {
+                ing.userQty = parseFloat(newQty) || 0;
+                recalculateMealTotals();
+                // update just the text of this item? For simplicity re-render totals, but list item input stays focused
+            }
+        }
+
+        function renderMealIngredients() {
+            const list = document.getElementById('mealIngredientsList');
+            if (customMealIngredients.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state" style="padding: 20px;">
+                        <div style="font-size: 2em; margin-bottom: 8px;">🥣</div>
+                        <div style="font-size: 0.9em;">No ingredients added yet</div>
+                    </div>`;
+                return;
+            }
+
+            list.innerHTML = customMealIngredients.map(ing => {
+                return `
+                    <div class="ingredient-item">
+                        <div class="ingredient-info">
+                            <div class="ingredient-name">${escapeHtml(ing.description)}</div>
+                            <div class="ingredient-detail">${ing.calories} kcal / ${ing.servingSize || 100}${ing.servingUnit || 'g'} base</div>
+                        </div>
+                        <div class="ingredient-controls">
+                            <input type="number" class="ingredient-qty-input" value="${ing.userQty}" 
+                                oninput="updateIngredientQty('${ing.uuid}', this.value)">
+                            <span style="font-size: 0.8em; color: #71717a;">${ing.servingUnit || 'g'}</span>
+                            <button class="ingredient-remove" onclick="removeIngredientFromMeal('${ing.uuid}')">&times;</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function recalculateMealTotals() {
+            // Define all tracked nutrients and their input IDs
+            const nutrients = {
+                calories: { id: 'customCalories', sum: 0, precision: 0 },
+                protein: { id: 'customProtein', sum: 0, precision: 1 },
+                carbs: { id: 'customCarbs', sum: 0, precision: 1 },
+                fat: { id: 'customFat', sum: 0, precision: 1 },
+                cholesterol: { id: 'customCholesterol', sum: 0, precision: 1 },
+                sodium: { id: 'customSodium', sum: 0, precision: 1 },
+                fiber: { id: 'customFiber', sum: 0, precision: 1 },
+                sugar: { id: 'customSugar', sum: 0, precision: 1 },
+                saturatedFat: { id: 'customSatFat', sum: 0, precision: 1 },
+                transFat: { id: 'customTransFat', sum: 0, precision: 1 },
+                polyunsaturatedFat: { id: 'customPolyFat', sum: 0, precision: 1 },
+                monounsaturatedFat: { id: 'customMonoFat', sum: 0, precision: 1 },
+                addedSugar: { id: 'customAddedSugar', sum: 0, precision: 1 },
+                vitaminD: { id: 'customVitD', sum: 0, precision: 1 },
+                calcium: { id: 'customCalcium', sum: 0, precision: 1 },
+                iron: { id: 'customIron', sum: 0, precision: 1 },
+                potassium: { id: 'customPotassium', sum: 0, precision: 1 },
+                vitaminC: { id: 'customVitC', sum: 0, precision: 1 }
+            };
+
+            customMealIngredients.forEach(ing => {
+                let ratio = 1;
+                // If we have a base serving size (e.g. 1 bar = 50g), and user enters 100g?
+                // Or user enters 2 bars?
+                // Simplification matches main app logic:
+                // If ing has servingSize/Unit matching userUnit, ratio = userQty / servingSize
+                // If defaults to g/ml, ratio = userQty / 100 (if base is 100g) or userQty/servingSize
+
+                // Let's assume userUnit is locked to the food's distinct unit for this v1 (e.g. 'g' or 'slice')
+                const baseQty = ing.servingSize || 100; // 100g fallback
+                ratio = ing.userQty / baseQty;
+
+                // Aggregate each nutrient
+                for (const [key, data] of Object.entries(nutrients)) {
+                    // Match key in ingredient object (e.g. ing.protein, ing.saturatedFat)
+                    // Note: API returns keys like 'saturatedFat', 'vitaminC' etc. which match our keys here.
+                    const val = ing[key];
+                    if (val && !isNaN(val)) {
+                        data.sum += parseFloat(val) * ratio;
+                    }
+                }
+            });
+
+            // Update UI Summary (Main Macros)
+            document.getElementById('mealTotalCalories').textContent = Math.round(nutrients.calories.sum);
+            document.getElementById('mealTotalProtein').textContent = nutrients.protein.sum.toFixed(1) + 'g';
+            document.getElementById('mealTotalCarbs').textContent = nutrients.carbs.sum.toFixed(1) + 'g';
+            document.getElementById('mealTotalFat').textContent = nutrients.fat.sum.toFixed(1) + 'g';
+
+            // Sync to Hidden Form Inputs (All Fields)
+            for (const [key, data] of Object.entries(nutrients)) {
+                const el = document.getElementById(data.id);
+                if (el) {
+                    el.value = data.precision === 0 ? Math.round(data.sum) : parseFloat(data.sum.toFixed(data.precision));
+                }
+            }
+        }
+
         const customFoodModal = document.getElementById('customFoodModalOverlay');
         const customFoodForm = document.getElementById('customFoodForm');
         const expansionOverlay = document.getElementById('expansion-overlay');
@@ -3724,9 +4163,6 @@
             }
 
             // Save Unit to LocalStorage for next time
-            if (parsed.unit) {
-                localStorage.setItem('lifestats_last_custom_unit', parsed.unit);
-            }
 
             const foodData = {
                 foodName: document.getElementById('customFoodName').value,
@@ -3753,6 +4189,12 @@
                 potassium: parseFloat(document.getElementById('customPotassium').value) || 0,
                 vitaminC: parseFloat(document.getElementById('customVitC').value) || 0,
             };
+
+            // Attach ingredients if in meal mode
+            if (typeof customMealMode !== 'undefined' && customMealMode === 'meal') {
+                foodData.ingredients = customMealIngredients;
+                foodData.isMeal = true;
+            }
 
             const result = await storage.saveCustomFood(foodData);
 
