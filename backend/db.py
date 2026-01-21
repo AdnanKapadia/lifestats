@@ -947,6 +947,13 @@ def log_event(event_data):
         result = cur.fetchone()
         conn.commit()
         
+        # Trigger weight auto-fill if this is a weight event
+        if event_data['eventTypeId'] == 'weight':
+            try:
+                fill_and_interpolate_weight_data(event_data['userId'], event_data['timestamp'])
+            except Exception as e:
+                print(f"Warning: Failed to auto-fill weight data: {e}")
+        
         return {
             'id': result['id'],
             'userId': result['user_id'],
@@ -1172,6 +1179,18 @@ def update_event(event_id, user_id, updates):
         cur.execute(query, tuple(values))
         updated = cur.rowcount > 0
         conn.commit()
+        
+        # Trigger weight auto-fill if this is a weight event
+        if updated:
+            # Get the event type to check if it's a weight event
+            cur.execute("SELECT event_type_id FROM events WHERE id = %s", (event_id,))
+            event = cur.fetchone()
+            if event and event['event_type_id'] == 'weight':
+                try:
+                    fill_and_interpolate_weight_data(user_id)
+                except Exception as e:
+                    print(f"Warning: Failed to auto-fill weight data: {e}")
+        
         return updated
     finally:
         conn.close()
@@ -1181,9 +1200,23 @@ def delete_event(event_id, user_id):
     conn = get_db_connection()
     try:
         cur = conn.cursor()
+        
+        # Check if this is a weight event before deleting
+        cur.execute("SELECT event_type_id FROM events WHERE id = %s AND user_id = %s", (event_id, user_id))
+        event = cur.fetchone()
+        is_weight_event = event and event['event_type_id'] == 'weight'
+        
         cur.execute("DELETE FROM events WHERE id = %s AND user_id = %s", (event_id, user_id))
         deleted = cur.rowcount > 0
         conn.commit()
+        
+        # Trigger weight auto-fill if this was a weight event
+        if deleted and is_weight_event:
+            try:
+                fill_and_interpolate_weight_data(user_id)
+            except Exception as e:
+                print(f"Warning: Failed to auto-fill weight data: {e}")
+        
         return deleted
     finally:
         conn.close()
@@ -1901,6 +1934,212 @@ def get_latest_body_weight(user_id):
             'weight': result['data'].get('weight'),
             'timestamp': result['timestamp']
         }
+    finally:
+        conn.close()
+
+def fill_and_interpolate_weight_data(user_id, trigger_timestamp=None):
+    """
+    Fill and interpolate weight and body fat % data.
+    
+    This function:
+    1. Finds all user-entered weight events (not auto-generated)
+    2. For gaps between user entries: performs linear interpolation
+    3. For dates after the latest entry: forward-fills with the latest values
+    4. Creates/updates events with auto-generated flag
+    
+    Args:
+        user_id: User ID
+        trigger_timestamp: Optional timestamp that triggered this (for optimization)
+    """
+    from datetime import datetime, timedelta, timezone
+    
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        
+        # 1. Get all user-entered weight events (where _auto_generated is not true)
+        cur.execute("""
+            SELECT id, data, timestamp
+            FROM events
+            WHERE user_id = %s 
+            AND event_type_id = 'weight'
+            AND (data->>'_auto_generated' IS NULL OR data->>'_auto_generated' = 'false')
+            ORDER BY timestamp ASC
+        """, (user_id,))
+        
+        user_events = cur.fetchall()
+        
+        if not user_events:
+            # No user data, nothing to fill
+            return
+        
+        # 2. Determine the date range to fill
+        first_event_ts = user_events[0]['timestamp']
+        last_event_ts = user_events[-1]['timestamp']
+        
+        # Convert to dates (UTC)
+        first_date = datetime.utcfromtimestamp(first_event_ts / 1000).replace(hour=0, minute=0, second=0, microsecond=0)
+        last_date = datetime.utcfromtimestamp(last_event_ts / 1000).replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # Extend forward-fill to today
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+        end_date = max(last_date, today)
+        
+        # 3. Build a map of user-entered data by date
+        user_data_by_date = {}
+        for event in user_events:
+            event_date = datetime.utcfromtimestamp(event['timestamp'] / 1000).replace(hour=0, minute=0, second=0, microsecond=0)
+            date_str = event_date.strftime('%Y-%m-%d')
+            user_data_by_date[date_str] = {
+                'weight': event['data'].get('weight'),
+                'body_fat_pct': event['data'].get('body_fat_pct'),
+                'timestamp': event['timestamp']
+            }
+        
+        # 4. Generate all dates in range and fill/interpolate
+        current_date = first_date
+        dates_to_process = []
+        
+        while current_date <= end_date:
+            date_str = current_date.strftime('%Y-%m-%d')
+            dates_to_process.append((date_str, current_date))
+            current_date += timedelta(days=1)
+        
+        # 5. For each date, determine the value (user data, interpolated, or forward-filled)
+        filled_data = {}
+        
+        for date_str, date_obj in dates_to_process:
+            if date_str in user_data_by_date:
+                # User has data for this date, skip
+                continue
+            
+            # Find previous and next user data points
+            prev_date = None
+            prev_data = None
+            next_date = None
+            next_data = None
+            
+            # Look backwards for previous data
+            check_date = date_obj - timedelta(days=1)
+            while check_date >= first_date:
+                check_str = check_date.strftime('%Y-%m-%d')
+                if check_str in user_data_by_date:
+                    prev_date = check_str
+                    prev_data = user_data_by_date[check_str]
+                    break
+                check_date -= timedelta(days=1)
+            
+            # Look forwards for next data
+            check_date = date_obj + timedelta(days=1)
+            while check_date <= end_date:
+                check_str = check_date.strftime('%Y-%m-%d')
+                if check_str in user_data_by_date:
+                    next_date = check_str
+                    next_data = user_data_by_date[check_str]
+                    break
+                check_date += timedelta(days=1)
+            
+            if prev_data is None:
+                # No previous data, skip (shouldn't happen since we start from first_date)
+                continue
+            
+            # Calculate values for weight and body_fat_pct independently
+            weight_val = None
+            body_fat_val = None
+            
+            # Handle weight
+            if prev_data.get('weight') is not None:
+                if next_data and next_data.get('weight') is not None:
+                    # Interpolate weight
+                    prev_weight = float(prev_data['weight'])
+                    next_weight = float(next_data['weight'])
+                    
+                    # Calculate days between
+                    prev_dt = datetime.strptime(prev_date, '%Y-%m-%d')
+                    next_dt = datetime.strptime(next_date, '%Y-%m-%d')
+                    current_dt = date_obj
+                    
+                    total_days = (next_dt - prev_dt).days
+                    days_from_prev = (current_dt - prev_dt).days
+                    
+                    if total_days > 0:
+                        weight_val = prev_weight + (next_weight - prev_weight) * (days_from_prev / total_days)
+                else:
+                    # Forward-fill weight
+                    weight_val = float(prev_data['weight'])
+            
+            # Handle body_fat_pct
+            if prev_data.get('body_fat_pct') is not None:
+                if next_data and next_data.get('body_fat_pct') is not None:
+                    # Interpolate body fat
+                    prev_bf = float(prev_data['body_fat_pct'])
+                    next_bf = float(next_data['body_fat_pct'])
+                    
+                    prev_dt = datetime.strptime(prev_date, '%Y-%m-%d')
+                    next_dt = datetime.strptime(next_date, '%Y-%m-%d')
+                    current_dt = date_obj
+                    
+                    total_days = (next_dt - prev_dt).days
+                    days_from_prev = (current_dt - prev_dt).days
+                    
+                    if total_days > 0:
+                        body_fat_val = prev_bf + (next_bf - prev_bf) * (days_from_prev / total_days)
+                else:
+                    # Forward-fill body fat
+                    body_fat_val = float(prev_data['body_fat_pct'])
+            
+            # Store the filled data if we have at least one value
+            if weight_val is not None or body_fat_val is not None:
+                filled_data[date_str] = {
+                    'weight': weight_val,
+                    'body_fat_pct': body_fat_val,
+                    'date_obj': date_obj
+                }
+        
+        
+        # 6. Delete ALL existing auto-generated events in the full range
+        # This ensures we don't have duplicates and can recreate them fresh
+        cur.execute("""
+            DELETE FROM events
+            WHERE user_id = %s 
+            AND event_type_id = 'weight'
+            AND data->>'_auto_generated' = 'true'
+            AND timestamp >= %s
+            AND timestamp <= %s
+        """, (user_id, int(first_date.timestamp() * 1000), int((end_date + timedelta(days=1)).timestamp() * 1000)))
+        
+        
+        # 7. Create new auto-generated events (only for dates without user data)
+        for date_str, data_info in filled_data.items():
+            # Skip if user already has data for this date
+            if date_str in user_data_by_date:
+                continue
+                
+            # Create timestamp at noon UTC for this date
+            date_obj = data_info['date_obj']
+            timestamp = int(date_obj.replace(hour=12).timestamp() * 1000)
+            
+            # Build data object
+            event_data = {
+                '_auto_generated': True
+            }
+            if data_info['weight'] is not None:
+                event_data['weight'] = round(data_info['weight'], 2)
+            if data_info['body_fat_pct'] is not None:
+                event_data['body_fat_pct'] = round(data_info['body_fat_pct'], 2)
+            
+            # Create event
+            event_id = f"evt_{uuid.uuid4().hex[:12]}"
+            cur.execute("""
+                INSERT INTO events (id, user_id, event_type_id, timestamp, category, data, notes)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (event_id, user_id, 'weight', timestamp, 'Health', json.dumps(event_data), 'Auto-generated'))
+        
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
     finally:
         conn.close()
 

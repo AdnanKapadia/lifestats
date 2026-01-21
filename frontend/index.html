@@ -6624,81 +6624,97 @@
     </script>
     <!-- Fitness Goals Wizard -->
     <div id="fitnessWizardOverlay" class="modal-overlay hidden">
-        <div class="modal">
+        <div class="modal custom-food-modal" style="border-color: #2ECC71;">
             <div class="modal-header">
-                <div class="modal-title">Fitness Plan Wizard</div>
+                <div class="modal-title" style="color: #2ECC71;">Fitness Plan Wizard</div>
                 <button class="close-btn" onclick="closeFitnessWizard()">&times;</button>
             </div>
 
-            <!-- Step 1: Inputs -->
-            <div id="fwStep1">
-                <p style="color: #a1a1aa; margin-bottom: 16px;">Let's calculate your personalized plan.</p>
-                <div class="form-group">
-                    <label>Target Weight (lbs)</label>
-                    <input type="number" id="fwTargetWeight" placeholder="e.g. 170" required
-                        style="padding: 12px; background: rgba(39, 39, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #e4e4e7; width: 100%; box-sizing: border-box;">
-                </div>
-                <div class="form-group">
-                    <label>Timeframe (weeks)</label>
-                    <input type="number" id="fwWeeks" value="12" min="1" max="52" required
-                        style="padding: 12px; background: rgba(39, 39, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #e4e4e7; width: 100%; box-sizing: border-box;">
-                </div>
-                <div class="form-group">
-                    <label>Activity Level</label>
-                    <select id="fwActivity"
-                        style="width: 100%; padding: 12px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7;">
-                        <option value="1.2">Sedentary (Office job)</option>
-                        <option value="1.375">Light Exercise (1-2 days/week)</option>
-                        <option value="1.55">Moderate Exercise (3-5 days/week)</option>
-                        <option value="1.725">Heavy Exercise (6-7 days/week)</option>
-                    </select>
+            <div style="margin-bottom: 24px;">
+                <p style="color: #a1a1aa; font-size: 0.9em; margin-bottom: 20px;">
+                    Adjust any field to see how it affects your plan. All numbers update automatically.
+                </p>
+
+                <!-- Core Plan Inputs -->
+                <div style="background: rgba(39,39,42,0.5); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.8em;">Target Weight (lbs)</label>
+                            <input type="number" id="fwTargetWeight" placeholder="0" class="custom-food-header-input"
+                                oninput="updateFitnessPlan('weight')" style="font-size: 1.1em; padding: 4px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.8em;">Timeframe (Weeks)</label>
+                            <input type="number" id="fwWeeks" value="12" class="custom-food-header-input"
+                                oninput="updateFitnessPlan('weeks')" style="font-size: 1.1em; padding: 4px;">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="font-size: 0.8em;">Activity Level</label>
+                        <select id="fwActivity" onchange="updateFitnessPlan('activity')"
+                            style="width: 100%; padding: 8px; background: rgba(24, 24, 27, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #e4e4e7; font-size: 0.9em;">
+                            <option value="1.2">Sedentary (Office job)</option>
+                            <option value="1.375">Light Exercise (1-2 days/week)</option>
+                            <option value="1.55">Moderate Exercise (3-5 days/week)</option>
+                            <option value="1.725">Heavy Exercise (6-7 days/week)</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="fwMaintenance" onchange="updateFitnessPlan('maintenance')"
+                            style="accent-color: #2ECC71; width: 16px; height: 16px; cursor: pointer;">
+                        <label for="fwMaintenance"
+                            style="color: #a1a1aa; cursor: pointer; user-select: none; font-size: 0.9em; margin-bottom: 0;">Maintenance
+                            Mode</label>
+                    </div>
                 </div>
 
-                <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
-                    <input type="checkbox" id="fwMaintenance" onchange="toggleMaintenanceMode(this.checked)"
-                        style="accent-color: #2ECC71; width: 18px; height: 18px; cursor: pointer;">
-                    <label for="fwMaintenance" style="color: #e4e4e7; cursor: pointer; user-select: none;">Maintenance
-                        (Maintain current weight)</label>
+                <!-- Calories Hero (Red) -->
+                <div class="calories-hero" style="margin-bottom: 16px; padding: 16px;">
+                    <label>Daily Calorie Goal</label>
+                    <input type="number" id="fwCalories" oninput="updateFitnessPlan('calories')" placeholder="0">
                 </div>
-                <button onclick="calculateFitnessPlan()" class="primary-btn" style="margin-top: 20px;">Calculate Plan
-                    →</button>
+
+                <!-- Macros Grid -->
+                <!-- Protein (Blue) -->
+                <div class="macro-row"
+                    style="background: rgba(96, 165, 250, 0.15); border-color: rgba(96, 165, 250, 0.2); margin-bottom: 8px; padding: 8px 12px;">
+                    <label style="color: #60a5fa; font-size: 0.9em;">Protein</label>
+                    <div class="macro-input-group">
+                        <input type="number" id="fwProtein" class="macro-watch" style="font-size: 1.1em;"
+                            oninput="updateFitnessPlan('macro')">
+                        <span style="color: #64748b; font-size: 0.8em;">g</span>
+                    </div>
+                </div>
+
+                <!-- Carbs (Purple) -->
+                <div class="macro-row"
+                    style="background: rgba(192, 132, 252, 0.15); border-color: rgba(192, 132, 252, 0.2); margin-bottom: 8px; padding: 8px 12px;">
+                    <label style="color: #c084fc; font-size: 0.9em;">Carbs</label>
+                    <div class="macro-input-group">
+                        <input type="number" id="fwCarbs" class="macro-watch" style="font-size: 1.1em;"
+                            oninput="updateFitnessPlan('macro')">
+                        <span style="color: #64748b; font-size: 0.8em;">g</span>
+                    </div>
+                </div>
+
+                <!-- Fat (Gold) -->
+                <div class="macro-row"
+                    style="background: rgba(242, 198, 75, 0.15); border-color: rgba(242, 198, 75, 0.2); margin-bottom: 0; padding: 8px 12px;">
+                    <label style="color: #f2c64b; font-size: 0.9em;">Fat</label>
+                    <div class="macro-input-group">
+                        <input type="number" id="fwFat" class="macro-watch" style="font-size: 1.1em;"
+                            oninput="updateFitnessPlan('macro')">
+                        <span style="color: #64748b; font-size: 0.8em;">g</span>
+                    </div>
+                </div>
+
             </div>
 
-            <!-- Step 2: Results -->
-            <div id="fwStep2" class="hidden">
-                <p style="color: #a1a1aa; margin-bottom: 16px;">Here is your recommended daily plan:</p>
-
-                <div
-                    style="background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.3); border-radius: 12px; padding: 16px; margin-bottom: 16px; text-align: center;">
-                    <div style="color: #a1a1aa; font-size: 0.9em;">Daily Calories</div>
-                    <div style="font-size: 2em; font-weight: 700; color: #2ECC71;" id="fwResultCalories">-</div>
-                    <div style="color: #a1a1aa; font-size: 0.8em; margin-top: 4px;" id="fwResultLossRate">-</div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px;">
-                    <div
-                        style="background: rgba(39, 39, 42, 0.6); padding: 8px; border-radius: 8px; text-align: center;">
-                        <div style="font-size: 0.8em; color: #a1a1aa;">Protein</div>
-                        <div style="font-weight: 600;" id="fwResultProtein">-</div>
-                    </div>
-                    <div
-                        style="background: rgba(39, 39, 42, 0.6); padding: 8px; border-radius: 8px; text-align: center;">
-                        <div style="font-size: 0.8em; color: #a1a1aa;">Carbs</div>
-                        <div style="font-weight: 600;" id="fwResultCarbs">-</div>
-                    </div>
-                    <div
-                        style="background: rgba(39, 39, 42, 0.6); padding: 8px; border-radius: 8px; text-align: center;">
-                        <div style="font-size: 0.8em; color: #a1a1aa;">Fat</div>
-                        <div style="font-weight: 600;" id="fwResultFat">-</div>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn-secondary"
-                        onclick="document.getElementById('fwStep1').classList.remove('hidden'); document.getElementById('fwStep2').classList.add('hidden');">←
-                        Back</button>
-                    <button class="primary-btn" onclick="saveFitnessPlan()">Save Goals</button>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeFitnessWizard()">Cancel</button>
+                <button type="button" class="primary-btn" onclick="saveFitnessPlan()">Save All Goals</button>
             </div>
         </div>
     </div>
@@ -6711,200 +6727,189 @@
             { id: 'fat', name: 'Fat', icon: '🥑', color: '#795548', primaryUnit: 'g' }
         ];
 
-        function openFitnessGoalsWizard() {
-            document.getElementById('fitnessWizardOverlay').classList.remove('hidden');
-            document.getElementById('fwStep1').classList.remove('hidden');
-            document.getElementById('fwStep2').classList.add('hidden');
+        // State for Wizard
+        let fwState = {
+            currentWeight: 180, // Fallbacks
+            heightInches: 70,
+            age: 30,
+            sex: 'male',
+            isUpdating: false
+        };
 
-            // Pre-fill if current weight known
-            const weightDiv = document.getElementById('profileDisplayWeight');
-            if (weightDiv && weightDiv.innerText !== '-') {
-                // Try to nudge target weight slightly lower as default? No, leave empty or current.
-                // document.getElementById('fwTargetWeight').value = parseFloat(weightDiv.innerText);
+        async function openFitnessGoalsWizard() {
+            // 1. Fetch Profile Data
+            const userId = localStorage.getItem('lifestats_userId');
+            if (userId) {
+                try {
+                    const [profileRes, weightRes] = await Promise.all([
+                        fetch(`/api/profile?userId=${userId}`),
+                        fetch(`/api/profile/weight?userId=${userId}`)
+                    ]);
+
+                    if (profileRes.ok) {
+                        const profile = await profileRes.json();
+                        if (profile.height_inches) fwState.heightInches = profile.height_inches;
+                        if (profile.sex) fwState.sex = profile.sex;
+                        if (profile.birthdate) {
+                            const dob = new Date(profile.birthdate);
+                            const diff_ms = Date.now() - dob.getTime();
+                            const age_dt = new Date(diff_ms);
+                            fwState.age = Math.abs(age_dt.getUTCFullYear() - 1970);
+                        }
+                    }
+
+                    if (weightRes.ok) {
+                        const wData = await weightRes.json();
+                        if (wData && wData.weight) fwState.currentWeight = wData.weight;
+                    }
+                } catch (e) { console.error(e); }
             }
+
+            // Initialize Inputs
+            document.getElementById('fwTargetWeight').value = fwState.currentWeight; // Default to current
+            document.getElementById('fwWeeks').value = 12;
+            document.getElementById('fwActivity').value = "1.375";
+            document.getElementById('fwMaintenance').checked = false;
+
+            // Trigger Initial Calculation
+            updateFitnessPlan('weight');
+
+            document.getElementById('fitnessWizardOverlay').classList.remove('hidden');
         }
 
         function closeFitnessWizard() {
             document.getElementById('fitnessWizardOverlay').classList.add('hidden');
         }
 
-        function toggleMaintenanceMode(isMaintenance) {
-            const opacity = isMaintenance ? '0.5' : '1';
-            const pointerEvents = isMaintenance ? 'none' : 'auto';
+        // --- Core Interlocking Logic ---
+        function updateFitnessPlan(source) {
+            if (fwState.isUpdating) return;
+            fwState.isUpdating = true;
 
-            const disableInput = (id) => {
-                const el = document.getElementById(id);
-                el.style.opacity = opacity;
-                el.style.pointerEvents = pointerEvents;
-                el.disabled = isMaintenance;
-            };
-
-            disableInput('fwTargetWeight');
-            disableInput('fwWeeks');
-        }
-
-        async function calculateFitnessPlan() {
-            // 1. Get User Profile Data
-            const userId = localStorage.getItem('lifestats_userId');
-            if (!userId) return;
-
-            let profile = null;
-            try {
-                const res = await fetch(`/api/profile?userId=${userId}`);
-                if (res.ok) profile = await res.json();
-            } catch (e) { }
-
-            // Helper to get element value
-            const getVal = (id) => parseFloat(document.getElementById(id).value);
+            const getVal = (id) => parseFloat(document.getElementById(id).value) || 0;
+            const setVal = (id, val) => document.getElementById(id).value = Math.round(val);
+            const setValFloat = (id, val) => document.getElementById(id).value = parseFloat(val.toFixed(1));
 
             // Inputs
             const isMaintenance = document.getElementById('fwMaintenance').checked;
             let targetWeight = getVal('fwTargetWeight');
             let weeks = getVal('fwWeeks');
-            const activity = getVal('fwActivity');
+            let activity = getVal('fwActivity');
+            let calories = getVal('fwCalories');
+            let protein = getVal('fwProtein');
+            let carbs = getVal('fwCarbs');
+            let fat = getVal('fwFat');
 
-            if (!isMaintenance && (!targetWeight || !weeks)) {
-                alert("Please enter target weight and weeks.");
-                return;
-            }
+            // Constants
+            const weightKg = fwState.currentWeight * 0.453592;
+            const heightCm = fwState.heightInches * 2.54;
+            let bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * fwState.age) + 5;
+            if (fwState.sex === 'female') bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * fwState.age) - 161;
+            const tdee = Math.round(bmr * activity);
 
-            // Need current weight, height, age, sex
-            // We can try to get from profile API or DOM
-            let currentWeight = 180; // Default fallback
-            let heightInches = 70;
-            let age = 30;
-            let sex = 'male';
-
-            if (profile) {
-                if (profile.height_inches) heightInches = profile.height_inches;
-                if (profile.sex) sex = profile.sex;
-                if (profile.birthdate) {
-                    const dob = new Date(profile.birthdate);
-                    const diff_ms = Date.now() - dob.getTime();
-                    const age_dt = new Date(diff_ms);
-                    age = Math.abs(age_dt.getUTCFullYear() - 1970);
+            // LOGIC BRANCHES
+            if (source === 'maintenance') {
+                if (isMaintenance) {
+                    // Set Target = Current
+                    targetWeight = fwState.currentWeight;
+                    setValFloat('fwTargetWeight', targetWeight);
+                    document.getElementById('fwTargetWeight').disabled = true;
+                    // Weeks irrelevant, but let's keep visual
+                    // Set Calories = TDEE
+                    calories = tdee;
+                    setVal('fwCalories', calories);
+                    // Recalculate Macros
+                    source = 'calories_internal';
+                } else {
+                    document.getElementById('fwTargetWeight').disabled = false;
                 }
             }
 
-            // Fetch latest weight if possible, or use stats?
-            // Assuming profile API returned it or we parsed it. 
-            // Actually profile API might not return latest weight from events.
-            // Let's check 'profileDisplayWeight' or assume profile has it?
-            // The profile object we fetched usually doesn't update with daily logs unless we sync it.
-            // Let's assume standard values for now or fetch /api/profile/weight
-            try {
-                const wRes = await fetch(`/api/profile/weight?userId=${userId}`);
-                if (wRes.ok) {
-                    const wData = await wRes.json();
-                    if (wData && wData.weight) currentWeight = wData.weight;
+            if (source === 'weight' || source === 'weeks' || source === 'activity') {
+                if (isMaintenance) {
+                    // If activity changed in maintenance, update TDEE -> Calories
+                    calories = tdee;
+                    setVal('fwCalories', calories);
+                    source = 'calories_internal';
+                } else {
+                    // Calculate Daily Deficit
+                    // Total Loss = Current - Target
+                    const totalLossLbs = fwState.currentWeight - targetWeight;
+                    const totalDeficit = totalLossLbs * 3500;
+                    // Daily Deficit
+                    const days = weeks * 7;
+                    const dailyDeficit = days > 0 ? totalDeficit / days : 0;
+
+                    calories = tdee - dailyDeficit;
+                    setVal('fwCalories', calories);
+                    // Recalculate Macros
+                    source = 'calories_internal';
                 }
-            } catch (e) { }
-
-            // Maintenance Mode Logic
-            if (isMaintenance) {
-                targetWeight = currentWeight;
-                weeks = 0; // Not used for calculation
             }
 
-            // Mifflin-St Jeor
-            // Weight in kg, Height in cm
-            const weightKg = currentWeight * 0.453592;
-            const heightCm = heightInches * 2.54;
-
-            let bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
-            if (sex === 'female') {
-                bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
+            if (source === 'macro') {
+                // Sum macros to get calories
+                calories = (protein * 4) + (carbs * 4) + (fat * 9);
+                setVal('fwCalories', calories);
+                // Now behave like calories changed
+                source = 'calories';
             }
 
-            const tdee = bmr * activity;
+            if (source === 'calories' || source === 'calories_internal') {
+                // 1. Update Target Weight (if NOT maintenance and NOT internal recalc from weight)
+                // If source was 'weight', we don't recalc weight.
+                // If source was 'calories' (user edit) or 'macro' (derived), we recalc weight.
+                if (source !== 'calories_internal' && !isMaintenance) {
+                    const dailyDeficit = tdee - calories;
+                    const totalDeficit = dailyDeficit * (weeks * 7);
+                    const totalLossLbs = totalDeficit / 3500;
+                    targetWeight = fwState.currentWeight - totalLossLbs;
+                    setValFloat('fwTargetWeight', targetWeight);
+                }
 
-            // Calculate Deficit
-            // 1 lb fat = 3500 kcal
-            let dailyDeficit = 0;
-            if (!isMaintenance && weeks > 0) {
-                const weightDiff = currentWeight - targetWeight;
-                const totalDeficit = weightDiff * 3500;
-                dailyDeficit = totalDeficit / (weeks * 7);
+                // 2. Distribute Macros (if source was NOT macro user edit)
+                // If user edited a macro, we keep them as is (already fetched above).
+                // If user edited Calories/Weight, we redistribute.
+                if (source !== 'macro') {
+                    // Default Split: 30% P / 35% C / 35% F
+                    protein = (calories * 0.30) / 4;
+                    carbs = (calories * 0.35) / 4;
+                    fat = (calories * 0.35) / 9;
+
+                    setVal('fwProtein', protein);
+                    setVal('fwCarbs', carbs);
+                    setVal('fwFat', fat);
+                }
             }
 
-            // Daily Goal
-            let dailyCalories = Math.round(tdee - dailyDeficit);
-
-            // Safety Check (don't go too low)
-            if (dailyCalories < 1200 && sex === 'female') dailyCalories = 1200;
-            if (dailyCalories < 1500 && sex === 'male') dailyCalories = 1500;
-
-            // Macros (Standard 40/30/30 split or similar?)
-            // Protein 1g per lb of target weight (usually good for retaining muscle)
-            // Or 30% Protein, 35% Carbs, 35% Fat
-            const proteinG = Math.round(targetWeight * 0.8); // 0.8 - 1g per lb
-            const fatG = Math.round((dailyCalories * 0.25) / 9); // 25% fat
-            const carbG = Math.round((dailyCalories - (proteinG * 4) - (fatG * 9)) / 4); // Remainder carbs
-
-            // Display Results
-            document.getElementById('fwResultCalories').innerText = dailyCalories;
-            // Display Results
-            document.getElementById('fwResultCalories').innerText = dailyCalories;
-            document.getElementById('fwResultLossRate').innerText = isMaintenance ? 'Maintenance' : `${weeks} weeks`;
-            document.getElementById('fwResultProtein').innerText = `${proteinG}g`;
-            document.getElementById('fwResultProtein').innerText = `${proteinG}g`;
-            document.getElementById('fwResultCarbs').innerText = `${carbG}g`;
-            document.getElementById('fwResultFat').innerText = `${fatG}g`;
-
-            // Setup Globals for Save
-            window.fitnessPlanData = {
-                targetWeight,
-                dailyCalories,
-                proteinG,
-                carbG,
-                fatG
-            };
-
-            document.getElementById('fwStep1').classList.add('hidden');
-            document.getElementById('fwStep2').classList.remove('hidden');
+            fwState.isUpdating = false;
         }
 
         async function saveFitnessPlan() {
-            if (!window.fitnessPlanData) return;
             const userId = localStorage.getItem('lifestats_userId');
-            const data = window.fitnessPlanData;
+            if (!userId) return;
+
+            const getVal = (id) => parseFloat(document.getElementById(id).value) || 0;
 
             try {
-                // 1. Weight Goal
-                await fetch('/api/goals', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, eventTypeId: 'weight', targetValue: data.targetWeight, period: 'daily' }) // Weight is usually a 'target' not daily sum, but our goal system assumes targetValue. Render logic handles percent... wait. 
-                    // Weight goal logic in Render: (currentStat / targetValue). If target is lower (loss), this percent logic is wrong.
-                    // But for now let's save it. Logic refinement later.
-                });
+                const goals = [
+                    { eventTypeId: 'weight', targetValue: getVal('fwTargetWeight') },
+                    { eventTypeId: 'meal', targetValue: getVal('fwCalories') },
+                    { eventTypeId: 'protein', targetValue: getVal('fwProtein') },
+                    { eventTypeId: 'carbs', targetValue: getVal('fwCarbs') },
+                    { eventTypeId: 'fat', targetValue: getVal('fwFat') }
+                ];
 
-                // 2. Calorie Goal (Meal)
-                await fetch('/api/goals', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, eventTypeId: 'meal', targetValue: data.dailyCalories, period: 'daily' })
-                });
+                // Parallel saves
+                await Promise.all(goals.map(g =>
+                    fetch('/api/goals', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId, eventTypeId: g.eventTypeId, targetValue: g.targetValue, period: 'daily' })
+                    })
+                ));
 
-                // 3. Macros (Virtual Types)
-                // We need to support them in backend Goals? Yes we confirmed no FK check.
-                await fetch('/api/goals', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, eventTypeId: 'protein', targetValue: data.proteinG, period: 'daily' })
-                });
-                await fetch('/api/goals', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, eventTypeId: 'carbs', targetValue: data.carbG, period: 'daily' })
-                });
-                await fetch('/api/goals', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, eventTypeId: 'fat', targetValue: data.fatG, period: 'daily' })
-                });
-
-                showNotification('Fitness Plan Saved!');
+                showNotification('Fitness Plan Saved! 🚀');
                 closeFitnessWizard();
                 loadUserGoals(userId);
 

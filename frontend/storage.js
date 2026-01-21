@@ -15,7 +15,7 @@ class Storage {
     }
 
     // Save a meal (Async)
-    async saveMeal(foodName, mealType, nutrition = null, servingInfo = null) {
+    async saveMeal(foodName, mealType, nutrition = null, servingInfo = null, timestamp = null) {
         const newMeal = {
             id: 'meal-' + Date.now(),
             userId: this.userId,
@@ -24,7 +24,7 @@ class Storage {
             nutrition: nutrition || { calories: 0, protein: 0, carbs: 0, fat: 0 },
             servingSize: servingInfo ? servingInfo.size : 1.0,
             servingUnit: servingInfo ? servingInfo.unit : 'serving',
-            timestamp: Date.now()
+            timestamp: timestamp || Date.now()
         };
 
         try {
