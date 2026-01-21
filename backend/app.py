@@ -612,6 +612,93 @@ def delete_event_type_route(event_type_id):
         print(f"Error deleting event type: {e}")
         return jsonify({'error': 'Database error'}), 500
 
+# ============================================================================
+# CATEGORY API ROUTES
+# ============================================================================
+
+@app.route('/api/categories', methods=['GET'])
+def get_categories_route():
+    """Get all user categories."""
+    user_id = request.args.get('userId')
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    
+    try:
+        from db import get_user_categories
+        categories = get_user_categories(user_id)
+        return jsonify(categories)
+    except Exception as e:
+        print(f"Error fetching categories: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/categories', methods=['POST'])
+def create_category_route():
+    """Create a new user category."""
+    user_id = request.args.get('userId')
+    data = request.json
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    if not data or 'name' not in data:
+        return jsonify({'error': 'name required'}), 400
+
+    try:
+        from db import create_user_category
+        icon = data.get('icon', '🏷️')
+        category = create_user_category(user_id, data['name'], icon)
+        
+        if category:
+            return jsonify(category), 201
+        else:
+            return jsonify({'error': 'Category already exists'}), 409
+    except Exception as e:
+        print(f"Error creating category: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/categories/<category_name>', methods=['PUT'])
+def update_category_route(category_name):
+    """Update a user category."""
+    user_id = request.args.get('userId')
+    data = request.json
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+    if not data or 'name' not in data:
+        return jsonify({'error': 'name required'}), 400
+
+    try:
+        from db import update_user_category
+        icon = data.get('icon', '🏷️')
+        success = update_user_category(user_id, category_name, data['name'], icon)
+        
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Category not found or name collision'}), 404
+    except Exception as e:
+        print(f"Error updating category: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/categories/<category_name>', methods=['DELETE'])
+def delete_category_route(category_name):
+    """Delete a user category."""
+    user_id = request.args.get('userId')
+    
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+
+    try:
+        from db import delete_user_category
+        success = delete_user_category(user_id, category_name)
+        
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Category not found'}), 404
+    except Exception as e:
+        print(f"Error deleting category: {e}")
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/event-types/<event_type_id>/favorite', methods=['POST'])
 def toggle_event_type_favorite_route(event_type_id):

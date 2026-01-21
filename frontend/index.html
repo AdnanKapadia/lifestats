@@ -1099,6 +1099,27 @@
             transform: scale(0.95);
         }
 
+        /* Mobile Adjustments for Rating */
+        @media (max-width: 480px) {
+            .rating-star-btn {
+                font-size: 22px;
+                /* Smaller stars */
+                padding: 0 1px;
+            }
+
+            .check-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+                margin-left: 4px;
+            }
+
+            .event-type-row {
+                padding: 12px;
+                gap: 8px;
+            }
+        }
+
         /* Profile Form Styles */
         .sex-selector {
             display: flex;
@@ -1231,18 +1252,21 @@
 
             <!-- Category Filter -->
             <div class="card" style="margin-bottom: 16px;">
-                <div class="section-title">Filter by Category</div>
-                <div class="chip-container" id="categoryFilterChips">
+                <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    Filter by Category
+                    <button onclick="openManageCategoriesModal()"
+                        style="background: #2ecc71; color: white; border: none; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: transform 0.1s; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"
+                        onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'"
+                        onmouseleave="this.style.transform='scale(1)'">
+                        ✏️
+                    </button>
+                </div>
+                <!-- Categories Header -->
+                <div class="chip-container" id="categoryChipsContainer">
+                    <!-- Dynamic Chips will be injected here -->
                     <div class="chip category-chip active" data-category="all"
-                        onclick="filterEventTypesByCategory('all')">All</div>
-                    <div class="chip category-chip" data-category="Nutrition"
-                        onclick="filterEventTypesByCategory('Nutrition')">🍎 Nutrition</div>
-                    <div class="chip category-chip" data-category="Fitness"
-                        onclick="filterEventTypesByCategory('Fitness')">💪 Fitness</div>
-                    <div class="chip category-chip" data-category="Health"
-                        onclick="filterEventTypesByCategory('Health')">⚖️ Health</div>
-                    <div class="chip category-chip" data-category="Custom"
-                        onclick="filterEventTypesByCategory('Custom')">⭐ Custom</div>
+                        onclick="filterEventTypesByCategory('all')">
+                        All</div>
                 </div>
             </div>
 
@@ -1375,6 +1399,8 @@
                 <span id="notificationMessage">Message</span>
             </div>
 
+
+
             <!-- Food Entry Form -->
             <div class="card">
                 <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
@@ -1468,17 +1494,35 @@
                 </form>
             </div>
 
-            <!-- Today's Meals -->
+            <!-- Meal History -->
             <div class="card">
-                <div class="section-title">
-                    Today's Meals
-                    <span id="dailyTotal" class="daily-total">0 kcal</span>
+                <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    History
+                    <div id="dailyMealSummary" style="font-size: 0.8em; font-weight: normal; color: #a1a1aa;"></div>
                 </div>
-                <div id="mealsList" class="meals-list">
+
+                <!-- Meal Date Navigation -->
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; background: rgba(39, 39, 42, 0.4); padding: 8px; border-radius: 12px;">
+                    <button type="button" onclick="changeMealDate(-1)"
+                        style="background: none; border: none; color: #a1a1aa; font-size: 1.2em; padding: 8px; cursor: pointer; transition: color 0.2s;">
+                        ◀
+                    </button>
+                    <div id="mealDateDisplay" style="font-weight: 600; color: #e4e4e7; font-size: 1em;">
+                        Today
+                    </div>
+                    <button type="button" onclick="changeMealDate(1)"
+                        style="background: none; border: none; color: #a1a1aa; font-size: 1.2em; padding: 8px; cursor: pointer; transition: color 0.2s;">
+                        ▶
+                    </button>
+                </div>
+
+                <div id="dailyMealsList" class="meals-list">
                     <!-- Meals will be inserted here -->
                 </div>
             </div>
         </div>
+
 
     </div>
 
@@ -1613,14 +1657,45 @@
                 <div class="section-title"
                     style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <span>🎯 Daily Goals</span>
+
                     <button onclick="openAddGoalModal()"
                         style="background: #2ECC71; color: white; border: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);">
                         <span style="font-size: 1.2em;">+</span>
                     </button>
                 </div>
+
+                <!-- Goals Date Navigation (Matches Food/Event History Style) -->
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; background: rgba(39, 39, 42, 0.4); padding: 8px; border-radius: 12px;">
+                    <button type="button" onclick="changeGoalsDate(-1)"
+                        style="background: none; border: none; color: #a1a1aa; font-size: 1.2em; padding: 0; cursor: pointer; transition: color 0.2s; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+                        ◀
+                    </button>
+                    <div id="goalsDateDisplay" style="font-weight: 600; color: #e4e4e7; font-size: 1.1em;">Today</div>
+                    <button type="button" onclick="changeGoalsDate(1)"
+                        style="background: none; border: none; color: #a1a1aa; font-size: 1.2em; padding: 0; cursor: pointer; transition: color 0.2s; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+                        ▶
+                    </button>
+                </div>
+
                 <div id="goalsList" style="display: flex; flex-direction: column; gap: 12px;">
                     <!-- Goals will be inserted here -->
                 </div>
+
+                <script>
+                    (function () {
+                        // Swipe Logic for Goals Card
+                        // We attach it to the parent card or the list itself
+                        // Let's attach to the goalsList container but maybe the whole card is better? 
+                        // The user said "swipe in that card". Let's try the whole goalsCard.
+                        // But wait, the script runs immediately, elements exist.
+                        // We will add the listener in a main init function or right here if safe.
+
+                        // Let's add it via a global setup function or search for existing swipe utils.
+                        // Actually I'll insert a specific setup at the end of the file or inline here if it works.
+                        // Ideally in the main script block. I will add the HTML structure here first.
+                    })();
+                </script>
 
                 <button onclick="openFitnessGoalsWizard()" class="secondary-btn"
                     style="width: 100%; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; background: rgba(39, 39, 42, 0.4); border: 1px dashed rgba(255, 255, 255, 0.2); color: #a1a1aa; padding: 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s;">
@@ -1695,6 +1770,7 @@
             <!-- Log Event Form -->
             <div class="card">
                 <div class="section-title">Log Event</div>
+
                 <form id="eventTrackingForm" onsubmit="handleEventSubmit(event)">
                     <div id="eventFormFields">
                         <!-- Dynamic form fields will be inserted here -->
@@ -1706,6 +1782,23 @@
             <!-- Event History -->
             <div class="card">
                 <div class="section-title">History</div>
+
+                <!-- Date Navigation -->
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; background: rgba(39, 39, 42, 0.4); padding: 8px; border-radius: 12px;">
+                    <button type="button" onclick="changeTrackingDate(-1)"
+                        style="background: none; border: none; color: #a1a1aa; font-size: 1.2em; padding: 8px; cursor: pointer; transition: color 0.2s;">
+                        ◀
+                    </button>
+                    <div id="trackingDateDisplay" style="font-weight: 600; color: #e4e4e7; font-size: 1em;">
+                        Today
+                    </div>
+                    <button type="button" onclick="changeTrackingDate(1)"
+                        style="background: none; border: none; color: #a1a1aa; font-size: 1.2em; padding: 8px; cursor: pointer; transition: color 0.2s;">
+                        ▶
+                    </button>
+                </div>
+
                 <div id="eventHistoryList" class="meals-list">
                     <!-- Event history will be inserted here -->
                     <div class="empty-state">
@@ -1765,7 +1858,7 @@
         </div>
     </nav>
 
-    <!-- ... (Modals remain unchanged) ... -->
+
     <!-- Custom Food Modal -->
     <div id="customFoodModalOverlay" class="modal-overlay hidden custom-food-modal">
         <div class="modal">
@@ -1773,12 +1866,12 @@
                 <div class="modal-title">Create Custom Food</div>
                 <button class="close-btn" onclick="closeCustomFoodModal()">&times;</button>
             </div>
-            <!-- ... (rest of custom food modal) ... -->
+
 
             <!-- Scripts -->
             <script src="/storage.js"></script>
             <script>
-                // ... (Existing scripts) ...
+
 
                 // ===== GOALS TAB CHARTING =====
                 let goalsChart = null;
@@ -2196,7 +2289,7 @@
                         let datasets = [];
 
                         data.datasets.forEach((ds, index) => {
-                            // Main Dataset (Bar)
+                            // Main Dataset (Bar) - Render IN FRONT (Push first)
                             datasets.push({
                                 label: `${ds.icon || ''} ${ds.name}`,
                                 data: ds.data,
@@ -2205,10 +2298,10 @@
                                 barThickness: goalsTimeRange === '1y' || goalsTimeRange === '6m' ? 3 : 'flex',
                                 maxBarThickness: 40,
                                 yAxisID: index === 0 ? 'y0' : 'y1',
-                                order: 1 // Render bars above (in front of) lines
+                                order: 1 // Lower order = drawn last, checked first for interactions
                             });
 
-                            // Average Line (if enabled)
+                            // Average Line (if enabled) - Render BEHIND bars (Push second)
                             if (goalsShowAverage) {
                                 const validValues = ds.data.filter(v => v !== null && v !== undefined);
                                 if (validValues.length > 0) {
@@ -2220,15 +2313,16 @@
                                         label: `${ds.name} (Avg)`,
                                         data: avgData,
                                         type: 'line',
-                                        borderColor: ds.color, // Use same color
+                                        borderColor: ds.color,
                                         borderWidth: 1,
                                         borderDash: [5, 5],
                                         pointRadius: 0,
                                         pointHoverRadius: 0,
+                                        pointHitRadius: 0,
+                                        hoverBorderWidth: 0,
                                         fill: false,
                                         yAxisID: index === 0 ? 'y0' : 'y1',
-                                        order: 2, // Render line below (behind) bars
-                                        tooltip: { enabled: false } // Don't show tooltip for average line to keep it clean? Or show it? Let's hide to avoid clutter.
+                                        order: 2 // Higher order = drawn first (background), checked last for interactions
                                     });
                                 }
                             }
@@ -2349,6 +2443,10 @@
                                         borderColor: 'rgba(255, 255, 255, 0.1)',
                                         borderWidth: 1,
                                         padding: 12,
+                                        filter: function (tooltipItem) {
+                                            // Exclude average line datasets from tooltips
+                                            return !tooltipItem.dataset.label.includes('(Avg)');
+                                        },
                                         callbacks: {
                                             title: function (context) {
                                                 // Tooltip title formatting
@@ -2604,14 +2702,14 @@
                     <!-- STEP 1: Calories & Macros -->
                     <div class="calories-hero">
                         <label>Calories</label>
-                        <input type="number" id="customCalories" required min="0" step="1" placeholder="0">
+                        <input type="number" id="customCalories" required min="0" step="any" placeholder="0">
                     </div>
 
                     <div class="macro-row" id="row-protein"
                         style="background: rgba(96, 165, 250, 0.15); border-color: rgba(96, 165, 250, 0.2);">
                         <label style="color: #60a5fa;">Protein</label>
                         <div class="macro-input-group">
-                            <input type="number" id="customProtein" min="0" step="0.1" placeholder="0"
+                            <input type="number" id="customProtein" min="0" step="any" placeholder="0"
                                 class="macro-watch">
                             <span style="color: #64748b; font-size: 0.9em;">g</span>
                         </div>
@@ -2621,7 +2719,7 @@
                         style="background: rgba(192, 132, 252, 0.15); border-color: rgba(192, 132, 252, 0.2);">
                         <label style="color: #c084fc;">Carbs</label>
                         <div class="macro-input-group">
-                            <input type="number" id="customCarbs" min="0" step="0.1" placeholder="0"
+                            <input type="number" id="customCarbs" min="0" step="any" placeholder="0"
                                 class="macro-watch">
                             <span style="color: #64748b; font-size: 0.9em;">g</span>
                         </div>
@@ -2631,7 +2729,7 @@
                         style="background: rgba(242, 198, 75, 0.15); border-color: rgba(242, 198, 75, 0.2);">
                         <label style="color: #f2c64b;">Fat</label>
                         <div class="macro-input-group">
-                            <input type="number" id="customFat" min="0" step="0.1" placeholder="0" class="macro-watch">
+                            <input type="number" id="customFat" min="0" step="any" placeholder="0" class="macro-watch">
                             <span style="color: #64748b; font-size: 0.9em;">g</span>
                         </div>
                     </div>
@@ -2917,6 +3015,25 @@
         </div>
     </div>
 
+    <!-- Edit Event Modal -->
+    <div id="editEventModalOverlay" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <div id="editEventModalTitle" class="modal-title">Edit Event</div>
+                <button class="close-btn" onclick="closeEditEventModal()">&times;</button>
+            </div>
+            <form id="editEventForm" onsubmit="handleEditEventSubmit(event)">
+                <div id="editEventFormFields" style="margin-bottom: 20px;">
+                    <!-- Dynamic fields will be inserted here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeEditEventModal()">Cancel</button>
+                    <button type="submit" class="primary-btn">Update Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Add Event Type Modal -->
     <div id="addEventTypeModalOverlay" class="modal-overlay hidden">
         <div class="modal">
@@ -2933,13 +3050,17 @@
 
                 <div class="form-group">
                     <label for="eventTypeCategory">Category *</label>
-                    <select id="eventTypeCategory" required
-                        style="width: 100%; padding: 12px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7; font-size: 1em;">
-                        <option value="Nutrition">🍎 Nutrition</option>
-                        <option value="Fitness">💪 Fitness</option>
-                        <option value="Health">⚖️ Health</option>
-                        <option value="Custom">⭐ Custom</option>
-                    </select>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="eventTypeCategory" required style="flex: 1;">
+                            <option value="" disabled selected>Select Category</option>
+                            <option value="Nutrition">🍎 Nutrition</option>
+                            <option value="Fitness">💪 Fitness</option>
+                            <option value="Health">⚖️ Health</option>
+                            <!-- Dynamic categories will be added here or via JS -->
+                        </select>
+                        <button type="button" onclick="openAddCategoryModal()" class="btn-secondary"
+                            style="width: 40px; display: flex; align-items: center; justify-content: center;">+</button>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -2993,8 +3114,7 @@
 
                 <div class="modal-footer"
                     style="display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
-                    <button type="button" id="deleteEventTypeBtn" class="meal-delete hidden"
-                        onclick="handleDeleteEventType()"
+                    <button type="button" id="deleteEventTypeBtn" class="meal-delete" onclick="handleDeleteEventType()"
                         style="margin-right: auto; padding: 10px 16px;">Delete</button>
                     <button type="button" class="btn-secondary" onclick="closeAddEventTypeModal()">Cancel</button>
                     <button type="submit" class="primary-btn">Create Event Type</button>
@@ -3003,10 +3123,180 @@
         </div>
     </div>
 
+    <!-- Add Custom Category Modal -->
+    <div id="addCategoryModalOverlay" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Add Custom Category</div>
+                <button class="close-btn" onclick="closeAddCategoryModal()">&times;</button>
+            </div>
+            <form id="addCategoryForm" onsubmit="handleAddCategorySubmit(event)">
+                <div class="form-group">
+                    <label for="newCategoryName">Category Name *</label>
+                    <input type="text" id="newCategoryName" placeholder="e.g. Hobbies" required>
+                </div>
+                <!-- 
+                     We create a category by creating a placeholder Event Type. 
+                     The user will just see "Category Name" and "Symbol".
+                     Hidden fields: trackingType=count
+                -->
+                <div class="form-group">
+                    <label for="newCategoryIcon">Symbol (Emoji) *</label>
+                    <input type="text" id="newCategoryIcon" placeholder="🎨" required maxlength="2">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeAddCategoryModal()">Cancel</button>
+                    <button type="submit" class="primary-btn">Create Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Manage Categories Modal -->
+    <div id="manageCategoriesModalOverlay" class="modal-overlay hidden"
+        onclick="if(event.target === this) closeManageCategoriesModal()">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Manage Categories</div>
+                <button class="close-btn" onclick="closeManageCategoriesModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding-top: 0;">
+                <div id="manageCategoriesList" class="category-list"
+                    style="display: flex; flex-direction: column; gap: 8px;">
+                    <!-- Dynamic List -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="/storage.js"></script>
     <script>
         // ===== PAGE NAVIGATION =====
+        let currentMealDate = new Date();
+
+        function changeMealDate(offset) {
+            currentMealDate.setDate(currentMealDate.getDate() + offset);
+            updateMealDateDisplay();
+            loadDailyMeals();
+        }
+
+        function updateMealDateDisplay() {
+            const el = document.getElementById('mealDateDisplay');
+            if (el) {
+                // Formatting: "Today", "Yesterday", or "Mon, Jan 2"
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const check = new Date(currentMealDate);
+                check.setHours(0, 0, 0, 0);
+
+                const diff = (today - check) / (1000 * 60 * 60 * 24);
+
+                if (diff === 0) el.textContent = 'Today';
+                else if (diff === 1) el.textContent = 'Yesterday';
+                else if (diff === -1) el.textContent = 'Tomorrow';
+                else el.textContent = check.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            }
+        }
+
+        async function loadDailyMeals() {
+            const list = document.getElementById('dailyMealsList');
+            const summaryEl = document.getElementById('dailyMealSummary');
+            if (!list) return;
+
+            list.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-emoji">⏳</div>
+                    <p>Loading meals...</p>
+                </div>`;
+
+            // Use storage to get Filtered Meals
+            // Since storage.getMeals() gets all, we filter here.
+            try {
+                const allMeals = await storage.getMeals();
+
+                // Filter by currentMealDate
+                const targetDate = new Date(currentMealDate);
+                targetDate.setHours(0, 0, 0, 0);
+
+                const dayMeals = allMeals.filter(meal => {
+                    const mDate = new Date(meal.timestamp);
+                    mDate.setHours(0, 0, 0, 0);
+                    return mDate.getTime() === targetDate.getTime();
+                });
+
+                // Render
+                if (dayMeals.length === 0) {
+                    list.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-emoji">🍽️</div>
+                            <p>No meals logged for this day</p>
+                        </div>`;
+                    if (summaryEl) summaryEl.textContent = '';
+                    return;
+                }
+
+                // Sort: Newest first
+                dayMeals.sort((a, b) => b.timestamp - a.timestamp);
+
+                // Calculate Totals
+                let totalCals = 0, totalProt = 0, totalCarbs = 0, totalFat = 0;
+
+                list.innerHTML = dayMeals.map(meal => {
+                    // Nutrition calc
+                    const qty = meal.servingSize || 1;
+                    // Only if "isMeal" (custom meal), backend might have pre-calc totals? 
+                    // Or we trust meal.nutrition properties which are usually SAVED as the final total for that entry.
+                    // IMPORTANT: saveMeal implementation saves the TOTAL nutrition in meal.nutrition object.
+
+                    const cals = meal.nutrition?.calories || 0;
+                    const p = meal.nutrition?.protein || 0;
+                    const c = meal.nutrition?.carbs || 0;
+                    const f = meal.nutrition?.fat || 0;
+
+                    totalCals += cals;
+                    totalProt += p;
+                    totalCarbs += c;
+                    totalFat += f;
+
+                    const timeStr = new Date(meal.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    return `
+                        <div class="meal-item" onclick="editMeal('${meal.id}')">
+                            <div class="meal-time">${timeStr}</div>
+                            <div class="meal-info">
+                                <div class="meal-name">${escapeHtml(meal.foodName)}</div>
+                                <div class="meal-macros">
+                                    <span class="macro-tag cal">${Math.round(cals)} kcal</span>
+                                    <span class="macro-tag prot">${Math.round(p)}p</span>
+                                    <span class="macro-tag carb">${Math.round(c)}c</span>
+                                    <span class="macro-tag fat">${Math.round(f)}f</span>
+                                </div>
+                            </div>
+                            <button class="meal-delete" onclick="event.stopPropagation(); deleteMeal('${meal.id}')">&times;</button>
+                        </div>
+                     `;
+                }).join('');
+
+                if (summaryEl) {
+                    summaryEl.innerHTML = `
+                        <span style="color: #2ECC71;">${Math.round(totalCals)} kcal</span> • 
+                        <span style="color: #60a5fa;">${Math.round(totalProt)}p</span> • 
+                        <span style="color: #c084fc;">${Math.round(totalCarbs)}c</span> • 
+                        <span style="color: #f2c64b;">${Math.round(totalFat)}f</span>
+                    `;
+                }
+
+            } catch (err) {
+                console.error("Error loading daily meals", err);
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-emoji">❌</div>
+                        <p>Error loading history</p>
+                    </div>`;
+            }
+        }
+
         async function forceUpdate() {
             if (confirm('This will update the app to the latest version. This involves clearing the cache and reloading. Continue?')) {
                 try {
@@ -3088,6 +3378,10 @@
                 if (typeof renderHomeFavorites === 'function') {
                     renderHomeFavorites();
                 }
+            } else if (pageNumber === 3) {
+                // If switching to meal page (page 3), update favorite button AND load meals
+                updateMealFavoriteButton();
+                switchToMealPage();
             }
         }
 
@@ -3418,6 +3712,20 @@
             editModalOverlay.classList.remove('hidden');
         };
 
+        async function editMeal(mealId) {
+            try {
+                const allMeals = await storage.getMeals();
+                const meal = allMeals.find(m => m.id === mealId);
+                if (meal) {
+                    openMealDetail(meal);
+                } else {
+                    alert('Meal not found');
+                }
+            } catch (e) {
+                console.error('Error opening edit modal:', e);
+            }
+        }
+
         // Scale Logic for Edit Modal
         document.getElementById('editPortionInput').addEventListener('input', (e) => {
             if (!currentEditingMeal || !originalEditingMeal.servingSize) return;
@@ -3483,7 +3791,7 @@
             const success = await storage.updateMeal(currentEditingMeal.id, updates);
             if (success) {
                 closeEditModal();
-                await renderMeals();
+                await loadDailyMeals(); // Changed from renderMeals()
             } else {
                 alert('Failed to save changes');
             }
@@ -3542,7 +3850,7 @@
                 };
 
                 // Save meal
-                await storage.saveMeal(foodName, mealType, nutrition, servingInfo);
+                await storage.saveMeal(foodName, mealType, nutrition, servingInfo, currentMealDate.getTime()); // Pass currentMealDate timestamp
 
                 // Success feedback
                 const form = document.getElementById('foodForm');
@@ -3568,66 +3876,17 @@
                 toggleNutritionBtn.textContent = '(Show)';
 
                 // Refresh list
-                await renderMeals();
+                await loadDailyMeals(); // Changed from renderMeals()
 
                 if (navigator.vibrate) navigator.vibrate(50);
             }
         });
 
-        // Render meals list
-        async function renderMeals() {
-            const mealsList = document.getElementById('mealsList');
-            const todaysMeals = await storage.getTodaysMeals();
-
-            // Calculate total calories
-            const totalCalories = todaysMeals.reduce((sum, meal) => sum + (meal.nutrition?.calories || 0), 0);
-            document.getElementById('dailyTotal').textContent = `${totalCalories} kcal`;
-
-            if (todaysMeals.length === 0) {
-                mealsList.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-emoji">🍽️</div>
-                        <div>No meals logged today</div>
-                    </div>
-                `;
-                return;
-            }
-
-            // Sort by timestamp (most recent first)
-            todaysMeals.sort((a, b) => b.timestamp - a.timestamp);
-
-            mealsList.innerHTML = todaysMeals.map(meal => {
-                const time = new Date(meal.timestamp).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-
-                const cals = meal.nutrition?.calories ? `${meal.nutrition.calories} kcal` : '';
-                const macros = [];
-                if (meal.nutrition?.protein) macros.push(`${meal.nutrition.protein}p`);
-                if (meal.nutrition?.carbs) macros.push(`${meal.nutrition.carbs}c`);
-                if (meal.nutrition?.fat) macros.push(`${meal.nutrition.fat}f`);
-                const macroStr = macros.length > 0 ? `• ${macros.join(' ')}` : '';
-
-                return `
-                    <div class="meal-item" onclick='openMealDetail(${JSON.stringify(meal).replace(/'/g, "&#39;")})' style="cursor: pointer;">
-                        <div class="meal-emoji">${mealEmojis[meal.mealType]}</div>
-                        <div class="meal-info">
-                            <div class="meal-name">${escapeHtml(meal.foodName)}</div>
-                            <div class="meal-time">${meal.mealType} • ${time}</div>
-                            ${cals ? `<div class="meal-macros">${cals} ${macroStr}</div>` : ''}
-                        </div>
-                        <button class="meal-delete" onclick="event.stopPropagation(); deleteMeal('${meal.id}')">Delete</button>
-                    </div>
-                `;
-            }).join('');
-        }
-
         // Delete meal
         async function deleteMeal(mealId) {
             if (confirm('Delete this meal?')) {
                 await storage.deleteMeal(mealId);
-                await renderMeals();
+                await loadDailyMeals(); // Changed from renderMeals()
             }
         }
 
@@ -3650,7 +3909,7 @@
         }
 
         // Initial render
-        renderMeals();
+        // renderMeals(); // Removed, will be called by switchToMealPage
 
         // Custom Food Modal Logic
         let customMealMode = 'simple'; // 'simple' or 'meal'
@@ -3820,7 +4079,7 @@
                             <div class="ingredient-detail">${ing.calories} kcal / ${ing.servingSize || 100}${ing.servingUnit || 'g'} base</div>
                         </div>
                         <div class="ingredient-controls">
-                            <input type="number" class="ingredient-qty-input" value="${ing.userQty}" 
+                            <input type="number" class="ingredient-qty-input" value="${ing.userQty}" step="any"
                                 oninput="updateIngredientQty('${ing.uuid}', this.value)">
                             <span style="font-size: 0.8em; color: #71717a;">${ing.servingUnit || 'g'}</span>
                             <button class="ingredient-remove" onclick="removeIngredientFromMeal('${ing.uuid}')">&times;</button>
@@ -3833,7 +4092,7 @@
         function recalculateMealTotals() {
             // Define all tracked nutrients and their input IDs
             const nutrients = {
-                calories: { id: 'customCalories', sum: 0, precision: 0 },
+                calories: { id: 'customCalories', sum: 0, precision: 1 },
                 protein: { id: 'customProtein', sum: 0, precision: 1 },
                 carbs: { id: 'customCarbs', sum: 0, precision: 1 },
                 fat: { id: 'customFat', sum: 0, precision: 1 },
@@ -3877,7 +4136,7 @@
             });
 
             // Update UI Summary (Main Macros)
-            document.getElementById('mealTotalCalories').textContent = Math.round(nutrients.calories.sum);
+            document.getElementById('mealTotalCalories').textContent = nutrients.calories.sum.toFixed(1);
             document.getElementById('mealTotalProtein').textContent = nutrients.protein.sum.toFixed(1) + 'g';
             document.getElementById('mealTotalCarbs').textContent = nutrients.carbs.sum.toFixed(1) + 'g';
             document.getElementById('mealTotalFat').textContent = nutrients.fat.sum.toFixed(1) + 'g';
@@ -4251,6 +4510,299 @@
         let allEventTypes = [];
         let currentCategoryFilter = 'all';
 
+        // ===== CATEGORY CHIPS LOGIC =====
+        function renderCategoryChips(userCategories) {
+            const container = document.getElementById('categoryChipsContainer');
+            if (!container) return;
+
+            // System Defaults + User Categories
+            // Defaults as objects with icons
+            const systemCategories = [
+                { name: 'Nutrition', icon: '🍎' },
+                { name: 'Fitness', icon: '💪' },
+                { name: 'Health', icon: '⚖️' }
+            ];
+
+            // Merge: User categories override defaults if conflict? Or just append.
+            // Let's unique by name.
+            const uniqueCats = new Map();
+            systemCategories.forEach(c => uniqueCats.set(c.name, c));
+            if (userCategories) {
+                userCategories.forEach(c => uniqueCats.set(c.name, c));
+            }
+
+            // Sort alphabetical
+            const sortedCats = Array.from(uniqueCats.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+            // 2. Build HTML
+            let html = `
+                <div class="chip category-chip ${currentCategoryFilter === 'all' ? 'active' : ''}" 
+                     data-category="all" 
+                     onclick="filterEventTypesByCategory('all')">All</div>
+            `;
+
+            sortedCats.forEach(cat => {
+                const isActive = currentCategoryFilter === cat.name ? 'active' : '';
+                html += `
+                    <div class="chip category-chip ${isActive}" 
+                         data-category="${cat.name}" 
+                         onclick="filterEventTypesByCategory('${cat.name}')">
+                         ${cat.icon} ${cat.name}
+                    </div>
+                `;
+            });
+
+            // 3. Add "Custom" Chip (Opens Modal)
+            html += `
+                <div class="chip category-chip" 
+                     onclick="openAddCategoryModal()">
+                     ⭐ Custom
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function updateCategorySelect(userCategories) {
+            // Updates the Select dropdown in "Add Event Type" modal
+            const select = document.getElementById('eventTypeCategory');
+            if (!select) return;
+
+            const currentVal = select.value;
+
+            const systemCategories = [
+                { name: 'Nutrition', icon: '🍎' },
+                { name: 'Fitness', icon: '💪' },
+                { name: 'Health', icon: '⚖️' }
+            ];
+
+            const uniqueCats = new Map();
+            systemCategories.forEach(c => uniqueCats.set(c.name, c));
+            if (userCategories) {
+                userCategories.forEach(c => uniqueCats.set(c.name, c));
+            }
+
+            const sortedCats = Array.from(uniqueCats.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+            // Keep "Select Category" option
+            let html = `<option value="" disabled ${!currentVal ? 'selected' : ''}>Select Category</option>`;
+
+            sortedCats.forEach(cat => {
+                const isSelected = currentVal === cat.name ? 'selected' : '';
+                html += `<option value="${cat.name}" ${isSelected}>${cat.icon} ${cat.name}</option>`;
+            });
+
+            select.innerHTML = html;
+        }
+
+
+
+        // ===== CUSTOM CATEGORY MODAL =====
+        function openAddCategoryModal() {
+            document.getElementById('addCategoryModalOverlay').classList.remove('hidden');
+            document.getElementById('newCategoryName').focus();
+        }
+
+        function closeAddCategoryModal() {
+            document.getElementById('addCategoryModalOverlay').classList.add('hidden');
+            document.getElementById('addCategoryForm').reset();
+        }
+
+        async function handleAddCategorySubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('newCategoryName').value.trim();
+            const symbol = document.getElementById('newCategoryIcon').value.trim() || '🏷️';
+            const userId = localStorage.getItem('lifestats_userId');
+
+            if (!name || !userId) return;
+
+            // To "Create a Category", we actually create a dummy Event Type
+            // or we could just rely on the fact that creating the first item of that category makes it exist.
+            // But the user expects "Add Category" to do something immediate.
+            // So we will create a "General [Category]" event type as a placeholder or let them create the first item?
+            // The prompt said "open a dialogue for adding custom category".
+            // Implementation Plan said: "Create a new Event Type with the same Name and Category"
+            // e.g. Category="Hobbies", Name="Hobbies", Icon="🎨"
+
+            const categoryData = {
+                name: name,
+                icon: symbol
+            };
+
+            try {
+                const response = await fetch(`/api/categories?userId=${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(categoryData)
+                });
+
+                if (response.ok) {
+                    closeAddCategoryModal();
+                    // Reload to show new category chip
+                    loadEventTypes(userId);
+                    showNotification(`Category "${name}" created!`);
+                } else {
+                    const err = await response.json();
+                    alert('Error creating category: ' + (err.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error creating category:', error);
+                alert('Failed to create category');
+            }
+        }
+
+
+        // ===== MANAGE CATEGORIES MODAL =====
+        function openManageCategoriesModal() {
+            document.getElementById('manageCategoriesModalOverlay').classList.remove('hidden');
+            renderManageCategoriesList();
+        }
+
+        function closeManageCategoriesModal() {
+            document.getElementById('manageCategoriesModalOverlay').classList.add('hidden');
+        }
+
+        async function renderManageCategoriesList() {
+            const list = document.getElementById('manageCategoriesList');
+            if (!list) return;
+
+            list.innerHTML = '<div class="empty-state"><p>Loading...</p></div>';
+
+            const userId = localStorage.getItem('lifestats_userId');
+            if (!userId) return;
+
+            // System Defaults
+            const systemCategories = [
+                { name: 'Nutrition', icon: '🍎', isSystem: true },
+                { name: 'Fitness', icon: '💪', isSystem: true },
+                { name: 'Health', icon: '⚖️', isSystem: true }
+            ];
+
+            let userCategories = [];
+            try {
+                const response = await fetch(`/api/categories?userId=${userId}`);
+                if (response.ok) {
+                    userCategories = await response.json();
+                }
+            } catch (e) { console.error(e); }
+
+            let html = '';
+
+            // System
+            systemCategories.forEach(cat => {
+                html += `
+                    <div class="category-item-row" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(39, 39, 42, 0.4); border-radius: 8px; border: 1px solid #3f3f46;">
+                        <div style="display: flex; align-items: center;">
+                            <span style="margin-right: 12px; font-size: 1.2em;">${cat.icon}</span>
+                            <strong style="color: #e4e4e7;">${cat.name}</strong>
+                            <span style="font-size: 0.7em; background: #3f3f46; color: #a1a1aa; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">System</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // User
+            userCategories.forEach(cat => {
+                html += `
+                    <div class="category-item-row" id="cat-row-${cat.name}" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(39, 39, 42, 0.6); border-radius: 8px; border: 1px solid #3f3f46;">
+                        <div class="cat-display" style="display: flex; align-items: center;">
+                            <span style="margin-right: 12px; font-size: 1.2em;">${cat.icon}</span>
+                            <strong style="color: #e4e4e7;">${cat.name}</strong>
+                        </div>
+                        <div class="cat-actions" style="display: flex; gap: 8px;">
+                            <button onclick="startEditCategory('${cat.name}')" 
+                                style="background: #2ecc71; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s;"
+                                onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
+                                ✏️
+                            </button>
+                            <button onclick="handleDeleteCategory('${cat.name}')" 
+                                style="background: #ef4444; color: white; border: none; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; transition: transform 0.1s;"
+                                onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
+                                ✕
+                            </button>
+                        </div>
+                        
+                        <!-- Edit Form (Hidden by default) -->
+                        <div class="cat-edit-form hidden" style="flex: 1; display: none; align-items: center;">
+                            <input type="text" value="${cat.icon}" id="edit-icon-${cat.name}" style="width: 40px; margin-right: 8px; padding: 8px; background: #27272a; border: 1px solid #3f3f46; border-radius: 6px; color: white;">
+                            <input type="text" value="${cat.name}" id="edit-name-${cat.name}" style="flex: 1; margin-right: 8px; padding: 8px; background: #27272a; border: 1px solid #3f3f46; border-radius: 6px; color: white;">
+                            <button onclick="saveEditCategory('${cat.name}')" style="background: #2ecc71; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; margin-right: 4px;">💾</button>
+                            <button onclick="cancelEditCategory('${cat.name}')" style="background: #3f3f46; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer;">↩️</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            list.innerHTML = html;
+        }
+
+        function startEditCategory(name) {
+            const row = document.getElementById(`cat-row-${name}`);
+            if (!row) return;
+
+            row.querySelector('.cat-display').style.display = 'none';
+            row.querySelector('.cat-actions').style.display = 'none';
+            const form = row.querySelector('.cat-edit-form');
+            form.style.display = 'flex';
+            form.classList.remove('hidden');
+        }
+
+        function cancelEditCategory(name) {
+            const row = document.getElementById(`cat-row-${name}`);
+            if (!row) return;
+
+            row.querySelector('.cat-display').style.display = 'flex';
+            row.querySelector('.cat-actions').style.display = 'flex';
+            row.querySelector('.cat-edit-form').style.display = 'none';
+        }
+
+        async function saveEditCategory(oldName) {
+            const userId = localStorage.getItem('lifestats_userId');
+            const newName = document.getElementById(`edit-name-${oldName}`).value.trim();
+            const newIcon = document.getElementById(`edit-icon-${oldName}`).value.trim();
+
+            if (!newName) return;
+
+            try {
+                const response = await fetch(`/api/categories/${oldName}?userId=${userId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newName, icon: newIcon })
+                });
+
+                if (response.ok) {
+                    renderManageCategoriesList(); // Refresh list
+                    loadEventTypes(userId); // Refresh main view
+                } else {
+                    alert('Failed to update category. Name might already exist.');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error connecting to server');
+            }
+        }
+
+        async function handleDeleteCategory(name) {
+            if (!confirm(`Are you sure you want to delete category "${name}"?`)) return;
+
+            const userId = localStorage.getItem('lifestats_userId');
+            try {
+                const response = await fetch(`/api/categories/${name}?userId=${userId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    renderManageCategoriesList(); // Refresh list
+                    loadEventTypes(userId); // Refresh main view
+                } else {
+                    alert('Failed to delete category');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error connecting to server');
+            }
+        }
+
         async function loadEventTypes(userId, category = null) {
             try {
                 const url = new URL(`/api/event-types`, window.location.origin);
@@ -4271,11 +4823,21 @@
 
                 allEventTypes = await eventsResponse.json();
 
-                let todaysStats = {};
                 if (statsResponse.ok) {
                     todaysStats = await statsResponse.json();
                     window.todaysStatsCache = todaysStats; // Cache for Home page
                 }
+
+                // Fetch Categories
+                let allCategories = [];
+                try {
+                    const catRes = await fetch(`/api/categories?userId=${userId}`);
+                    if (catRes.ok) allCategories = await catRes.json();
+                } catch (e) { console.error("Error loading categories", e); }
+
+                // Render Dynamic Category Chips
+                renderCategoryChips(allCategories);
+                updateCategorySelect(allCategories);
 
                 displayEventTypes(allEventTypes, todaysStats);
 
@@ -4398,15 +4960,12 @@
         function filterEventTypesByCategory(category) {
             currentCategoryFilter = category;
 
-            // Update active chip
-            document.querySelectorAll('.category-chip').forEach(chip => {
-                chip.classList.remove('active');
-                if (chip.dataset.category === category) {
-                    chip.classList.add('active');
-                }
+            // Update UI Chips
+            document.querySelectorAll('#categoryChipsContainer .chip').forEach(chip => {
+                if (chip.dataset.category === category) chip.classList.add('active');
+                else chip.classList.remove('active');
             });
 
-            // Filter event types
             if (category === 'all') {
                 displayEventTypes(allEventTypes);
             } else {
@@ -4717,9 +5276,11 @@
                 }
             }
 
-            // If switching to meal page (page 3), update favorite button
+            // If switching to meal page (page 3), update favorite button AND load meals
             if (pageNumber === 3) {
                 updateMealFavoriteButton();
+                // We need to call our new setup function
+                switchToMealPage();
             }
 
             // If switching to home page (page 7), render favorites
@@ -4727,6 +5288,14 @@
                 renderHomeFavorites();
             }
         };
+
+        // Helper for Meal Page Initialization
+        function switchToMealPage() {
+            currentMealDate = new Date(); // Reset to today when entering? Or keep state? 
+            // "Today's Meals" implies we start at today.
+            updateMealDateDisplay();
+            loadDailyMeals();
+        }
 
         // Update favorite button for Meal page
         function updateMealFavoriteButton() {
@@ -4788,8 +5357,13 @@
 
         // ===== EVENT TRACKING PAGE FUNCTIONS =====
         let currentEventType = null;
+        let currentTrackingDate = new Date();
+        let currentEditingEventId = null;
 
         function openEventTrackingPage(eventType) {
+            // Reset date to today
+            currentTrackingDate = new Date();
+            updateTrackingDateDisplay();
             // Special case for 'Meal' event type - go to Food Page
             if (eventType.id === 'meal') {
                 switchPage(3);
@@ -4843,6 +5417,43 @@
         function closeEventTrackingPage() {
             currentEventType = null;
             switchPage(1); // Return to Stats tab
+        }
+
+        function updateTrackingDateDisplay() {
+            const display = document.getElementById('trackingDateDisplay');
+            if (!display) return;
+
+            const today = new Date();
+            const isToday = currentTrackingDate.toDateString() === today.toDateString();
+
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const isYesterday = currentTrackingDate.toDateString() === yesterday.toDateString();
+
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const isTomorrow = currentTrackingDate.toDateString() === tomorrow.toDateString();
+
+            if (isToday) {
+                display.textContent = 'Today';
+            } else if (isYesterday) {
+                display.textContent = 'Yesterday';
+            } else if (isTomorrow) {
+                display.textContent = 'Tomorrow';
+            } else {
+                display.textContent = currentTrackingDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+            }
+        }
+
+        function changeTrackingDate(offset) {
+            currentTrackingDate.setDate(currentTrackingDate.getDate() + offset);
+            updateTrackingDateDisplay();
+
+            // Reload history for the new date
+            const userId = localStorage.getItem('lifestats_userId');
+            if (userId && currentEventType) {
+                loadEventHistory(currentEventType.id, userId);
+            }
         }
 
         function renderEventForm(fieldSchema) {
@@ -4924,18 +5535,23 @@
                 }
             });
 
+            // Construct timestamp preserving current time but using selected date
+            const now = new Date();
+            const timestamp = new Date(currentTrackingDate);
+            timestamp.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+
             const eventData = {
                 id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 userId: userId,
                 eventTypeId: currentEventType.id,
-                timestamp: Date.now(),
+                timestamp: timestamp.getTime(),
                 category: currentEventType.category,
                 data: formData,
                 notes: ''
             };
 
             try {
-                const response = await fetch(`/api/events`, {
+                const response = await fetch(`/api/events?userId=${userId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -4968,7 +5584,17 @@
                 const url = new URL(`/api/events`, window.location.origin);
                 url.searchParams.append('userId', userId);
                 url.searchParams.append('eventTypeId', eventTypeId);
-                url.searchParams.append('limit', '50');
+
+                // Set time range for the selected day
+                const startOfDay = new Date(currentTrackingDate);
+                startOfDay.setHours(0, 0, 0, 0);
+
+                const endOfDay = new Date(currentTrackingDate);
+                endOfDay.setHours(23, 59, 59, 999);
+
+                url.searchParams.append('startDate', startOfDay.getTime());
+                url.searchParams.append('endDate', endOfDay.getTime());
+                url.searchParams.append('limit', '100');
 
                 const response = await fetch(url);
                 if (!response.ok) throw new Error('Failed to fetch events');
@@ -4990,10 +5616,18 @@
             const container = document.getElementById('eventHistoryList');
 
             if (!events || events.length === 0) {
+                let message = 'No events logged yet';
+                let emoji = '📋';
+
+                if (currentEventType && currentEventType.id === 'steps') {
+                    message = 'Ask Adnan how to automate this from your phone';
+                    emoji = '📲';
+                }
+
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-emoji">📋</div>
-                        <p>No events logged yet</p>
+                        <div class="empty-state-emoji">${emoji}</div>
+                        <p>${message}</p>
                     </div>
                 `;
                 return;
@@ -5018,12 +5652,13 @@
                 const dataStr = Object.entries(event.data).map(([key, val]) => `${key}: ${val}`).join(', ');
 
                 return `
-                            <div class="meal-item" style="margin-bottom: 8px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
+                            <div class="meal-item" style="margin-bottom: 8px;" onclick="editEvent('${event.id}')">
+                                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <div style="flex: 1;">
                                         <div style="font-weight: 500; color: #e4e4e7;">${dataStr}</div>
                                         <div style="font-size: 0.85em; color: #71717a; margin-top: 2px;">${time}</div>
                                     </div>
+                                    <button class="meal-delete" onclick="event.stopPropagation(); deleteEvent('${event.id}')">&times;</button>
                                 </div>
                             </div>
                         `;
@@ -5032,10 +5667,164 @@
             `).join('');
         }
 
+        async function deleteEvent(eventId) {
+            if (!confirm('Are you sure you want to delete this event?')) return;
+
+            const userId = localStorage.getItem('lifestats_userId');
+            try {
+                const response = await fetch(`/api/events/${eventId}?userId=${userId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showNotification('Event deleted');
+                    if (currentEventType) {
+                        loadEventHistory(currentEventType.id, userId);
+                    }
+                } else {
+                    alert('Failed to delete event');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error deleting event');
+            }
+        }
+
+        async function editEvent(eventId) {
+            const userId = localStorage.getItem('lifestats_userId');
+            try {
+                const response = await fetch(`/api/events/${eventId}?userId=${userId}`);
+                if (!response.ok) throw new Error('Failed to fetch event details');
+
+                const event = await response.json();
+                currentEditingEventId = event.id;
+
+                // Find the event type to get the schema
+                const eventType = allEventTypes.find(et => et.id === event.eventTypeId);
+                if (!eventType) throw new Error('Event type not found');
+
+                // Update modal title
+                document.getElementById('editEventModalTitle').innerHTML = `Edit ${eventType.icon || '📊'} ${eventType.name}`;
+
+                // Render form fields in modal
+                const container = document.getElementById('editEventFormFields');
+                if (eventType.fieldSchema && eventType.fieldSchema.fields) {
+                    container.innerHTML = eventType.fieldSchema.fields.map(field => {
+                        const required = field.required ? '*' : '';
+                        const requiredAttr = field.required ? 'required' : '';
+                        const value = event.data[field.name] !== undefined ? event.data[field.name] : '';
+
+                        if (field.type === 'number') {
+                            return `
+                                <div class="form-group">
+                                    <label for="edit_field_${field.name}">${field.label || field.name}${required}</label>
+                                    <input type="number" 
+                                           id="edit_field_${field.name}" 
+                                           name="${field.name}" 
+                                           value="${value}"
+                                           placeholder="${field.unit ? `Enter ${field.unit}` : '0'}" 
+                                           step="any" 
+                                           ${requiredAttr}>
+                                    ${field.unit ? `<small style="color: #71717a; font-size: 0.85em; margin-top: 4px; display: block;">Unit: ${field.unit}</small>` : ''}
+                                </div>
+                            `;
+                        } else if (field.type === 'string') {
+                            return `
+                                <div class="form-group">
+                                    <label for="edit_field_${field.name}">${field.label || field.name}${required}</label>
+                                    <input type="text" 
+                                           id="edit_field_${field.name}" 
+                                           name="${field.name}" 
+                                           value="${value}"
+                                           placeholder="${field.label || field.name}" 
+                                           ${requiredAttr}>
+                                </div>
+                            `;
+                        } else if (field.type === 'enum') {
+                            return `
+                                <div class="form-group">
+                                    <label for="edit_field_${field.name}">${field.label || field.name}${required}</label>
+                                    <select id="edit_field_${field.name}" 
+                                            name="${field.name}"
+                                            ${requiredAttr}
+                                            style="width: 100%; padding: 12px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; border-radius: 8px; color: #e4e4e7; font-size: 1em;">
+                                        ${field.values.map(val => `<option value="${val}" ${val === value ? 'selected' : ''}>${val}</option>`).join('')}
+                                    </select>
+                                </div>
+                            `;
+                        }
+                        return '';
+                    }).join('');
+                }
+
+                // Show modal
+                document.getElementById('editEventModalOverlay').classList.remove('hidden');
+
+            } catch (e) {
+                console.error(e);
+                alert('Error loading event for editing');
+            }
+        }
+
+        function closeEditEventModal() {
+            document.getElementById('editEventModalOverlay').classList.add('hidden');
+            currentEditingEventId = null;
+        }
+
+        async function handleEditEventSubmit(event) {
+            event.preventDefault();
+            if (!currentEditingEventId) return;
+
+            const userId = localStorage.getItem('lifestats_userId');
+            if (!userId) return;
+
+            // Collect form data from modal
+            const formData = {};
+            const form = document.getElementById('editEventForm');
+            const inputs = form.querySelectorAll('input, select');
+
+            inputs.forEach(input => {
+                if (input.name) {
+                    const value = input.type === 'number' ? parseFloat(input.value) : input.value;
+                    formData[input.name] = value;
+                }
+            });
+
+            try {
+                const response = await fetch(`/api/events/${currentEditingEventId}?userId=${userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        data: formData
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to update event');
+                }
+
+                showNotification('Event updated!');
+                closeEditEventModal();
+
+                // Reload event history
+                if (currentEventType) {
+                    loadEventHistory(currentEventType.id, userId);
+                }
+
+            } catch (error) {
+                console.error('Error updating event:', error);
+                alert(`Failed to update event: ${error.message}`);
+            }
+        }
+
         // ===== QUICK LOGGING FUNCTIONS =====
 
-        function selectRating(eventTypeId, value) {
-            const container = document.getElementById(`rating_container_${eventTypeId}`);
+        function selectRating(eventTypeId, value, context = '') {
+            const prefix = context ? `${context}_` : '';
+            const container = document.getElementById(`rating_container_${prefix}${eventTypeId}`);
             if (!container) return;
 
             // Set data attribute
@@ -5043,7 +5832,7 @@
 
             // Update visual state
             for (let i = 1; i <= 5; i++) {
-                const star = document.getElementById(`star_${eventTypeId}_${i}`);
+                const star = document.getElementById(`star_${prefix}${eventTypeId}_${i}`);
                 if (i <= value) {
                     star.classList.add('active');
                     star.style.color = '#FFD700';
@@ -5054,10 +5843,11 @@
             }
         }
 
-        async function submitRating(eventTypeId, category, eventTypeObj) {
+        async function submitRating(eventTypeId, category, eventTypeObj, context = '') {
             event.stopPropagation(); // prevent row click
 
-            const container = document.getElementById(`rating_container_${eventTypeId}`);
+            const prefix = context ? `${context}_` : '';
+            const container = document.getElementById(`rating_container_${prefix}${eventTypeId}`);
             const value = parseInt(container.dataset.rating);
 
             if (!value || value === 0) {
@@ -5069,12 +5859,13 @@
             await quickLogEvent(null, eventTypeId, category, eventTypeObj, value);
 
             // Reset visual state
-            selectRating(eventTypeId, 0);
+            selectRating(eventTypeId, 0, context);
         }
 
-        async function quickLogEventNumber(event, eventTypeId, category, eventTypeObj) {
+        async function quickLogEventNumber(event, eventTypeId, category, eventTypeObj, context = '') {
             event.stopPropagation();
-            const input = document.getElementById(`quick_input_${eventTypeId}`);
+            const prefix = context ? `${context}_` : '';
+            const input = document.getElementById(`quick_input_${prefix}${eventTypeId}`);
             const value = parseFloat(input.value);
 
             if (isNaN(value)) {
@@ -5090,6 +5881,12 @@
 
         async function quickLogEvent(event, eventTypeId, category, eventTypeObj, value = 1) {
             if (event) event.stopPropagation();
+
+            // Special case for 'Meal' event type - go to Food Page
+            if (eventTypeId === 'meal') {
+                switchPage(3);
+                return;
+            }
 
             const userId = localStorage.getItem('lifestats_userId');
             if (!userId) return;
@@ -5632,14 +6429,74 @@
             }
         }
 
+        // ===== GOALS NAVIGATION =====
+        let currentGoalsDate = new Date();
+        let goalsDateStatsCache = {};
+
+        function changeGoalsDate(offset) {
+            currentGoalsDate.setDate(currentGoalsDate.getDate() + offset);
+            updateGoalsDateDisplay();
+            refreshGoalsProgress();
+        }
+
+        function updateGoalsDateDisplay() {
+            const el = document.getElementById('goalsDateDisplay');
+            if (el) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const check = new Date(currentGoalsDate);
+                check.setHours(0, 0, 0, 0);
+
+                const diff = (today - check) / (1000 * 60 * 60 * 24);
+
+                if (diff === 0) el.textContent = 'Today';
+                else if (diff === 1) el.textContent = 'Yesterday';
+                else if (diff === -1) el.textContent = 'Tomorrow';
+                else el.textContent = check.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            }
+        }
+
+        async function refreshGoalsProgress() {
+            const userId = localStorage.getItem('lifestats_userId');
+            if (!userId) return;
+
+            // Fetch stats for this specific day
+            const targetDate = new Date(currentGoalsDate);
+            targetDate.setHours(0, 0, 0, 0);
+            const startOfDay = targetDate.getTime();
+
+            try {
+                const response = await fetch(`/api/stats/today?userId=${userId}&startOfDay=${startOfDay}`);
+                if (response.ok) {
+                    goalsDateStatsCache = await response.json();
+                    renderGoals(goalsDateStatsCache);
+                }
+            } catch (e) {
+                console.error('Error refreshing goals', e);
+            }
+        }
+
         async function loadUserGoals(userId) {
             if (!userId) return;
 
             try {
+                // Initialize Date
+                currentGoalsDate = new Date();
+                updateGoalsDateDisplay();
+
                 const response = await fetch(`/api/goals?userId=${userId}`);
                 if (response.ok) {
                     userGoals = await response.json();
-                    renderGoals();
+
+                    // Initial render with generic cache, then immediately refresh with accurate date stats
+                    // Or just wait for refresh. Let's do instant load if cache available for "today", else refresh.
+                    if (window.todaysStatsCache) {
+                        goalsDateStatsCache = window.todaysStatsCache;
+                        renderGoals(goalsDateStatsCache);
+                    } else {
+                        refreshGoalsProgress(); // Will fetch and render
+                    }
+
                     document.getElementById('goalsCard').classList.remove('hidden');
                 }
             } catch (e) {
@@ -5647,8 +6504,11 @@
             }
         }
 
-        function renderGoals() {
+        function renderGoals(statsOverride = null) {
             const container = document.getElementById('goalsList');
+            // Use override if provided (for specific dates), else fall back to global cache (today)
+            const stats = statsOverride || (typeof todaysStatsCache !== 'undefined' ? todaysStatsCache : {});
+
             if (userGoals.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
@@ -5674,14 +6534,12 @@
 
                 if (!et) return '';
 
-                // Get current value from cache (calculated on stats page load)
-                // We trust todaysStatsCache is available globally
-                const currentStat = (typeof todaysStatsCache !== 'undefined' && todaysStatsCache[et.id])
-                    ? todaysStatsCache[et.id].value
-                    : 0;
+                // Get stat from specific stats object
+                const currentStat = (stats[et.id]) ? stats[et.id].value : 0;
 
                 const percent = Math.min(100, Math.max(0, (currentStat / goal.targetValue) * 100));
                 const isMet = currentStat >= goal.targetValue;
+
 
                 return `
                     <div style="background: rgba(39, 39, 42, 0.4); border-radius: 12px; padding: 16px; position: relative; overflow: hidden;">
@@ -5717,19 +6575,52 @@
         }
 
         async function deleteGoal(goalId) {
-            if (!confirm('Remove this goal?')) return;
-            const userId = localStorage.getItem('lifestats_userId');
-
-            try {
-                const response = await fetch(`/api/goals/${goalId}?userId=${userId}`, { method: 'DELETE' });
-                if (response.ok) {
-                    showNotification('Goal removed');
+            if (confirm('Delete this goal?')) {
+                try {
+                    const userId = localStorage.getItem('lifestats_userId');
+                    await fetch(`/api/goals/${goalId}?userId=${userId}`, { method: 'DELETE' });
+                    // Reload goals
                     loadUserGoals(userId);
+                    // Also reload stats card to clear goal status there if we want? 
+                    // renderStats(); // Maybe later
+                } catch (e) {
+                    console.error(e);
                 }
-            } catch (e) {
-                console.error(e);
             }
         }
+
+        // --- Swipe Logic for Goals Card ---
+        (function setupGoalsSwipe() {
+            const card = document.getElementById('goalsCard');
+            if (!card) return;
+
+            let touchStartX = 0;
+            let touchEndX = 0;
+            const minSwipeDistance = 50;
+
+            card.addEventListener('touchstart', e => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            card.addEventListener('touchend', e => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, { passive: true });
+
+            function handleSwipe() {
+                const distance = touchEndX - touchStartX;
+
+                if (Math.abs(distance) > minSwipeDistance) {
+                    if (distance > 0) {
+                        // Swiped Right -> Previous Day
+                        changeGoalsDate(-1);
+                    } else {
+                        // Swiped Left -> Next Day
+                        changeGoalsDate(1);
+                    }
+                }
+            }
+        })();
     </script>
     <!-- Fitness Goals Wizard -->
     <div id="fitnessWizardOverlay" class="modal-overlay hidden">

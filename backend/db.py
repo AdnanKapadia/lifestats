@@ -1,5 +1,6 @@
 import os
 import json
+import uuid
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from urllib.parse import urlparse
@@ -116,6 +117,17 @@ def init_db():
                 period VARCHAR(20) DEFAULT 'daily',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            -- User Categories Table: dedicated table for custom categories
+            CREATE TABLE IF NOT EXISTS user_categories (
+                id VARCHAR(50) PRIMARY KEY,
+                user_id VARCHAR(50) NOT NULL,
+                name VARCHAR(50) NOT NULL,
+                icon VARCHAR(10),
+                is_active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, name)
             );
         """)
         
@@ -311,23 +323,7 @@ def seed_event_types():
                     ]
                 }
             },
-            {
-                'id': 'pushups',
-                'user_id': None,
-                'category': 'Fitness',
-                'name': 'Push-ups',
-                'icon': '💪',
-                'color': '#FF9800',
-                'aggregation_type': 'sum',
-                'primary_unit': 'reps',
-                'tracking_type': 'number',
-                'field_schema': {
-                    'fields': [
-                        {'name': 'reps', 'type': 'number', 'required': True, 'unit': 'reps', 'label': 'Repetitions'},
-                        {'name': 'sets', 'type': 'number', 'unit': 'sets', 'label': 'Sets'}
-                    ]
-                }
-            },
+
             {
                 'id': 'weight',
                 'user_id': None,
@@ -345,40 +341,7 @@ def seed_event_types():
                     ]
                 }
             },
-            {
-                'id': 'water',
-                'user_id': None,
-                'category': 'Nutrition',
-                'name': 'Water Intake',
-                'icon': '🍽️',
-                'color': '#4CAF50',
-                'aggregation_type': 'calories',
-                'primary_unit': 'kcal',
-                'tracking_type': 'count',
-                'field_schema': {
-                    'fields': [
-                        {'name': 'amount', 'type': 'number', 'required': True, 'unit': 'oz', 'label': 'Amount'}
-                    ]
-                }
-            },
-            {
-                'id': 'cardio',
-                'user_id': None,
-                'category': 'Fitness',
-                'name': 'Cardio',
-                'icon': '🏃',
-                'color': '#E91E63',
-                'aggregation_type': 'sum',
-                'primary_unit': 'minutes',
-                'tracking_type': 'number',
-                'field_schema': {
-                    'fields': [
-                        {'name': 'duration', 'type': 'number', 'required': True, 'unit': 'minutes', 'label': 'Duration'},
-                        {'name': 'distance', 'type': 'number', 'unit': 'miles', 'label': 'Distance'},
-                        {'name': 'calories_burned', 'type': 'number', 'unit': 'kcal', 'label': 'Calories Burned'}
-                    ]
-                }
-            },
+
             {
                 'id': 'steps',
                 'user_id': None,
@@ -416,6 +379,15 @@ def seed_event_types():
                 event_type['primary_unit'],
                 event_type.get('tracking_type', 'count')
             ))
+            
+        # Cleanup deprecated event types
+        deprecated_types = ['pushups', 'cardio', 'water']
+        if deprecated_types:
+            cur.execute("DELETE FROM events WHERE event_type_id = ANY(%s)", (deprecated_types,))
+            cur.execute("DELETE FROM favorite_event_types WHERE event_type_id = ANY(%s)", (deprecated_types,))
+            cur.execute("DELETE FROM goals WHERE event_type_id = ANY(%s)", (deprecated_types,))
+            cur.execute("DELETE FROM event_types WHERE id = ANY(%s)", (deprecated_types,))
+            print(f"Cleaned up deprecated types: {deprecated_types}")
         
         conn.commit()
         print("System event types seeded successfully")
@@ -1381,7 +1353,7 @@ def get_event_type_stats(user_id, event_type_id, start_date=None, end_date=None)
     finally:
         conn.close()
 
-def get_todays_stats(user_id, start_timestamp=None):
+def get_todays_stats(user_id, start_timestamp=None, end_timestamp=None):
     """Get aggregated stats for today for all event types."""
     import time
     from datetime import datetime, timezone
@@ -1392,6 +1364,10 @@ def get_todays_stats(user_id, start_timestamp=None):
         start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
         start_timestamp = int(start_of_day.timestamp() * 1000) # milliseconds
     
+    if end_timestamp is None:
+        # Default to 24 hour window
+        end_timestamp = start_timestamp + (24 * 60 * 60 * 1000)
+
     conn = get_db_connection()
     try:
         cur = conn.cursor()
@@ -1411,8 +1387,8 @@ def get_todays_stats(user_id, start_timestamp=None):
                 SUM(carbs) as total_carbs,
                 SUM(fat) as total_fat
             FROM meals 
-            WHERE user_id = %s AND timestamp >= %s
-        """, (user_id, start_timestamp))
+            WHERE user_id = %s AND timestamp >= %s AND timestamp < %s
+        """, (user_id, start_timestamp, end_timestamp))
         meal_stats = cur.fetchone()
         
         if 'meal' in event_types:
@@ -1430,10 +1406,11 @@ def get_todays_stats(user_id, start_timestamp=None):
             
         # 3. Calculate OTHER Events based on aggr type
         cur.execute("""
-            SELECT event_type_id, data
+            SELECT event_type_id, data, timestamp
             FROM events 
-            WHERE user_id = %s AND timestamp >= %s
-        """, (user_id, start_timestamp))
+            WHERE user_id = %s AND timestamp >= %s AND timestamp < %s
+            ORDER BY timestamp ASC
+        """, (user_id, start_timestamp, end_timestamp))
         todays_events = cur.fetchall()
         
         # Processing in python to handle JSONB logic flexibly
@@ -1633,6 +1610,12 @@ def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_ov
         # 3b. Query events for other event types
         if other_event_type_ids:
             other_placeholders = ','.join(['%s'] * len(other_event_type_ids))
+            
+            # Widen the search window by 24h to handle timezone offsets and edge cases
+            # so we don't miss events that belong to the first/last day labels
+            query_start = start_date - 86400000
+            query_end = end_date + 86400000
+            
             cur.execute(f"""
                 SELECT 
                     event_type_id,
@@ -1644,7 +1627,7 @@ def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_ov
                 AND timestamp >= %s 
                 AND timestamp <= %s
                 ORDER BY timestamp ASC
-            """, (user_id, *other_event_type_ids, start_date, end_date))
+            """, (user_id, *other_event_type_ids, query_start, query_end))
             
             events = cur.fetchall()
             
@@ -1686,6 +1669,78 @@ def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_ov
                 
                 grouped[et_id][date_str].append(value)
         
+        # 3c. Post-processing for Body Weight (Linear Interpolation)
+        if 'weight' in event_type_ids and 'weight' in grouped:
+             # Find the latest weight BEFORE the start date for forward filling initial gap
+             cur.execute("""
+                 SELECT data, timestamp
+                 FROM events
+                 WHERE user_id = %s
+                 AND event_type_id = 'weight'
+                 AND timestamp < %s
+                 ORDER BY timestamp DESC
+                 LIMIT 1
+             """, (user_id, start_date))
+             
+             prev_weight_row = cur.fetchone()
+             last_val = None
+             if prev_weight_row:
+                 data = prev_weight_row['data']
+                 if 'weight' in data:
+                     last_val = float(data['weight'])
+
+             # Flatten the daily values to a single list (taking the last value if multiple exist for a day)
+             daily_weights = []
+             for label in labels:
+                 vals = grouped['weight'][label]
+                 if vals:
+                     daily_weights.append(vals[-1]) # Use last value of the day
+                 else:
+                     daily_weights.append(None)
+             
+             # Perform Interpolation
+             n = len(daily_weights)
+             for i in range(n):
+                 if daily_weights[i] is not None:
+                     last_val = daily_weights[i]
+                     continue
+                
+                 # Value is None, need to fill
+                 if last_val is None:
+                     # Start of chart and no history: leave as None
+                     continue
+                
+                 # We have a last_val, look ahead for next value
+                 next_val = None
+                 
+                 for j in range(i + 1, n):
+                     if daily_weights[j] is not None:
+                         next_val = daily_weights[j]
+                         # Gap calculation
+                         # i is the current empty slot index
+                         # prev_index would be i - 1 (where last_val came from)
+                         # gap width = j - (i - 1)
+                         gap_width = j - (i - 1)
+                         
+                         slope = (next_val - last_val) / gap_width
+                         interpolated_val = last_val + slope
+                         
+                         daily_weights[i] = interpolated_val
+                         last_val = interpolated_val # Update for potential next iteration check
+                         break
+                 
+                 if next_val is None:
+                     # Forward Fill (no future value found)
+                     daily_weights[i] = last_val
+            
+             # Update grouped['weight'] with filled values
+             for idx, label in enumerate(labels):
+                 val = daily_weights[idx]
+                 if val is not None:
+                     grouped['weight'][label] = [val]
+                 else:
+                     grouped['weight'][label] = [] # Keep empty if no start value
+
         # 4. Aggregate values by type's aggregation method
         datasets = []
         
@@ -1846,5 +1901,100 @@ def get_latest_body_weight(user_id):
             'weight': result['data'].get('weight'),
             'timestamp': result['timestamp']
         }
+    finally:
+        conn.close()
+
+def create_user_category(user_id, name, icon):
+    """Create a new user category."""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        category_id = str(uuid.uuid4())
+        
+        cur.execute("""
+            INSERT INTO user_categories (id, user_id, name, icon)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (user_id, name) DO NOTHING
+            RETURNING *
+        """, (category_id, user_id, name, icon))
+        
+        result = cur.fetchone()
+        conn.commit()
+        
+        if result:
+            return {
+                'id': result['id'],
+                'userId': result['user_id'],
+                'name': result['name'],
+                'icon': result['icon']
+            }
+        return None  # Already exists
+    finally:
+        conn.close()
+
+def get_user_categories(user_id):
+    """Get all categories for a user."""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT name, icon FROM user_categories
+            WHERE user_id = %s AND is_active = true
+            ORDER BY created_at ASC
+        """, (user_id,))
+        
+        rows = cur.fetchall()
+        return [{'name': row['name'], 'icon': row['icon']} for row in rows]
+    finally:
+        conn.close()
+
+def update_user_category(user_id, category_name, new_name, new_icon):
+    """Update a user category."""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        
+        # Check if new name already exists (if name changed)
+        if new_name != category_name:
+            cur.execute("SELECT id FROM user_categories WHERE user_id = %s AND name = %s", (user_id, new_name))
+            if cur.fetchone():
+                return False  # Name collision
+
+        cur.execute("""
+            UPDATE user_categories 
+            SET name = %s, icon = %s
+            WHERE user_id = %s AND name = %s
+            RETURNING *
+        """, (new_name, new_icon, user_id, category_name))
+        
+        result = cur.fetchone()
+        
+        # If renamed, we should probably update event_types and events that use this category string
+        # BUT, that's a heavier operation. For now, let's assume the user handles the mismatch or we do it.
+        # Let's do it for consistency.
+        if result and new_name != category_name:
+            cur.execute("UPDATE event_types SET category = %s WHERE user_id = %s AND category = %s", (new_name, user_id, category_name))
+            cur.execute("UPDATE events SET category = %s WHERE user_id = %s AND category = %s", (new_name, user_id, category_name))
+
+        conn.commit()
+        return bool(result)
+    finally:
+        conn.close()
+
+def delete_user_category(user_id, category_name):
+    """Delete (soft delete) a user category."""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE user_categories
+            SET is_active = false
+            WHERE user_id = %s AND name = %s
+            RETURNING id
+        """, (user_id, category_name))
+        
+        result = cur.fetchone()
+        conn.commit()
+        return bool(result)
     finally:
         conn.close()
