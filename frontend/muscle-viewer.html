@@ -144,6 +144,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 // ---------- Category definitions ----------
 const CATEGORIES = {
@@ -196,6 +197,10 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(vw, vh);
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 wrap.appendChild(renderer.domElement);
 
 function resizeToViewport() {
@@ -223,16 +228,17 @@ controls.minPolarAngle = Math.PI * 0.08;
 controls.update();
 
 // Lights
-scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-const key = new THREE.DirectionalLight(0xffffff, 1.1);
+scene.add(new THREE.HemisphereLight(0xfff2e6, 0x1a1410, 0.65));
+const key = new THREE.DirectionalLight(0xfff4e8, 1.4);
 key.position.set(2.5, 4, 3);
 key.castShadow = true;
 key.shadow.mapSize.set(1024, 1024);
+key.shadow.radius = 3;
 scene.add(key);
-const rim = new THREE.DirectionalLight(0x5588ff, 0.4);
+const rim = new THREE.DirectionalLight(0x8fc2ff, 0.65);
 rim.position.set(-3, 2, -3);
 scene.add(rim);
-const fill = new THREE.DirectionalLight(0xffffff, 0.3);
+const fill = new THREE.DirectionalLight(0xffffff, 0.35);
 fill.position.set(-2, 1, 3);
 scene.add(fill);
 
@@ -254,11 +260,11 @@ const skinMat = new THREE.MeshStandardMaterial({
   transparent: true, opacity: 0.35, depthWrite: true,
 });
 
-function capsule(radiusTop, radiusBottom, height, radialSeg = 12) {
+function capsule(radiusTop, radiusBottom, height, radialSeg = 20) {
   // Approximate a tapered capsule using a lathe-free approach: use CapsuleGeometry when radii equal,
   // else a cylinder with rounded ends approximated by scaling spheres — kept simple: use CapsuleGeometry avg radius.
   const r = (radiusTop + radiusBottom) / 2;
-  return new THREE.CapsuleGeometry(r, height, 8, radialSeg);
+  return new THREE.CapsuleGeometry(r, height, 12, radialSeg);
 }
 
 // Base "skin" silhouette (subtle, for context under the muscles)
@@ -273,13 +279,13 @@ function addSkinPart(geo, pos, rot = [0,0,0]) {
 }
 
 // Head
-addSkinPart(new THREE.SphereGeometry(0.15, 20, 20), [0, 1.68, 0]);
+addSkinPart(new THREE.SphereGeometry(0.15, 28, 28), [0, 1.68, 0]);
 // Neck
-addSkinPart(new THREE.CylinderGeometry(0.06, 0.07, 0.08, 12), [0, 1.535, 0]);
+addSkinPart(new THREE.CylinderGeometry(0.06, 0.07, 0.08, 20), [0, 1.535, 0]);
 // Torso core (skin)
 addSkinPart(capsule(0.16, 0.13, 0.32), [0, 1.28, 0]);
 // Pelvis
-addSkinPart(new THREE.SphereGeometry(0.15, 16, 16, 0, Math.PI * 2, 0, Math.PI / 1.6), [0, 0.92, 0], [Math.PI, 0, 0]);
+addSkinPart(new THREE.SphereGeometry(0.15, 24, 24, 0, Math.PI * 2, 0, Math.PI / 1.6), [0, 0.92, 0], [Math.PI, 0, 0]);
 
 [-1, 1].forEach(side => {
   // Upper arm skin
@@ -297,9 +303,19 @@ addSkinPart(new THREE.SphereGeometry(0.15, 16, 16, 0, Math.PI * 2, 0, Math.PI / 
 });
 
 // ---------- Muscle meshes ----------
+// Glossy, softly-shaded physical material — smooth clearcoat + grazing-angle
+// sheen stands in for the fresnel/rim lighting used in anatomical illustrations,
+// instead of a flat-shaded low-poly look.
 const muscles = []; // { mesh, id, baseColor }
-const highlightMat = (hex) => new THREE.MeshStandardMaterial({
-  color: hex, roughness: 0.55, metalness: 0.05,
+const highlightMat = (hex) => new THREE.MeshPhysicalMaterial({
+  color: hex,
+  roughness: 0.42,
+  metalness: 0.0,
+  clearcoat: 0.55,
+  clearcoatRoughness: 0.28,
+  sheen: 1,
+  sheenRoughness: 0.5,
+  sheenColor: new THREE.Color(0xfff2e0),
 });
 
 function addMuscle(id, geo, pos, rot = [0,0,0], scale = [1,1,1], colorOverride = null) {
@@ -329,122 +345,169 @@ function mirror(id, geoFactory, pos, rot = [0,0,0], scale = [1,1,1]) {
 
 // -- Chest (front) --
 mirror('chest',
-  () => new THREE.SphereGeometry(0.115, 16, 16),
+  () => new THREE.SphereGeometry(0.115, 28, 28),
   [0.12, 1.36, 0.11], [0.3, -0.25, 0], [1, 0.85, 0.7]);
 
 // -- Lats (back) --
 mirror('lats',
-  () => new THREE.BoxGeometry(0.16, 0.26, 0.09),
+  () => new RoundedBoxGeometry(0.16, 0.26, 0.09, 4, 0.035),
   [0.15, 1.24, -0.11], [0, 0, 0.15]);
 
 // -- Traps (upper back / neckline, visible both sides) --
 addMuscle('traps',
-  new THREE.ConeGeometry(0.22, 0.16, 4),
+  new THREE.ConeGeometry(0.22, 0.16, 28),
   [0, 1.52, -0.05], [Math.PI, Math.PI/4, 0], [1, 1, 0.5]);
 
 // -- Rhomboids (between traps and lats, upper back near spine) --
 mirror('rhomboids',
-  () => new THREE.BoxGeometry(0.07, 0.09, 0.05),
+  () => new RoundedBoxGeometry(0.07, 0.09, 0.05, 4, 0.018),
   [0.07, 1.37, -0.1], [0, 0, 0.1]);
 
 // -- Shoulders / deltoids --
 mirror('shoulders',
-  () => new THREE.SphereGeometry(0.085, 16, 16),
+  () => new THREE.SphereGeometry(0.085, 24, 24),
   [0.29, 1.43, 0], [0,0,0], [1,1,1]);
 
 // -- Biceps, split into long head / short head / brachialis --
 // Long head: outer (lateral) lobe, closer to the shoulder
 mirror('bicepsLongHead',
-  () => new THREE.CapsuleGeometry(0.026, 0.12, 6, 10),
+  () => new THREE.CapsuleGeometry(0.026, 0.12, 10, 20),
   [0.328, 1.315, 0.04], [0, 0, 0.12]);
 // Short head: inner (medial) lobe, closer to the shoulder
 mirror('bicepsShortHead',
-  () => new THREE.CapsuleGeometry(0.026, 0.12, 6, 10),
+  () => new THREE.CapsuleGeometry(0.026, 0.12, 10, 20),
   [0.305, 1.30, 0.05], [0, 0, 0.12]);
 // Brachialis: sits lower/deeper, peeking out on the lateral edge near the elbow
 mirror('bicepsBrachialis',
-  () => new THREE.CapsuleGeometry(0.022, 0.09, 6, 10),
+  () => new THREE.CapsuleGeometry(0.022, 0.09, 10, 20),
   [0.325, 1.235, 0.025], [0, 0, 0.12]);
 
 // -- Triceps, split into long / lateral / medial heads --
 // Long head: largest, runs medial/upper, toward the shoulder
 mirror('tricepsLongHead',
-  () => new THREE.CapsuleGeometry(0.026, 0.15, 6, 10),
+  () => new THREE.CapsuleGeometry(0.026, 0.15, 10, 20),
   [0.293, 1.31, -0.045], [0, 0, 0.12]);
 // Lateral head: outer, upper-mid of the back of the arm
 mirror('tricepsLateralHead',
-  () => new THREE.CapsuleGeometry(0.024, 0.12, 6, 10),
+  () => new THREE.CapsuleGeometry(0.024, 0.12, 10, 20),
   [0.318, 1.285, -0.03], [0, 0, 0.12]);
 // Medial head: deep, small, visible near the elbow
 mirror('tricepsMedialHead',
-  () => new THREE.CapsuleGeometry(0.02, 0.08, 6, 10),
+  () => new THREE.CapsuleGeometry(0.02, 0.08, 10, 20),
   [0.302, 1.225, -0.03], [0, 0, 0.12]);
 
 // -- Forearms --
 mirror('forearms',
-  () => new THREE.CapsuleGeometry(0.038, 0.19, 6, 10),
+  () => new THREE.CapsuleGeometry(0.038, 0.19, 10, 20),
   [0.335, 1.00, 0.02], [0.15, 0, 0.1]);
 
 // -- Abs --
 addMuscle('abs',
-  new THREE.BoxGeometry(0.17, 0.24, 0.05),
+  new RoundedBoxGeometry(0.17, 0.24, 0.05, 4, 0.045),
   [0, 1.16, 0.15], [0, 0, 0]);
 
 // -- Obliques --
 mirror('obliques',
-  () => new THREE.CapsuleGeometry(0.045, 0.16, 6, 10),
+  () => new THREE.CapsuleGeometry(0.045, 0.16, 10, 20),
   [0.14, 1.14, 0.09], [0, 0, 0.15]);
 
 // -- Lower back / erector spinae (back, either side of spine) --
 mirror('lowerback',
-  () => new THREE.CapsuleGeometry(0.03, 0.2, 6, 10),
+  () => new THREE.CapsuleGeometry(0.03, 0.2, 10, 20),
   [0.045, 1.06, -0.13], [0, 0, 0.04]);
 
 // -- Glutes (back) --
 mirror('glutes',
-  () => new THREE.SphereGeometry(0.11, 16, 16),
+  () => new THREE.SphereGeometry(0.11, 24, 24),
   [0.11, 0.92, -0.09], [0,0,0], [1, 0.9, 0.85]);
 
 // -- Hip abductors/adductors (outer hip + inner thigh) --
 // Outer hip (abductors, e.g. glute medius)
 mirror('hipAbductors',
-  () => new THREE.SphereGeometry(0.055, 12, 12),
+  () => new THREE.SphereGeometry(0.055, 20, 20),
   [0.185, 0.83, -0.01], [0,0,0], [0.9, 1, 0.9]);
 // Inner thigh (adductors)
 mirror('hipAbductors',
-  () => new THREE.CapsuleGeometry(0.045, 0.16, 6, 10),
+  () => new THREE.CapsuleGeometry(0.045, 0.16, 10, 20),
   [0.06, 0.58, 0.01], [0,0,0]);
 
 // -- Quads (front of thigh) --
 mirror('quads',
-  () => new THREE.CapsuleGeometry(0.075, 0.22, 6, 10),
+  () => new THREE.CapsuleGeometry(0.075, 0.22, 10, 20),
   [0.115, 0.63, 0.04], [0,0,0]);
 
 // -- Hamstrings (back of thigh) --
 mirror('hamstrings',
-  () => new THREE.CapsuleGeometry(0.065, 0.22, 6, 10),
+  () => new THREE.CapsuleGeometry(0.065, 0.22, 10, 20),
   [0.115, 0.62, -0.04], [0,0,0]);
 
 // -- Calves (back of shin) --
 mirror('calves',
-  () => new THREE.CapsuleGeometry(0.048, 0.18, 6, 10),
+  () => new THREE.CapsuleGeometry(0.048, 0.18, 10, 20),
   [0.11, 0.26, -0.025], [0,0,0]);
 
 bodyGroup.position.y = -0.05;
 
 // ---------- Category filter state ----------
 let activeCategory = 'all';
+const DEFAULT_FRAME_TARGET = new THREE.Vector3(0, 1.05, 0);
+const DEFAULT_FRAME_DIST = camera.position.distanceTo(controls.target);
 
 function applyCategoryFilter() {
+  // Full focus mode: fully hide everything outside the selected group
+  // (rather than just dimming it in place) so only that group remains.
   muscles.forEach(mesh => {
     const info = MUSCLE_INFO[mesh.userData.muscleId];
     const inCategory = activeCategory === 'all' || info.cat === activeCategory;
-    const targetOpacity = inCategory ? 1 : 0.16;
-    const targetColor = new THREE.Color(inCategory ? mesh.userData.baseColor : 0x555b66);
-    mesh.material.transparent = !inCategory;
-    mesh.material.opacity = targetOpacity;
-    mesh.material.color.lerp(targetColor, 1);
+    mesh.visible = inCategory;
   });
+  if (selectedMesh && !selectedMesh.visible) clearSelection();
+  frameCameraOnCategory(activeCategory);
+}
+
+// Auto-frame the camera on whatever is currently visible in the selected
+// category, keeping the current viewing angle (front/back/manual rotation).
+function frameCameraOnCategory(catKey) {
+  if (catKey === 'all') {
+    animateCameraFrame(DEFAULT_FRAME_TARGET, DEFAULT_FRAME_DIST);
+    return;
+  }
+  const box = new THREE.Box3();
+  let any = false;
+  muscles.forEach(mesh => {
+    if (mesh.visible) { box.expandByObject(mesh); any = true; }
+  });
+  if (!any) return;
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z, 0.05);
+  const fov = camera.fov * (Math.PI / 180);
+  let dist = (maxDim / 2) / Math.tan(fov / 2);
+  dist *= 2.4; // padding so the group doesn't fill the whole frame
+  dist = THREE.MathUtils.clamp(dist, controls.minDistance, controls.maxDistance);
+  animateCameraFrame(center, dist);
+}
+
+// Smoothly move the orbit target and camera distance while preserving the
+// current viewing direction (azimuth/polar angle stay put).
+function animateCameraFrame(targetCenter, targetDist) {
+  const startTarget = controls.target.clone();
+  const startPos = camera.position.clone();
+  const startDist = startPos.distanceTo(startTarget) || 1;
+  const dir = startPos.clone().sub(startTarget).normalize();
+  const startTime = performance.now();
+  const duration = 600;
+  function step(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const curTarget = startTarget.clone().lerp(targetCenter, eased);
+    const curDist = startDist + (targetDist - startDist) * eased;
+    controls.target.copy(curTarget);
+    camera.position.copy(curTarget.clone().add(dir.clone().multiplyScalar(curDist)));
+    controls.update();
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 
 // ---------- Category bar UI ----------
@@ -526,7 +589,7 @@ function onPointerUp(e) {
   pointer.x = (clientX / window.innerWidth) * 2 - 1;
   pointer.y = -(clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
-  const hits = raycaster.intersectObjects(muscles, false);
+  const hits = raycaster.intersectObjects(muscles.filter(m => m.visible), false);
   if (hits.length) {
     selectMesh(hits[0].object);
   }
