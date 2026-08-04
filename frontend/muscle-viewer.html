@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Muscle Viewer — lifestats</title>
+<style>
+  :root {
+    --bg: #0d0f13;
+    --panel: #16191f;
+    --panel-border: #262b34;
+    --text: #e8eaed;
+    --text-dim: #8b93a1;
+    --accent: #ff5a3c;
+    --accent-dim: #7a3226;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  #canvas-wrap { position: fixed; inset: 0; }
+  canvas { display: block; touch-action: none; }
+
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    padding: max(10px, env(safe-area-inset-top)) 12px 8px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px;
+    background: linear-gradient(to bottom, rgba(13,15,19,0.92), rgba(13,15,19,0));
+    pointer-events: none;
+    z-index: 10;
+  }
+  #topbar h1 {
+    font-size: 15px; font-weight: 600; margin: 0; letter-spacing: 0.2px;
+    pointer-events: auto;
+  }
+  #topbar .sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+  #viewToggle {
+    display: flex; gap: 4px; pointer-events: auto;
+    background: var(--panel); border: 1px solid var(--panel-border);
+    border-radius: 10px; padding: 3px;
+  }
+  #viewToggle button {
+    border: none; background: transparent; color: var(--text-dim);
+    font-size: 12px; padding: 6px 10px; border-radius: 8px; font-weight: 600;
+  }
+  #viewToggle button.active { background: var(--accent); color: #fff; }
+
+  #categoryBar {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    padding: 10px 10px max(10px, env(safe-area-inset-bottom));
+    display: flex; gap: 8px; overflow-x: auto;
+    background: linear-gradient(to top, rgba(13,15,19,0.96), rgba(13,15,19,0));
+    z-index: 10;
+    -webkit-overflow-scrolling: touch;
+  }
+  #categoryBar::-webkit-scrollbar { display: none; }
+  .cat-btn {
+    flex: 0 0 auto;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 16px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .cat-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .cat-btn .dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 6px; vertical-align: middle;
+  }
+
+  #infoPanel {
+    position: fixed;
+    right: 10px;
+    top: 64px;
+    max-width: 220px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    z-index: 10;
+    transform: translateX(260px);
+    transition: transform 0.25s ease;
+  }
+  #infoPanel.show { transform: translateX(0); }
+  #infoPanel .name { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+  #infoPanel .cat { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  #infoPanel .desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+
+  #hint {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    color: var(--text-dim); font-size: 13px; text-align: center; pointer-events: none;
+    opacity: 0; transition: opacity 0.4s;
+  }
+  #loading {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: var(--bg); z-index: 100; font-size: 14px; color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+<div id="loading">Loading model…</div>
+
+<div id="canvas-wrap"></div>
+
+<div id="topbar">
+  <div>
+    <h1>Muscle Viewer</h1>
+    <div class="sub">Rotate · Pinch to zoom · Drag to pan</div>
+  </div>
+  <div id="viewToggle">
+    <button data-view="front" class="active">Front</button>
+    <button data-view="back">Back</button>
+  </div>
+</div>
+
+<div id="infoPanel">
+  <div class="cat" id="infoCat">Category</div>
+  <div class="name" id="infoName">Muscle</div>
+  <div class="desc" id="infoDesc">Tap a muscle to see details.</div>
+</div>
+
+<div id="categoryBar"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ---------- Category definitions ----------
+const CATEGORIES = {
+  all:   { label: 'All',        color: '#8b93a1' },
+  arms:  { label: 'Arms',       color: '#4fb3ff' },
+  chestback: { label: 'Chest & Back', color: '#ff5a3c' },
+  core:  { label: 'Core',       color: '#ffd23f' },
+  legs:  { label: 'Legs',       color: '#3ddc84' },
+};
+
+const MUSCLE_INFO = {
+  chest:     { name: 'Chest',      cat: 'chestback', desc: 'Pectoralis major/minor. Worked by presses, flys, push-ups.' },
+  lats:      { name: 'Lats',       cat: 'chestback', desc: 'Latissimus dorsi. Worked by pull-ups, rows, pulldowns.' },
+  traps:     { name: 'Traps',      cat: 'chestback', desc: 'Trapezius. Worked by shrugs, upright rows, deadlifts.' },
+  shoulders: { name: 'Shoulders',  cat: 'arms',       desc: 'Deltoids. Worked by presses, lateral/rear raises.' },
+  biceps:    { name: 'Biceps',     cat: 'arms',       desc: 'Biceps brachii. Worked by curls, chin-ups.' },
+  triceps:   { name: 'Triceps',    cat: 'arms',       desc: 'Triceps brachii. Worked by pushdowns, dips, presses.' },
+  forearms:  { name: 'Forearms',   cat: 'arms',       desc: 'Forearm flexors/extensors. Worked by grip work, curls.' },
+  abs:       { name: 'Abs',        cat: 'core',       desc: 'Rectus abdominis. Worked by crunches, leg raises.' },
+  obliques:  { name: 'Obliques',   cat: 'core',       desc: 'Internal/external obliques. Worked by twists, side planks.' },
+  glutes:    { name: 'Glutes',     cat: 'legs',        desc: 'Gluteus maximus. Worked by squats, hip thrusts, lunges.' },
+  quads:     { name: 'Quads',      cat: 'legs',        desc: 'Quadriceps. Worked by squats, leg press, lunges.' },
+  hamstrings:{ name: 'Hamstrings', cat: 'legs',        desc: 'Hamstrings. Worked by deadlifts, leg curls, RDLs.' },
+  calves:    { name: 'Calves',     cat: 'legs',        desc: 'Gastrocnemius/soleus. Worked by calf raises.' },
+};
+
+// ---------- Renderer / scene / camera ----------
+const wrap = document.getElementById('canvas-wrap');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d0f13);
+scene.fog = new THREE.Fog(0x0d0f13, 6, 14);
+
+function viewportSize() {
+  const w = wrap.clientWidth || window.innerWidth || 1;
+  const h = wrap.clientHeight || window.innerHeight || 1;
+  return [w, h];
+}
+let [vw, vh] = viewportSize();
+
+const camera = new THREE.PerspectiveCamera(40, vw / vh, 0.1, 100);
+camera.position.set(0, 1.15, 3.6);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(vw, vh);
+renderer.shadowMap.enabled = true;
+wrap.appendChild(renderer.domElement);
+
+function resizeToViewport() {
+  const [w, h] = viewportSize();
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+// Some environments report a 0x0 or stale viewport at initial script
+// execution (before the first layout pass completes) — a few follow-up
+// resize passes catch the real size once layout settles.
+requestAnimationFrame(resizeToViewport);
+setTimeout(resizeToViewport, 50);
+setTimeout(resizeToViewport, 300);
+new ResizeObserver(resizeToViewport).observe(wrap);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.05, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 1.6;
+controls.maxDistance = 7;
+controls.maxPolarAngle = Math.PI * 0.92;
+controls.minPolarAngle = Math.PI * 0.08;
+controls.update();
+
+// Lights
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const key = new THREE.DirectionalLight(0xffffff, 1.1);
+key.position.set(2.5, 4, 3);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x5588ff, 0.4);
+rim.position.set(-3, 2, -3);
+scene.add(rim);
+const fill = new THREE.DirectionalLight(0xffffff, 0.3);
+fill.position.set(-2, 1, 3);
+scene.add(fill);
+
+// Ground
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(3.2, 48),
+  new THREE.MeshStandardMaterial({ color: 0x14171d, roughness: 1 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// ---------- Body construction ----------
+const bodyGroup = new THREE.Group();
+scene.add(bodyGroup);
+
+const skinMat = new THREE.MeshStandardMaterial({
+  color: 0x3a3f4a, roughness: 0.9, metalness: 0.0,
+  transparent: true, opacity: 0.35, depthWrite: true,
+});
+
+function capsule(radiusTop, radiusBottom, height, radialSeg = 12) {
+  // Approximate a tapered capsule using a lathe-free approach: use CapsuleGeometry when radii equal,
+  // else a cylinder with rounded ends approximated by scaling spheres — kept simple: use CapsuleGeometry avg radius.
+  const r = (radiusTop + radiusBottom) / 2;
+  return new THREE.CapsuleGeometry(r, height, 8, radialSeg);
+}
+
+// Base "skin" silhouette (subtle, for context under the muscles)
+function addSkinPart(geo, pos, rot = [0,0,0]) {
+  const m = new THREE.Mesh(geo, skinMat);
+  m.position.set(...pos);
+  m.rotation.set(...rot);
+  m.castShadow = false;
+  m.receiveShadow = false;
+  bodyGroup.add(m);
+  return m;
+}
+
+// Head
+addSkinPart(new THREE.SphereGeometry(0.15, 20, 20), [0, 1.68, 0]);
+// Neck
+addSkinPart(new THREE.CylinderGeometry(0.06, 0.07, 0.08, 12), [0, 1.535, 0]);
+// Torso core (skin)
+addSkinPart(capsule(0.16, 0.13, 0.32), [0, 1.28, 0]);
+// Pelvis
+addSkinPart(new THREE.SphereGeometry(0.15, 16, 16, 0, Math.PI * 2, 0, Math.PI / 1.6), [0, 0.92, 0], [Math.PI, 0, 0]);
+
+[-1, 1].forEach(side => {
+  // Upper arm skin
+  addSkinPart(capsule(0.05, 0.045, 0.24), [0.30 * side, 1.30, 0], [0, 0, side * 0.12]);
+  // Forearm skin
+  addSkinPart(capsule(0.042, 0.035, 0.22), [0.335 * side, 1.00, 0.02], [0.15, 0, side * 0.1]);
+  // Hand
+  addSkinPart(new THREE.SphereGeometry(0.045, 10, 10), [0.35 * side, 0.83, 0.04]);
+  // Thigh skin
+  addSkinPart(capsule(0.085, 0.07, 0.32), [0.11 * side, 0.62, 0.01]);
+  // Shin skin
+  addSkinPart(capsule(0.055, 0.045, 0.32), [0.11 * side, 0.24, 0.02]);
+  // Foot
+  addSkinPart(new THREE.BoxGeometry(0.09, 0.05, 0.2), [0.11 * side, 0.03, 0.06]);
+});
+
+// ---------- Muscle meshes ----------
+const muscles = []; // { mesh, id, baseColor }
+const highlightMat = (hex) => new THREE.MeshStandardMaterial({
+  color: hex, roughness: 0.55, metalness: 0.05,
+});
+
+function addMuscle(id, geo, pos, rot = [0,0,0], scale = [1,1,1], colorOverride = null) {
+  const info = MUSCLE_INFO[id];
+  const color = colorOverride || CATEGORIES[info.cat].color;
+  const mat = highlightMat(color);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(...pos);
+  mesh.rotation.set(...rot);
+  mesh.scale.set(...scale);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.userData.muscleId = id;
+  mesh.userData.baseColor = color;
+  bodyGroup.add(mesh);
+  muscles.push(mesh);
+  return mesh;
+}
+
+function mirror(id, geoFactory, pos, rot = [0,0,0], scale = [1,1,1]) {
+  [-1, 1].forEach(side => {
+    const geo = geoFactory();
+    addMuscle(id, geo, [pos[0] * side, pos[1], pos[2]],
+      [rot[0], rot[1] * side, rot[2] * side], scale);
+  });
+}
+
+// -- Chest (front) --
+mirror('chest',
+  () => new THREE.SphereGeometry(0.115, 16, 16),
+  [0.12, 1.36, 0.11], [0.3, -0.25, 0], [1, 0.85, 0.7]);
+
+// -- Lats (back) --
+mirror('lats',
+  () => new THREE.BoxGeometry(0.16, 0.26, 0.09),
+  [0.15, 1.24, -0.11], [0, 0, 0.15]);
+
+// -- Traps (upper back / neckline, visible both sides) --
+addMuscle('traps',
+  new THREE.ConeGeometry(0.22, 0.16, 4),
+  [0, 1.52, -0.05], [Math.PI, Math.PI/4, 0], [1, 1, 0.5]);
+
+// -- Shoulders / deltoids --
+mirror('shoulders',
+  () => new THREE.SphereGeometry(0.085, 16, 16),
+  [0.29, 1.43, 0], [0,0,0], [1,1,1]);
+
+// -- Biceps (front of upper arm) --
+mirror('biceps',
+  () => new THREE.CapsuleGeometry(0.042, 0.14, 6, 10),
+  [0.315, 1.29, 0.035], [0, 0, 0.12]);
+
+// -- Triceps (back of upper arm) --
+mirror('triceps',
+  () => new THREE.CapsuleGeometry(0.04, 0.15, 6, 10),
+  [0.30, 1.28, -0.035], [0, 0, 0.12]);
+
+// -- Forearms --
+mirror('forearms',
+  () => new THREE.CapsuleGeometry(0.038, 0.19, 6, 10),
+  [0.335, 1.00, 0.02], [0.15, 0, 0.1]);
+
+// -- Abs --
+addMuscle('abs',
+  new THREE.BoxGeometry(0.17, 0.24, 0.05),
+  [0, 1.16, 0.15], [0, 0, 0]);
+
+// -- Obliques --
+mirror('obliques',
+  () => new THREE.CapsuleGeometry(0.045, 0.16, 6, 10),
+  [0.14, 1.14, 0.09], [0, 0, 0.15]);
+
+// -- Glutes (back) --
+mirror('glutes',
+  () => new THREE.SphereGeometry(0.11, 16, 16),
+  [0.11, 0.92, -0.09], [0,0,0], [1, 0.9, 0.85]);
+
+// -- Quads (front of thigh) --
+mirror('quads',
+  () => new THREE.CapsuleGeometry(0.075, 0.22, 6, 10),
+  [0.115, 0.63, 0.04], [0,0,0]);
+
+// -- Hamstrings (back of thigh) --
+mirror('hamstrings',
+  () => new THREE.CapsuleGeometry(0.065, 0.22, 6, 10),
+  [0.115, 0.62, -0.04], [0,0,0]);
+
+// -- Calves (back of shin) --
+mirror('calves',
+  () => new THREE.CapsuleGeometry(0.048, 0.18, 6, 10),
+  [0.11, 0.26, -0.025], [0,0,0]);
+
+bodyGroup.position.y = -0.05;
+
+// ---------- Category filter state ----------
+let activeCategory = 'all';
+
+function applyCategoryFilter() {
+  muscles.forEach(mesh => {
+    const info = MUSCLE_INFO[mesh.userData.muscleId];
+    const inCategory = activeCategory === 'all' || info.cat === activeCategory;
+    const targetOpacity = inCategory ? 1 : 0.16;
+    const targetColor = new THREE.Color(inCategory ? mesh.userData.baseColor : 0x555b66);
+    mesh.material.transparent = !inCategory;
+    mesh.material.opacity = targetOpacity;
+    mesh.material.color.lerp(targetColor, 1);
+  });
+}
+
+// ---------- Category bar UI ----------
+const categoryBar = document.getElementById('categoryBar');
+Object.entries(CATEGORIES).forEach(([key, def]) => {
+  const btn = document.createElement('button');
+  btn.className = 'cat-btn' + (key === 'all' ? ' active' : '');
+  btn.dataset.cat = key;
+  btn.innerHTML = `<span class="dot" style="background:${def.color}"></span>${def.label}`;
+  btn.addEventListener('click', () => {
+    activeCategory = key;
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === key));
+    applyCategoryFilter();
+  });
+  categoryBar.appendChild(btn);
+});
+
+// ---------- Front/back view toggle ----------
+document.querySelectorAll('#viewToggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#viewToggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.dataset.view;
+    const dist = camera.position.distanceTo(controls.target);
+    const targetAngle = view === 'front' ? 0 : Math.PI;
+    animateCameraAngle(targetAngle, dist);
+  });
+});
+
+function animateCameraAngle(targetAngle, dist) {
+  const start = Math.atan2(camera.position.x - controls.target.x, camera.position.z - controls.target.z);
+  const startTime = performance.now();
+  const duration = 500;
+  function step(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const angle = start + (targetAngle - start) * eased;
+    camera.position.x = controls.target.x + dist * Math.sin(angle);
+    camera.position.z = controls.target.z + dist * Math.cos(angle);
+    camera.position.y = controls.target.y + 0.15;
+    camera.lookAt(controls.target);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// ---------- Selection / info panel ----------
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const infoPanel = document.getElementById('infoPanel');
+const infoName = document.getElementById('infoName');
+const infoCat = document.getElementById('infoCat');
+const infoDesc = document.getElementById('infoDesc');
+let selectedMesh = null;
+const selectEmissive = new THREE.Color(0xffffff);
+
+function clearSelection() {
+  if (selectedMesh) {
+    selectedMesh.material.emissive.set(0x000000);
+  }
+  selectedMesh = null;
+}
+
+function selectMesh(mesh) {
+  clearSelection();
+  selectedMesh = mesh;
+  mesh.material.emissive.set(0x444444);
+  const info = MUSCLE_INFO[mesh.userData.muscleId];
+  infoName.textContent = info.name;
+  infoCat.textContent = CATEGORIES[info.cat].label;
+  infoCat.style.color = CATEGORIES[info.cat].color;
+  infoDesc.textContent = info.desc;
+  infoPanel.classList.add('show');
+}
+
+function onPointerUp(e) {
+  const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+  const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+  pointer.x = (clientX / window.innerWidth) * 2 - 1;
+  pointer.y = -(clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(muscles, false);
+  if (hits.length) {
+    selectMesh(hits[0].object);
+  }
+}
+renderer.domElement.addEventListener('click', onPointerUp);
+
+// ---------- Resize ----------
+window.addEventListener('resize', resizeToViewport);
+
+// ---------- Render loop ----------
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+document.getElementById('loading').style.display = 'none';
+</script>
+</body>
+</html>
