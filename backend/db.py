@@ -1838,7 +1838,178 @@ def get_chart_data(user_id, event_type_ids, start_date, end_date, aggregation_ov
             'labels': labels,
             'datasets': datasets
         }
-        
+
+    finally:
+        conn.close()
+
+
+def get_maintenance_calories(user_id, start_date, end_date, timezone_offset=0):
+    """
+    Estimate true maintenance calories from logged weight + calorie data over a date range.
+
+    Uses a least-squares linear regression over REAL (non-auto-generated) weight
+    entries to find the weight trend (lbs/day), converts that trend to a calorie
+    surplus/deficit via 3500 kcal/lb, and combines it with the average daily
+    calorie intake (averaged only over days that actually have logged meals).
+
+    Args:
+        user_id: User ID
+        start_date: Start timestamp in milliseconds
+        end_date: End timestamp in milliseconds
+        timezone_offset: Minutes to offset from UTC (JS getTimezoneOffset() convention)
+
+    Returns dict with estimate, mean_daily_intake, weight trend, coverage stats, and warnings.
+    """
+    from datetime import datetime
+
+    tz_offset_ms = timezone_offset * 60 * 1000
+
+    def local_day_label(ts):
+        adjusted_ts = ts - tz_offset_ms
+        return datetime.utcfromtimestamp(adjusted_ts / 1000).strftime('%Y-%m-%d')
+
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # Build the list of local-day labels covered by the range (for range_days / missing-day counts)
+        start_label = local_day_label(start_date)
+        end_label = local_day_label(end_date)
+        start_dt = datetime.strptime(start_label, '%Y-%m-%d')
+        end_dt = datetime.strptime(end_label, '%Y-%m-%d')
+        range_days = (end_dt - start_dt).days + 1
+
+        # 1. Weight events in range, split real vs auto-generated
+        cur.execute("""
+            SELECT data, timestamp
+            FROM events
+            WHERE user_id = %s
+            AND event_type_id = 'weight'
+            AND timestamp >= %s AND timestamp <= %s
+            ORDER BY timestamp ASC
+        """, (user_id, start_date, end_date))
+        weight_rows = cur.fetchall()
+
+        real_points_by_day = {}
+        for row in weight_rows:
+            weight_val = row['data'].get('weight')
+            if weight_val is None:
+                continue
+            is_auto = row['data'].get('_auto_generated') == 'true'
+            if is_auto:
+                continue
+            day_label = local_day_label(row['timestamp'])
+            # If multiple real entries land on the same day, keep the latest
+            real_points_by_day[day_label] = float(weight_val)
+
+        real_weigh_in_count = len(real_points_by_day)
+
+        # 2. Meal calories in range, grouped by local day
+        cur.execute("""
+            SELECT calories, timestamp
+            FROM meals
+            WHERE user_id = %s
+            AND timestamp >= %s AND timestamp <= %s
+            ORDER BY timestamp ASC
+        """, (user_id, start_date, end_date))
+        meal_rows = cur.fetchall()
+
+        calories_by_day = {}
+        for row in meal_rows:
+            if row['calories'] is None:
+                continue
+            day_label = local_day_label(row['timestamp'])
+            calories_by_day.setdefault(day_label, 0.0)
+            calories_by_day[day_label] += float(row['calories'])
+
+        days_with_meals = len(calories_by_day)
+        days_missing_calories = range_days - days_with_meals
+
+        warnings = []
+
+        # 3. Mean daily intake (only over days with logged meals)
+        mean_daily_intake = None
+        if days_with_meals > 0:
+            mean_daily_intake = sum(calories_by_day.values()) / days_with_meals
+
+        if days_missing_calories > 0:
+            warnings.append({
+                'code': 'missing_calories',
+                'message': f'{days_missing_calories} of {range_days} days have no calorie logs; the average is computed only from logged days.',
+                'count': days_missing_calories
+            })
+
+        # 4. Weight trend via least-squares regression over real weigh-ins only
+        estimate = None
+        slope = None
+        weight_trend_total = None
+
+        if real_weigh_in_count < 2:
+            warnings.append({
+                'code': 'insufficient_weight_data',
+                'message': f'Only {real_weigh_in_count} real weight entr{"y" if real_weigh_in_count == 1 else "ies"} in this range; at least 2 are needed to estimate a trend.',
+                'count': real_weigh_in_count
+            })
+        else:
+            xs = []
+            ys = []
+            for day_label, weight_val in real_points_by_day.items():
+                day_dt = datetime.strptime(day_label, '%Y-%m-%d')
+                xs.append((day_dt - start_dt).days)
+                ys.append(weight_val)
+
+            n = len(xs)
+            sum_x = sum(xs)
+            sum_y = sum(ys)
+            sum_xy = sum(x * y for x, y in zip(xs, ys))
+            sum_x2 = sum(x * x for x in xs)
+            denom = n * sum_x2 - sum_x * sum_x
+
+            if denom == 0:
+                warnings.append({
+                    'code': 'insufficient_weight_data',
+                    'message': 'All real weight entries fall on the same day; cannot compute a trend.',
+                    'count': real_weigh_in_count
+                })
+            else:
+                slope = (n * sum_xy - sum_x * sum_y) / denom
+                weight_trend_total = slope * (range_days - 1)
+                if mean_daily_intake is not None:
+                    estimate = mean_daily_intake - (slope * 3500)
+
+        # 5. Staleness: no real weigh-in within 3 days of end_date
+        if real_weigh_in_count > 0:
+            last_real_day = max(
+                datetime.strptime(d, '%Y-%m-%d') for d in real_points_by_day.keys()
+            )
+            days_since_last_real = (end_dt - last_real_day).days
+            if days_since_last_real > 3:
+                warnings.append({
+                    'code': 'stale_weight',
+                    'message': 'Your most recent weight is estimated/interpolated, not a fresh log — log a current weigh-in for an accurate result.',
+                    'count': days_since_last_real
+                })
+
+        # 6. Range too short
+        if range_days < 14:
+            warnings.append({
+                'code': 'too_short',
+                'message': f'Range is only {range_days} days; short-term weight trends are noisy. Consider at least 2 weeks for a reliable estimate.',
+                'count': range_days
+            })
+
+        return {
+            'estimate': estimate,
+            'mean_daily_intake': mean_daily_intake,
+            'weight_trend_lbs_per_day': slope,
+            'weight_trend_lbs_total': weight_trend_total,
+            'range_days': range_days,
+            'real_weigh_in_count': real_weigh_in_count,
+            'days_with_meals': days_with_meals,
+            'days_missing_calories': days_missing_calories,
+            'warnings': warnings
+        }
+
     finally:
         conn.close()
 

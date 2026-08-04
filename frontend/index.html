@@ -80,6 +80,23 @@
             position: relative;
         }
 
+        .warning-box {
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 12px;
+            padding: 12px 14px;
+            color: #fbbf24;
+            font-size: 0.85em;
+            line-height: 1.4;
+            margin-top: 8px;
+        }
+
+        .warning-box.hard {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
         /* Form Styles */
         .form-group {
             margin-bottom: 20px;
@@ -1702,6 +1719,34 @@
                     <span>✨</span> Create Fitness Plan
                 </button>
             </div>
+
+            <!-- Maintenance Calories Calculator -->
+            <div id="maintenanceCard" class="card">
+                <div class="section-title">
+                    <span>🔥 Maintenance Calories</span>
+                </div>
+                <p style="color: #a1a1aa; font-size: 0.85em; margin-top: -8px; margin-bottom: 16px;">
+                    Estimate your true maintenance calories from your logged weight and calorie history over a date range.
+                </p>
+
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label for="maintenanceStartDate">Start Date</label>
+                        <input type="date" id="maintenanceStartDate"
+                            style="width: 100%; padding: 12px 16px; background: rgba(24, 24, 27, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; color: #e4e4e7; font-size: 15px; color-scheme: dark;">
+                    </div>
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label for="maintenanceEndDate">End Date</label>
+                        <input type="date" id="maintenanceEndDate"
+                            style="width: 100%; padding: 12px 16px; background: rgba(24, 24, 27, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; color: #e4e4e7; font-size: 15px; color-scheme: dark;">
+                    </div>
+                </div>
+
+                <button onclick="calculateMaintenanceCalories()" class="primary-btn">Calculate</button>
+
+                <div id="maintenanceResults" style="margin-top: 16px;"></div>
+                <div id="maintenanceWarnings"></div>
+            </div>
         </div>
     </div>
 
@@ -2139,6 +2184,113 @@
                         renderGoalsChart(data);
                     } catch (error) {
                         console.error('Error loading chart data:', error);
+                    }
+                }
+
+                function initMaintenanceDateRange() {
+                    const startInput = document.getElementById('maintenanceStartDate');
+                    const endInput = document.getElementById('maintenanceEndDate');
+                    if (!startInput || !endInput || startInput.value) return;
+
+                    const now = new Date();
+                    const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+                    const toDateInputValue = (d) => {
+                        const year = d.getFullYear();
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                    };
+
+                    startInput.value = toDateInputValue(start);
+                    endInput.value = toDateInputValue(now);
+                }
+
+                async function calculateMaintenanceCalories() {
+                    const userId = localStorage.getItem('lifestats_userId');
+                    const resultsEl = document.getElementById('maintenanceResults');
+                    const warningsEl = document.getElementById('maintenanceWarnings');
+                    if (!userId || !resultsEl || !warningsEl) return;
+
+                    const startInput = document.getElementById('maintenanceStartDate');
+                    const endInput = document.getElementById('maintenanceEndDate');
+                    if (!startInput.value || !endInput.value) {
+                        resultsEl.innerHTML = '';
+                        warningsEl.innerHTML = '<div class="warning-box hard">Please select both a start and end date.</div>';
+                        return;
+                    }
+
+                    const startDate = new Date(startInput.value + 'T00:00:00');
+                    const endDate = new Date(endInput.value + 'T23:59:59.999');
+
+                    if (endDate.getTime() < startDate.getTime()) {
+                        resultsEl.innerHTML = '';
+                        warningsEl.innerHTML = '<div class="warning-box hard">End date must be on or after the start date.</div>';
+                        return;
+                    }
+
+                    const timezoneOffset = new Date().getTimezoneOffset();
+
+                    resultsEl.innerHTML = '<p style="color: #a1a1aa;">Calculating…</p>';
+                    warningsEl.innerHTML = '';
+
+                    try {
+                        const url = `/api/maintenance-calories?userId=${userId}&startDate=${startDate.getTime()}&endDate=${endDate.getTime()}&timezoneOffset=${timezoneOffset}`;
+                        const response = await fetch(url);
+                        const data = await response.json();
+
+                        if (data.error) {
+                            resultsEl.innerHTML = '';
+                            warningsEl.innerHTML = `<div class="warning-box hard">${data.error}</div>`;
+                            return;
+                        }
+
+                        if (data.estimate === null || data.estimate === undefined) {
+                            resultsEl.innerHTML = `
+                                <div style="text-align: center; padding: 12px 0;">
+                                    <div style="color: #a1a1aa; font-size: 0.9em;">Not enough data to estimate maintenance calories yet.</div>
+                                </div>
+                            `;
+                        } else {
+                            const trendPerWeek = (data.weight_trend_lbs_per_day || 0) * 7;
+                            const trendLabel = trendPerWeek >= 0
+                                ? `+${trendPerWeek.toFixed(2)} lbs/week`
+                                : `${trendPerWeek.toFixed(2)} lbs/week`;
+
+                            resultsEl.innerHTML = `
+                                <div style="text-align: center; padding: 8px 0 16px;">
+                                    <div style="color: #a1a1aa; font-size: 0.85em; margin-bottom: 4px;">Estimated Maintenance Calories</div>
+                                    <div style="color: #2ECC71; font-size: 2.2em; font-weight: 700;">${Math.round(data.estimate).toLocaleString()}</div>
+                                    <div style="color: #71717a; font-size: 0.85em;">kcal/day</div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
+                                    <div style="background: rgba(39, 39, 42, 0.4); border-radius: 12px; padding: 12px; text-align: center;">
+                                        <div style="color: #a1a1aa; font-size: 0.8em; margin-bottom: 4px;">Avg Daily Intake</div>
+                                        <div style="color: #e4e4e7; font-size: 1.1em; font-weight: 600;">${Math.round(data.mean_daily_intake).toLocaleString()} kcal</div>
+                                    </div>
+                                    <div style="background: rgba(39, 39, 42, 0.4); border-radius: 12px; padding: 12px; text-align: center;">
+                                        <div style="color: #a1a1aa; font-size: 0.8em; margin-bottom: 4px;">Weight Trend</div>
+                                        <div style="color: #e4e4e7; font-size: 1.1em; font-weight: 600;">${trendLabel}</div>
+                                    </div>
+                                </div>
+                                <div style="color: #71717a; font-size: 0.8em; text-align: center;">
+                                    ${data.real_weigh_in_count} real weigh-ins · ${data.days_with_meals} of ${data.range_days} days logged
+                                </div>
+                            `;
+                        }
+
+                        if (data.warnings && data.warnings.length > 0) {
+                            warningsEl.innerHTML = data.warnings.map(w => {
+                                const isHard = w.code === 'insufficient_weight_data';
+                                return `<div class="warning-box${isHard ? ' hard' : ''}">${w.message}</div>`;
+                            }).join('');
+                        } else {
+                            warningsEl.innerHTML = '';
+                        }
+                    } catch (error) {
+                        console.error('Error calculating maintenance calories:', error);
+                        resultsEl.innerHTML = '';
+                        warningsEl.innerHTML = '<div class="warning-box hard">Failed to calculate maintenance calories. Please try again.</div>';
                     }
                 }
 
@@ -3370,6 +3522,7 @@
             // Page Hooks
             if (pageNumber === 4) {
                 loadProfilePage();
+                initMaintenanceDateRange();
             } else if (pageNumber === 2) {
                 // Load goals data if needed, or already handled by tab switching inside page
                 initGoalsTab();

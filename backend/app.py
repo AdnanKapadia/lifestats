@@ -1082,6 +1082,44 @@ def get_chart_data_route():
         return jsonify({'error': 'Database error'}), 500
 
 
+@app.route('/api/maintenance-calories', methods=['GET'])
+def get_maintenance_calories_route():
+    """
+    Estimate true maintenance calories from logged weight + calorie data over a date range.
+
+    Query params:
+        userId: Required
+        startDate: Start timestamp in milliseconds
+        endDate: End timestamp in milliseconds
+        timezoneOffset: Optional minutes offset from UTC (JS getTimezoneOffset() convention)
+    """
+    user_id = request.args.get('userId')
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+
+    start_date = request.args.get('startDate')
+    end_date = request.args.get('endDate')
+    if not start_date or not end_date:
+        return jsonify({'error': 'startDate and endDate required'}), 400
+
+    try:
+        start_date_int = int(start_date)
+        end_date_int = int(end_date)
+        timezone_offset = int(request.args.get('timezoneOffset', 0))
+    except ValueError:
+        return jsonify({'error': 'startDate, endDate, timezoneOffset must be integers'}), 400
+
+    try:
+        from db import get_maintenance_calories
+        result = get_maintenance_calories(user_id, start_date_int, end_date_int, timezone_offset)
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error computing maintenance calories: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Database error'}), 500
+
+
 # ============================================================================
 # USER PROFILE API ROUTES
 # ============================================================================
