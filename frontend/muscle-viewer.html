@@ -147,27 +147,33 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 // ---------- Category definitions ----------
 const CATEGORIES = {
-  all:   { label: 'All',        color: '#8b93a1' },
-  arms:  { label: 'Arms',       color: '#4fb3ff' },
-  chestback: { label: 'Chest & Back', color: '#ff5a3c' },
-  core:  { label: 'Core',       color: '#ffd23f' },
-  legs:  { label: 'Legs',       color: '#3ddc84' },
+  all:   { label: 'All',         color: '#8b93a1' },
+  upper: { label: 'Upper Body',  color: '#4fb3ff' },
+  core:  { label: 'Core',        color: '#ffd23f' },
+  lower: { label: 'Lower Body',  color: '#3ddc84' },
 };
 
 const MUSCLE_INFO = {
-  chest:     { name: 'Chest',      cat: 'chestback', desc: 'Pectoralis major/minor. Worked by presses, flys, push-ups.' },
-  lats:      { name: 'Lats',       cat: 'chestback', desc: 'Latissimus dorsi. Worked by pull-ups, rows, pulldowns.' },
-  traps:     { name: 'Traps',      cat: 'chestback', desc: 'Trapezius. Worked by shrugs, upright rows, deadlifts.' },
-  shoulders: { name: 'Shoulders',  cat: 'arms',       desc: 'Deltoids. Worked by presses, lateral/rear raises.' },
-  biceps:    { name: 'Biceps',     cat: 'arms',       desc: 'Biceps brachii. Worked by curls, chin-ups.' },
-  triceps:   { name: 'Triceps',    cat: 'arms',       desc: 'Triceps brachii. Worked by pushdowns, dips, presses.' },
-  forearms:  { name: 'Forearms',   cat: 'arms',       desc: 'Forearm flexors/extensors. Worked by grip work, curls.' },
-  abs:       { name: 'Abs',        cat: 'core',       desc: 'Rectus abdominis. Worked by crunches, leg raises.' },
-  obliques:  { name: 'Obliques',   cat: 'core',       desc: 'Internal/external obliques. Worked by twists, side planks.' },
-  glutes:    { name: 'Glutes',     cat: 'legs',        desc: 'Gluteus maximus. Worked by squats, hip thrusts, lunges.' },
-  quads:     { name: 'Quads',      cat: 'legs',        desc: 'Quadriceps. Worked by squats, leg press, lunges.' },
-  hamstrings:{ name: 'Hamstrings', cat: 'legs',        desc: 'Hamstrings. Worked by deadlifts, leg curls, RDLs.' },
-  calves:    { name: 'Calves',     cat: 'legs',        desc: 'Gastrocnemius/soleus. Worked by calf raises.' },
+  chest:              { name: 'Chest',               cat: 'upper', desc: 'Pectoralis major/minor. Worked by presses, flys, push-ups.' },
+  lats:               { name: 'Back — Lats',         cat: 'upper', desc: 'Latissimus dorsi. Worked by pull-ups, rows, pulldowns.' },
+  traps:              { name: 'Back — Traps',        cat: 'upper', desc: 'Trapezius. Worked by shrugs, upright rows, deadlifts.' },
+  rhomboids:          { name: 'Back — Rhomboids',    cat: 'upper', desc: 'Rhomboid major/minor. Worked by rows, band pull-aparts.' },
+  shoulders:          { name: 'Shoulders',           cat: 'upper', desc: 'Deltoids — front, side, and rear heads. Worked by presses, lateral/rear raises.' },
+  bicepsLongHead:     { name: 'Biceps — Long Head',  cat: 'upper', desc: 'Outer bicep head. Worked by incline curls, wide-grip curls.' },
+  bicepsShortHead:    { name: 'Biceps — Short Head', cat: 'upper', desc: 'Inner bicep head. Worked by preacher curls, close-grip curls.' },
+  bicepsBrachialis:   { name: 'Brachialis',          cat: 'upper', desc: 'Sits under the biceps. Worked by hammer curls, reverse curls.' },
+  tricepsLongHead:    { name: 'Triceps — Long Head', cat: 'upper', desc: 'Largest tricep head, crosses the shoulder. Worked by overhead extensions.' },
+  tricepsLateralHead: { name: 'Triceps — Lateral Head', cat: 'upper', desc: 'Outer tricep head. Worked by pushdowns, close-grip presses.' },
+  tricepsMedialHead:  { name: 'Triceps — Medial Head', cat: 'upper', desc: 'Deep inner tricep head. Worked by pushdowns, kickbacks.' },
+  forearms:           { name: 'Forearms',            cat: 'upper', desc: 'Forearm flexors/extensors. Worked by grip work, curls.' },
+  abs:                { name: 'Abs',                 cat: 'core',  desc: 'Rectus abdominis. Worked by crunches, leg raises.' },
+  obliques:           { name: 'Obliques',             cat: 'core',  desc: 'Internal/external obliques. Worked by twists, side planks.' },
+  lowerback:          { name: 'Lower Back',           cat: 'core',  desc: 'Erector spinae. Worked by deadlifts, back extensions, good mornings.' },
+  glutes:             { name: 'Glutes',               cat: 'lower', desc: 'Gluteus maximus. Worked by squats, hip thrusts, lunges.' },
+  quads:              { name: 'Quads',                cat: 'lower', desc: 'Quadriceps. Worked by squats, leg press, lunges.' },
+  hamstrings:         { name: 'Hamstrings',           cat: 'lower', desc: 'Hamstrings. Worked by deadlifts, leg curls, RDLs.' },
+  calves:             { name: 'Calves',               cat: 'lower', desc: 'Gastrocnemius/soleus. Worked by calf raises.' },
+  hipAbductors:       { name: 'Hip Abductors/Adductors', cat: 'lower', desc: 'Gluteus medius (outer hip) and adductors (inner thigh). Worked by lateral lunges, cable/machine hip abduction & adduction.' },
 };
 
 // ---------- Renderer / scene / camera ----------
@@ -336,20 +342,43 @@ addMuscle('traps',
   new THREE.ConeGeometry(0.22, 0.16, 4),
   [0, 1.52, -0.05], [Math.PI, Math.PI/4, 0], [1, 1, 0.5]);
 
+// -- Rhomboids (between traps and lats, upper back near spine) --
+mirror('rhomboids',
+  () => new THREE.BoxGeometry(0.07, 0.09, 0.05),
+  [0.07, 1.37, -0.1], [0, 0, 0.1]);
+
 // -- Shoulders / deltoids --
 mirror('shoulders',
   () => new THREE.SphereGeometry(0.085, 16, 16),
   [0.29, 1.43, 0], [0,0,0], [1,1,1]);
 
-// -- Biceps (front of upper arm) --
-mirror('biceps',
-  () => new THREE.CapsuleGeometry(0.042, 0.14, 6, 10),
-  [0.315, 1.29, 0.035], [0, 0, 0.12]);
+// -- Biceps, split into long head / short head / brachialis --
+// Long head: outer (lateral) lobe, closer to the shoulder
+mirror('bicepsLongHead',
+  () => new THREE.CapsuleGeometry(0.026, 0.12, 6, 10),
+  [0.328, 1.315, 0.04], [0, 0, 0.12]);
+// Short head: inner (medial) lobe, closer to the shoulder
+mirror('bicepsShortHead',
+  () => new THREE.CapsuleGeometry(0.026, 0.12, 6, 10),
+  [0.305, 1.30, 0.05], [0, 0, 0.12]);
+// Brachialis: sits lower/deeper, peeking out on the lateral edge near the elbow
+mirror('bicepsBrachialis',
+  () => new THREE.CapsuleGeometry(0.022, 0.09, 6, 10),
+  [0.325, 1.235, 0.025], [0, 0, 0.12]);
 
-// -- Triceps (back of upper arm) --
-mirror('triceps',
-  () => new THREE.CapsuleGeometry(0.04, 0.15, 6, 10),
-  [0.30, 1.28, -0.035], [0, 0, 0.12]);
+// -- Triceps, split into long / lateral / medial heads --
+// Long head: largest, runs medial/upper, toward the shoulder
+mirror('tricepsLongHead',
+  () => new THREE.CapsuleGeometry(0.026, 0.15, 6, 10),
+  [0.293, 1.31, -0.045], [0, 0, 0.12]);
+// Lateral head: outer, upper-mid of the back of the arm
+mirror('tricepsLateralHead',
+  () => new THREE.CapsuleGeometry(0.024, 0.12, 6, 10),
+  [0.318, 1.285, -0.03], [0, 0, 0.12]);
+// Medial head: deep, small, visible near the elbow
+mirror('tricepsMedialHead',
+  () => new THREE.CapsuleGeometry(0.02, 0.08, 6, 10),
+  [0.302, 1.225, -0.03], [0, 0, 0.12]);
 
 // -- Forearms --
 mirror('forearms',
@@ -366,10 +395,25 @@ mirror('obliques',
   () => new THREE.CapsuleGeometry(0.045, 0.16, 6, 10),
   [0.14, 1.14, 0.09], [0, 0, 0.15]);
 
+// -- Lower back / erector spinae (back, either side of spine) --
+mirror('lowerback',
+  () => new THREE.CapsuleGeometry(0.03, 0.2, 6, 10),
+  [0.045, 1.06, -0.13], [0, 0, 0.04]);
+
 // -- Glutes (back) --
 mirror('glutes',
   () => new THREE.SphereGeometry(0.11, 16, 16),
   [0.11, 0.92, -0.09], [0,0,0], [1, 0.9, 0.85]);
+
+// -- Hip abductors/adductors (outer hip + inner thigh) --
+// Outer hip (abductors, e.g. glute medius)
+mirror('hipAbductors',
+  () => new THREE.SphereGeometry(0.055, 12, 12),
+  [0.185, 0.83, -0.01], [0,0,0], [0.9, 1, 0.9]);
+// Inner thigh (adductors)
+mirror('hipAbductors',
+  () => new THREE.CapsuleGeometry(0.045, 0.16, 6, 10),
+  [0.06, 0.58, 0.01], [0,0,0]);
 
 // -- Quads (front of thigh) --
 mirror('quads',
