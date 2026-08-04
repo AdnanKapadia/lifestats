@@ -1,8 +1,13 @@
 {
+    "framework": null,
     "rewrites": [
         {
-            "source": "/(.*)",
+            "source": "/api/(.*)",
             "destination": "/api/index.py"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/frontend/$1"
         }
     ]
 }
