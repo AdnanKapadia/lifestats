@@ -451,21 +451,24 @@ def get_user_meals(user_id):
 
 def get_recent_meal_matches(user_id, query, limit=3):
     """
-    Return the user's most recent logged meals whose food_name matches query
-    (case-insensitive substring), deduplicated by food_name, most recent first.
+    Return the user's most recent logged meals (within the last 30 days) whose
+    food_name or brand_name matches query (case-insensitive substring),
+    deduplicated by food_name, most recent first.
     """
+    import time
     conn = get_db_connection()
     try:
         cur = conn.cursor()
+        cutoff_timestamp = int(time.time() * 1000) - (30 * 24 * 60 * 60 * 1000)
         # DISTINCT ON collapses each distinct food name to its most recent entry
         cur.execute("""
             SELECT DISTINCT ON (LOWER(food_name)) *,
                 COALESCE(serving_size, 1.0) AS serving_size,
                 COALESCE(serving_unit, '') AS serving_unit
             FROM meals
-            WHERE user_id = %s AND (LOWER(food_name) LIKE %s OR LOWER(brand_name) LIKE %s)
+            WHERE user_id = %s AND timestamp >= %s AND (LOWER(food_name) LIKE %s OR LOWER(brand_name) LIKE %s)
             ORDER BY LOWER(food_name), timestamp DESC
-        """, (user_id, f'%{query}%', f'%{query}%'))
+        """, (user_id, cutoff_timestamp, f'%{query}%', f'%{query}%'))
         rows = cur.fetchall()
 
         rows.sort(key=lambda r: r['timestamp'], reverse=True)
