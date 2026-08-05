@@ -175,6 +175,17 @@ const MUSCLE_INFO = {
   hamstrings:         { name: 'Hamstrings',           cat: 'lower', desc: 'Hamstrings. Worked by deadlifts, leg curls, RDLs.' },
   calves:             { name: 'Calves',               cat: 'lower', desc: 'Gastrocnemius/soleus. Worked by calf raises.' },
   hipAbductors:       { name: 'Hip Abductors/Adductors', cat: 'lower', desc: 'Gluteus medius (outer hip) and adductors (inner thigh). Worked by lateral lunges, cable/machine hip abduction & adduction.' },
+  biceps:             { name: 'Biceps',               cat: 'upper', desc: 'Biceps brachii — long head, short head, and brachialis. Worked by curls, chin-ups. Filter to Upper Body to select each head individually.' },
+  triceps:            { name: 'Triceps',              cat: 'upper', desc: 'Triceps brachii — long, lateral, and medial heads. Worked by pushdowns, dips, presses. Filter to Upper Body to select each head individually.' },
+};
+
+// Sub-parts that only become individually selectable once their parent
+// group is in focus (i.e. the category filter has been narrowed down from
+// "All"). In the default all-muscles view, clicking any of these selects
+// the unified parent muscle instead of drilling into the specific head.
+const SUBGROUP_PARENT = {
+  bicepsLongHead: 'biceps', bicepsShortHead: 'biceps', bicepsBrachialis: 'biceps',
+  tricepsLongHead: 'triceps', tricepsLateralHead: 'triceps', tricepsMedialHead: 'triceps',
 };
 
 // ---------- Renderer / scene / camera ----------
@@ -542,7 +553,7 @@ function applyCategoryFilter() {
     const inCategory = activeCategory === 'all' || info.cat === activeCategory;
     mesh.visible = inCategory;
   });
-  if (selectedMesh && !selectedMesh.visible) clearSelection();
+  if (selectedMeshes.length && selectedMeshes.some(m => !m.visible)) clearSelection();
   frameCameraOnCategory(activeCategory);
 }
 
@@ -642,26 +653,30 @@ const infoPanel = document.getElementById('infoPanel');
 const infoName = document.getElementById('infoName');
 const infoCat = document.getElementById('infoCat');
 const infoDesc = document.getElementById('infoDesc');
-let selectedMesh = null;
-const selectEmissive = new THREE.Color(0xffffff);
+let selectedMeshes = [];
 
 function clearSelection() {
-  if (selectedMesh) {
-    selectedMesh.material.emissive.set(0x000000);
-  }
-  selectedMesh = null;
+  selectedMeshes.forEach(m => m.material.emissive.set(0x000000));
+  selectedMeshes = [];
 }
 
-function selectMesh(mesh) {
+// Highlights one or more meshes as a single selection and shows info for
+// the given MUSCLE_INFO id (used for both single-part and whole-group
+// selection).
+function selectGroup(meshList, infoId) {
   clearSelection();
-  selectedMesh = mesh;
-  mesh.material.emissive.set(0x444444);
-  const info = MUSCLE_INFO[mesh.userData.muscleId];
+  selectedMeshes = meshList;
+  meshList.forEach(m => m.material.emissive.set(0x444444));
+  const info = MUSCLE_INFO[infoId];
   infoName.textContent = info.name;
   infoCat.textContent = CATEGORIES[info.cat].label;
   infoCat.style.color = CATEGORIES[info.cat].color;
   infoDesc.textContent = info.desc;
   infoPanel.classList.add('show');
+}
+
+function selectMesh(mesh) {
+  selectGroup([mesh], mesh.userData.muscleId);
 }
 
 function onPointerUp(e) {
@@ -672,7 +687,22 @@ function onPointerUp(e) {
   raycaster.setFromCamera(pointer, camera);
   const hits = raycaster.intersectObjects(muscles.filter(m => m.visible), false);
   if (hits.length) {
-    selectMesh(hits[0].object);
+    const mesh = hits[0].object;
+    const parentId = SUBGROUP_PARENT[mesh.userData.muscleId];
+    // Only drill into an individual head once the category filter has
+    // been narrowed away from "All" — otherwise select the whole muscle.
+    if (parentId && activeCategory === 'all') {
+      // Only the clicked arm's heads — matches the single-side selection
+      // behavior everywhere else (e.g. clicking one shoulder doesn't
+      // highlight both shoulders).
+      const side = Math.sign(mesh.position.x) || 1;
+      const groupMeshes = muscles.filter(m =>
+        SUBGROUP_PARENT[m.userData.muscleId] === parentId &&
+        m.visible && (Math.sign(m.position.x) || 1) === side);
+      selectGroup(groupMeshes, parentId);
+    } else {
+      selectMesh(mesh);
+    }
   }
 }
 renderer.domElement.addEventListener('click', onPointerUp);
