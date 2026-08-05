@@ -412,10 +412,18 @@ function mirror(id, geoFactory, pos, rot = [0,0,0], scale = [1,1,1]) {
 // Like mirror(), but for asymmetric extruded shapes: also flips the
 // geometry itself (not just its position/rotation) so a fan/wing outline
 // authored for one side reads as a true mirror image on the other.
-function mirrorFlat(id, geoFactory, pos, rot = [0,0,0], scale = [1,1,1]) {
+//
+// faceBack flips the shape to face away from the camera by negating its
+// local Z (front/back), not by rotating 180° around Y — a Y rotation of
+// Math.PI also negates local X, which combined with the per-side mirror
+// scale sent each side's outer edge across the spine into the other
+// side (a visible X/pinwheel crossing on the back of the model).
+function mirrorFlat(id, geoFactory, pos, rot = [0,0,0], scale = [1,1,1], faceBack = false) {
   [-1, 1].forEach(side => {
     const geo = geoFactory();
+    if (faceBack) geo.scale(1, 1, -1);
     if (side === -1) geo.scale(-1, 1, 1);
+    geo.computeVertexNormals();
     addMuscle(id, geo, [pos[0] * side, pos[1], pos[2]],
       [rot[0], rot[1] * side, rot[2] * side], scale);
   });
@@ -443,23 +451,28 @@ mirrorFlat('lats',
     [0.01, -0.15], [0.05, -0.09], [0.10, 0.0], [0.15, 0.075],
     [0.155, 0.135], [0.115, 0.125], [0.085, 0.095], [0.03, 0.02], [0.0, -0.09],
   ], 0.095, 0.02),
-  [0.045, 1.27, -0.1], [0.08, Math.PI, -0.16]);
+  [0.045, 1.27, -0.1], [0.08, 0, -0.16], [1,1,1], true);
 
 // -- Traps (upper back / neckline): a softened kite outline that lies --
 // -- along the neck-to-shoulder line rather than spiking off it. --
 addMuscle('traps',
-  extrudeMuscle([
-    [0.0, 0.09], [0.09, 0.025], [0.04, -0.09], [0.0, -0.14],
-    [-0.04, -0.09], [-0.09, 0.025],
-  ], 0.035, 0.026),
-  [0, 1.47, -0.08], [0.18, Math.PI, 0]);
+  (() => {
+    const g = extrudeMuscle([
+      [0.0, 0.09], [0.09, 0.025], [0.04, -0.09], [0.0, -0.14],
+      [-0.04, -0.09], [-0.09, 0.025],
+    ], 0.035, 0.026);
+    g.scale(1, 1, -1);
+    g.computeVertexNormals();
+    return g;
+  })(),
+  [0, 1.47, -0.08], [0.18, 0, 0]);
 
 // -- Rhomboids (small diamond between traps and lats, near the spine) --
 mirrorFlat('rhomboids',
   () => extrudeMuscle([
     [0.0, 0.05], [0.045, 0.01], [0.03, -0.045], [0.0, -0.06], [-0.015, -0.02],
   ], 0.03, 0.012),
-  [0.06, 1.37, -0.12], [0.1, Math.PI, 0.15]);
+  [0.06, 1.37, -0.12], [0.1, 0, 0.15], [1,1,1], true);
 
 // -- Shoulders / deltoids: rounded cap that tapers down into the arm --
 // -- rather than a plain sphere. Scaled down and tucked closer to the --
@@ -502,8 +515,8 @@ mirror('tricepsMedialHead',
 // -- bridging the elbow instead of leaving a gap between two floating --
 // -- pieces. --
 mirror('forearms',
-  () => muscleBelly(0.046, 0.275, { peak: 0.78, topR: 0.32, botR: 0.0, radialSegments: 22 }),
-  [0.335, 1.035, 0.02], [0.15, 0, 0.1]);
+  () => muscleBelly(0.046, 0.3, { peak: 0.8, topR: 0.34, botR: 0.0, radialSegments: 22 }),
+  [0.335, 1.045, 0.02], [0.15, 0, 0.1]);
 
 // -- Abs: six segmented rectus-abdominis blocks instead of one plate --
 [1.255, 1.16, 1.065].forEach(y => {
@@ -524,10 +537,11 @@ mirror('lowerback',
   () => muscleBelly(0.035, 0.22, { peak: 0.5, topR: 0.5, botR: 0.4, radialSegments: 20 }),
   [0.045, 1.06, -0.13], [0, 0, 0.04]);
 
-// -- Glutes (back): rounded mound blending into the hip/thigh --
+// -- Glutes (back): rounded mound blending into the hip/thigh. --
+// -- Extended down to close the gap that opened above the thigh. --
 mirror('glutes',
-  () => muscleBelly(0.125, 0.2, { peak: 0.55, topR: 0.2, botR: 0.15, radialSegments: 24 }),
-  [0.11, 0.92, -0.09], [0,0,0]);
+  () => muscleBelly(0.125, 0.23, { peak: 0.6, topR: 0.2, botR: 0.15, radialSegments: 24 }),
+  [0.11, 0.9, -0.09], [0,0,0]);
 
 // -- Hip abductors/adductors (outer hip + inner thigh) --
 // Outer hip (abductors, e.g. glute medius)
@@ -542,23 +556,26 @@ mirror('hipAbductors',
 // -- Quads (front of thigh): split into an outer (vastus lateralis) and --
 // -- inner (vastus medialis) lobe with a shallow seam between them, --
 // -- instead of one uniform mass, for a clearer silhouette break. --
+// Extended upward (into the hip) and downward (toward the knee) so they
+// overlap glutes above and calves below instead of leaving gaps.
 mirror('quads',
-  () => muscleBelly(0.052, 0.24, { peak: 0.55, topR: 0.16, botR: 0.1, radialSegments: 20 }),
+  () => muscleBelly(0.052, 0.29, { peak: 0.6, topR: 0.16, botR: 0.1, radialSegments: 20 }),
   [0.148, 0.63, 0.035], [0,0,0]);
 mirror('quads',
-  () => muscleBelly(0.046, 0.225, { peak: 0.48, topR: 0.14, botR: 0.09, radialSegments: 20 }),
+  () => muscleBelly(0.046, 0.275, { peak: 0.53, topR: 0.14, botR: 0.09, radialSegments: 20 }),
   [0.067, 0.615, 0.045], [0,0,-0.05]);
 
-// -- Hamstrings (back of thigh) --
+// -- Hamstrings (back of thigh): extended to close the same hip/knee gaps --
 mirror('hamstrings',
-  () => muscleBelly(0.075, 0.24, { peak: 0.5, topR: 0.15, botR: 0.1, radialSegments: 24 }),
-  [0.115, 0.62, -0.04], [0,0,0]);
+  () => muscleBelly(0.075, 0.29, { peak: 0.53, topR: 0.15, botR: 0.1, radialSegments: 24 }),
+  [0.115, 0.625, -0.04], [0,0,0]);
 
 // -- Calves (back of shin): bulges below the knee, tapers to the --
-// -- Achilles near the ankle. --
+// -- Achilles near the ankle. Extended upward to close the knee gap --
+// -- under the thigh. --
 mirror('calves',
-  () => muscleBelly(0.058, 0.2, { peak: 0.62, topR: 0.18, botR: 0.0, radialSegments: 22 }),
-  [0.11, 0.26, -0.025], [0,0,0]);
+  () => muscleBelly(0.058, 0.32, { peak: 0.6, topR: 0.22, botR: 0.0, radialSegments: 22 }),
+  [0.11, 0.325, -0.025], [0,0,0]);
 
 bodyGroup.position.y = -0.05;
 
