@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Workout Plan — lifestats</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    background: linear-gradient(135deg, #18181b 0%, #27272a 100%);
+    color: #e4e4e7;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    padding: 16px;
+    padding-bottom: 100px;
+  }
+  .container { max-width: 640px; margin: 0 auto; }
+
+  #topbar {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  }
+  #backBtn {
+    background: rgba(39,39,42,0.6); border: none; color: #e4e4e7;
+    width: 36px; height: 36px; border-radius: 10px; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #topbar h1 { font-size: 1.4em; color: #e4e4e7; margin: 0; }
+
+  .card {
+    background: rgba(39, 39, 42, 0.6);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: none;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: 1.05em;
+    margin-bottom: 14px;
+    color: #a1a1aa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  #dayTabs {
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  #dayTabs::-webkit-scrollbar { display: none; }
+  .day-btn {
+    flex: 1 0 auto;
+    min-width: 46px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(24,24,27,0.6);
+    color: #a1a1aa;
+    font-size: 0.85em;
+    font-weight: 600;
+    padding: 10px 6px;
+    border-radius: 10px;
+    text-align: center;
+  }
+  .day-btn .cnt {
+    display: block; font-size: 0.75em; color: #71717a; margin-top: 2px;
+  }
+  .day-btn.active { background: #60a5fa; color: #18181b; border-color: #60a5fa; }
+  .day-btn.active .cnt { color: #18181b; opacity: 0.7; }
+  .day-btn.has-lifts:not(.active) { border-color: rgba(96,165,250,0.4); color: #e4e4e7; }
+
+  .lift-row {
+    background: rgba(24, 24, 27, 0.6);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .lift-row .info { flex: 1; }
+  .lift-row .name { font-weight: 600; font-size: 0.98em; }
+  .lift-row .muscles { font-size: 0.78em; color: #71717a; margin-top: 2px; }
+  .lift-row .remove-btn {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    width: 30px; height: 30px; border-radius: 8px;
+    font-size: 1em; line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 20px;
+    color: #64748b;
+    font-size: 0.9em;
+  }
+
+  button.primary-btn {
+    width: 100%;
+    padding: 14px;
+    background: #60a5fa;
+    color: #18181b;
+    border: none;
+    border-radius: 12px;
+    font-size: 1em;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.secondary-btn {
+    width: 100%;
+    padding: 12px;
+    background: rgba(255,255,255,0.06);
+    color: #e4e4e7;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    display: flex; align-items: flex-end; justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: #1f1f23;
+    width: 100%; max-width: 640px;
+    max-height: 85vh;
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    overflow-y: auto;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+  .modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px;
+  }
+  .modal-header .title { font-size: 1.15em; font-weight: 700; }
+  .close-btn {
+    background: rgba(255,255,255,0.06); border: none; color: #a1a1aa;
+    width: 32px; height: 32px; border-radius: 8px; font-size: 1.1em;
+  }
+  input[type="text"], input[type="search"], input[type="number"], select {
+    width: 100%;
+    padding: 12px 14px;
+    background: rgba(24, 24, 27, 0.8);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    color: #e4e4e7;
+    font-size: 0.95em;
+    margin-bottom: 10px;
+  }
+  .pick-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+  }
+  .pick-row:active { background: rgba(255,255,255,0.04); }
+  .pick-row .info .name { font-weight: 600; font-size: 0.95em; }
+  .pick-row .info .muscles { font-size: 0.75em; color: #71717a; margin-top: 2px; }
+  .pick-row .add-icon { color: #60a5fa; font-size: 1.4em; flex-shrink: 0; }
+
+  .custom-target-row {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 8px;
+  }
+  .custom-target-row select { margin-bottom: 0; flex: 1.4; }
+  .custom-target-row input[type="range"] { flex: 1; }
+  .custom-target-row .remove-target {
+    background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);
+    color: #fca5a5; width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+  }
+  .intensity-val { width: 34px; text-align: right; font-size: 0.8em; color: #a1a1aa; flex-shrink: 0; }
+
+  .tag {
+    display: inline-block; font-size: 0.7em; font-weight: 700;
+    padding: 3px 8px; border-radius: 999px; background: rgba(96,165,250,0.15);
+    color: #93c5fd; margin-right: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div id="topbar">
+    <button id="backBtn" onclick="location.href='/index.html'">←</button>
+    <h1>🏋️ Workout Plan</h1>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Week</div>
+    <div id="dayTabs"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">
+      <span id="dayLabel">Monday</span>
+      <button class="secondary-btn" style="width:auto; margin:0; padding:8px 14px; font-size:0.85em;" onclick="openPicker()">+ Add Lift</button>
+    </div>
+    <div id="liftList"></div>
+  </div>
+
+  <div class="card">
+    <button class="primary-btn" onclick="viewSaturation()">🔥 View Muscle Saturation</button>
+  </div>
+</div>
+
+<!-- Lift Picker Modal -->
+<div id="pickerOverlay" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="title">Add Lift</div>
+      <button class="close-btn" onclick="closePicker()">&times;</button>
+    </div>
+    <input type="search" id="pickerSearch" placeholder="Search lifts…" oninput="renderPickerList()">
+    <div id="pickerList"></div>
+    <button class="secondary-btn" onclick="openCustomLiftForm()">+ Create Custom Lift</button>
+  </div>
+</div>
+
+<!-- Custom Lift Modal -->
+<div id="customOverlay" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="title">Custom Lift</div>
+      <button class="close-btn" onclick="closeCustomLiftForm()">&times;</button>
+    </div>
+    <input type="text" id="customLiftName" placeholder="Lift name (e.g. Cable Crossover)">
+    <div id="customTargets"></div>
+    <button class="secondary-btn" onclick="addCustomTargetRow()">+ Add Muscle Target</button>
+    <button class="primary-btn" style="margin-top:14px;" onclick="saveCustomLift()">Save Lift</button>
+  </div>
+</div>
+
+<script>
+// ---------- Muscle catalog (mirrors MUSCLE_INFO ids in muscle-viewer.html) ----------
+const MUSCLES = [
+  { id: 'chest', name: 'Chest' },
+  { id: 'lats', name: 'Lats' },
+  { id: 'traps', name: 'Traps' },
+  { id: 'rhomboids', name: 'Rhomboids' },
+  { id: 'shoulders', name: 'Shoulders' },
+  { id: 'bicepsLongHead', name: 'Biceps — Long Head' },
+  { id: 'bicepsShortHead', name: 'Biceps — Short Head' },
+  { id: 'bicepsBrachialis', name: 'Brachialis' },
+  { id: 'tricepsLongHead', name: 'Triceps — Long Head' },
+  { id: 'tricepsLateralHead', name: 'Triceps — Lateral Head' },
+  { id: 'tricepsMedialHead', name: 'Triceps — Medial Head' },
+  { id: 'forearms', name: 'Forearms' },
+  { id: 'abs', name: 'Abs' },
+  { id: 'obliques', name: 'Obliques' },
+  { id: 'lowerback', name: 'Lower Back' },
+  { id: 'glutes', name: 'Glutes' },
+  { id: 'quads', name: 'Quads' },
+  { id: 'hamstrings', name: 'Hamstrings' },
+  { id: 'calves', name: 'Calves' },
+  { id: 'hipAbductors', name: 'Hip Abductors/Adductors' },
+];
+const MUSCLE_NAME = Object.fromEntries(MUSCLES.map(m => [m.id, m.name]));
+
+// ---------- Built-in lift library (MVP: upper-body focused) ----------
+// targets: muscleId -> relative intensity 0-1 (1 = primary mover)
+const BUILTIN_LIFTS = [
+  { id: 'bicep-curl', name: 'Bicep Curl', targets: { bicepsShortHead: 1.0, bicepsLongHead: 0.6, forearms: 0.3 } },
+  { id: 'hammer-curl', name: 'Hammer Curl', targets: { bicepsBrachialis: 1.0, bicepsLongHead: 0.5, forearms: 0.5 } },
+  { id: 'preacher-curl', name: 'Preacher Curl', targets: { bicepsShortHead: 1.0, bicepsLongHead: 0.3 } },
+  { id: 'concentration-curl', name: 'Concentration Curl', targets: { bicepsShortHead: 1.0, bicepsBrachialis: 0.4 } },
+  { id: 'reverse-curl', name: 'Reverse Curl', targets: { bicepsBrachialis: 0.8, forearms: 1.0 } },
+  { id: 'flat-bench', name: 'Flat Bench Press', targets: { chest: 1.0, tricepsLateralHead: 0.5, shoulders: 0.3 } },
+  { id: 'incline-bench', name: 'Incline Bench Press', targets: { chest: 1.0, shoulders: 0.5, tricepsLateralHead: 0.4 } },
+  { id: 'decline-bench', name: 'Decline Bench Press', targets: { chest: 1.0, tricepsLateralHead: 0.4 } },
+  { id: 'push-up', name: 'Push-up', targets: { chest: 0.9, tricepsLateralHead: 0.5, shoulders: 0.3, abs: 0.2 } },
+  { id: 'dip', name: 'Dip (Chest/Tricep)', targets: { chest: 0.7, tricepsLongHead: 0.8, tricepsLateralHead: 0.6, shoulders: 0.3 } },
+  { id: 'shoulder-press', name: 'Shoulder Press', targets: { shoulders: 1.0, tricepsLateralHead: 0.4, traps: 0.2 } },
+  { id: 'lateral-raise', name: 'Lateral Raise', targets: { shoulders: 1.0 } },
+  { id: 'front-raise', name: 'Front Raise', targets: { shoulders: 0.9 } },
+  { id: 'rear-delt-fly', name: 'Rear Delt Fly', targets: { shoulders: 0.8, rhomboids: 0.4, traps: 0.2 } },
+  { id: 'tricep-pushdown', name: 'Tricep Pushdown', targets: { tricepsLateralHead: 1.0, tricepsMedialHead: 0.6, tricepsLongHead: 0.5 } },
+  { id: 'overhead-tricep-ext', name: 'Overhead Tricep Extension', targets: { tricepsLongHead: 1.0, tricepsLateralHead: 0.5 } },
+  { id: 'skull-crusher', name: 'Skull Crushers', targets: { tricepsLongHead: 1.0, tricepsMedialHead: 0.6 } },
+  { id: 'close-grip-bench', name: 'Close-Grip Bench Press', targets: { tricepsLateralHead: 0.9, tricepsLongHead: 0.7, chest: 0.4 } },
+  { id: 'lat-pulldown', name: 'Lat Pulldown', targets: { lats: 1.0, bicepsLongHead: 0.4, rhomboids: 0.3 } },
+  { id: 'pull-up', name: 'Pull-up', targets: { lats: 1.0, bicepsBrachialis: 0.5, rhomboids: 0.3, forearms: 0.3 } },
+  { id: 'barbell-row', name: 'Barbell Row', targets: { lats: 0.8, rhomboids: 1.0, traps: 0.5, bicepsLongHead: 0.3 } },
+  { id: 'seated-cable-row', name: 'Seated Cable Row', targets: { lats: 0.7, rhomboids: 1.0, traps: 0.4 } },
+  { id: 'face-pull', name: 'Face Pull', targets: { rhomboids: 0.8, traps: 0.6, shoulders: 0.5 } },
+  { id: 'shrug', name: 'Shrugs', targets: { traps: 1.0 } },
+  { id: 'plank', name: 'Plank', targets: { abs: 0.9, obliques: 0.4, lowerback: 0.2 } },
+  { id: 'crunch', name: 'Crunches', targets: { abs: 1.0 } },
+  { id: 'russian-twist', name: 'Russian Twist', targets: { obliques: 1.0, abs: 0.3 } },
+];
+
+const DAYS = [
+  { id: 'mon', label: 'Mon', full: 'Monday' },
+  { id: 'tue', label: 'Tue', full: 'Tuesday' },
+  { id: 'wed', label: 'Wed', full: 'Wednesday' },
+  { id: 'thu', label: 'Thu', full: 'Thursday' },
+  { id: 'fri', label: 'Fri', full: 'Friday' },
+  { id: 'sat', label: 'Sat', full: 'Saturday' },
+  { id: 'sun', label: 'Sun', full: 'Sunday' },
+];
+
+const PLAN_KEY = 'lifestats_workout_plan';
+const CUSTOM_LIFTS_KEY = 'lifestats_custom_lifts';
+const SATURATION_KEY = 'lifestats_muscle_saturation';
+
+function loadPlan() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PLAN_KEY) || '{}');
+    DAYS.forEach(d => { if (!Array.isArray(raw[d.id])) raw[d.id] = []; });
+    return raw;
+  } catch (e) {
+    const empty = {};
+    DAYS.forEach(d => empty[d.id] = []);
+    return empty;
+  }
+}
+function savePlan() { localStorage.setItem(PLAN_KEY, JSON.stringify(plan)); }
+
+function loadCustomLifts() {
+  try { return JSON.parse(localStorage.getItem(CUSTOM_LIFTS_KEY) || '[]'); }
+  catch (e) { return []; }
+}
+function saveCustomLifts() { localStorage.setItem(CUSTOM_LIFTS_KEY, JSON.stringify(customLifts)); }
+
+let plan = loadPlan();
+let customLifts = loadCustomLifts();
+let activeDay = 'mon';
+
+function allLifts() { return BUILTIN_LIFTS.concat(customLifts); }
+function findLift(liftId) { return allLifts().find(l => l.id === liftId); }
+
+function targetsSummary(targets) {
+  return Object.entries(targets)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([id]) => MUSCLE_NAME[id] || id)
+    .join(', ');
+}
+
+function renderDayTabs() {
+  const el = document.getElementById('dayTabs');
+  el.innerHTML = '';
+  DAYS.forEach(d => {
+    const count = plan[d.id].length;
+    const btn = document.createElement('button');
+    btn.className = 'day-btn' + (d.id === activeDay ? ' active' : '') + (count > 0 ? ' has-lifts' : '');
+    btn.innerHTML = `${d.label}<span class="cnt">${count || ''}</span>`;
+    btn.onclick = () => { activeDay = d.id; renderAll(); };
+    el.appendChild(btn);
+  });
+  document.getElementById('dayLabel').textContent = DAYS.find(d => d.id === activeDay).full;
+}
+
+function renderLiftList() {
+  const el = document.getElementById('liftList');
+  const entries = plan[activeDay];
+  if (!entries.length) {
+    el.innerHTML = '<div class="empty-state">No lifts yet. Tap "+ Add Lift" to build this day.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  entries.forEach(entry => {
+    const lift = findLift(entry.liftId);
+    if (!lift) return;
+    const row = document.createElement('div');
+    row.className = 'lift-row';
+    row.innerHTML = `
+      <div class="info">
+        <div class="name">${lift.name}</div>
+        <div class="muscles">${targetsSummary(lift.targets)}</div>
+      </div>
+      <button class="remove-btn" onclick="removeEntry('${entry.instanceId}')">&times;</button>
+    `;
+    el.appendChild(row);
+  });
+}
+
+function removeEntry(instanceId) {
+  plan[activeDay] = plan[activeDay].filter(e => e.instanceId !== instanceId);
+  savePlan();
+  renderAll();
+}
+
+function renderAll() {
+  renderDayTabs();
+  renderLiftList();
+}
+
+// ---------- Picker modal ----------
+function openPicker() {
+  document.getElementById('pickerSearch').value = '';
+  renderPickerList();
+  document.getElementById('pickerOverlay').classList.remove('hidden');
+}
+function closePicker() {
+  document.getElementById('pickerOverlay').classList.add('hidden');
+}
+function renderPickerList() {
+  const q = document.getElementById('pickerSearch').value.trim().toLowerCase();
+  const el = document.getElementById('pickerList');
+  const lifts = allLifts().filter(l => l.name.toLowerCase().includes(q));
+  el.innerHTML = '';
+  if (!lifts.length) {
+    el.innerHTML = '<div class="empty-state">No lifts match.</div>';
+    return;
+  }
+  lifts.forEach(lift => {
+    const row = document.createElement('div');
+    row.className = 'pick-row';
+    row.innerHTML = `
+      <div class="info">
+        <div class="name">${lift.name}${customLifts.includes(lift) ? ' <span class="tag">custom</span>' : ''}</div>
+        <div class="muscles">${targetsSummary(lift.targets)}</div>
+      </div>
+      <div class="add-icon">+</div>
+    `;
+    row.onclick = () => {
+      plan[activeDay].push({ instanceId: 'e-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7), liftId: lift.id });
+      savePlan();
+      closePicker();
+      renderAll();
+    };
+    el.appendChild(row);
+  });
+}
+
+// ---------- Custom lift modal ----------
+function openCustomLiftForm() {
+  closePicker();
+  document.getElementById('customLiftName').value = '';
+  document.getElementById('customTargets').innerHTML = '';
+  addCustomTargetRow();
+  document.getElementById('customOverlay').classList.remove('hidden');
+}
+function closeCustomLiftForm() {
+  document.getElementById('customOverlay').classList.add('hidden');
+}
+function addCustomTargetRow(muscleId, intensity) {
+  const container = document.getElementById('customTargets');
+  const row = document.createElement('div');
+  row.className = 'custom-target-row';
+  const options = MUSCLES.map(m => `<option value="${m.id}" ${m.id === muscleId ? 'selected' : ''}>${m.name}</option>`).join('');
+  row.innerHTML = `
+    <select>${options}</select>
+    <input type="range" min="0.1" max="1" step="0.1" value="${intensity != null ? intensity : 0.7}">
+    <span class="intensity-val"></span>
+    <button class="remove-target" onclick="this.parentElement.remove()">&times;</button>
+  `;
+  const range = row.querySelector('input[type="range"]');
+  const valSpan = row.querySelector('.intensity-val');
+  const updateVal = () => valSpan.textContent = Math.round(range.value * 100) + '%';
+  range.addEventListener('input', updateVal);
+  updateVal();
+  container.appendChild(row);
+}
+function saveCustomLift() {
+  const name = document.getElementById('customLiftName').value.trim();
+  if (!name) { alert('Enter a lift name.'); return; }
+  const targets = {};
+  document.querySelectorAll('#customTargets .custom-target-row').forEach(row => {
+    const muscleId = row.querySelector('select').value;
+    const intensity = parseFloat(row.querySelector('input[type="range"]').value);
+    targets[muscleId] = intensity;
+  });
+  if (!Object.keys(targets).length) { alert('Add at least one muscle target.'); return; }
+  const lift = { id: 'custom-' + Date.now(), name, targets };
+  customLifts.push(lift);
+  saveCustomLifts();
+  closeCustomLiftForm();
+  // Drop straight into the currently selected day for convenience.
+  plan[activeDay].push({ instanceId: 'e-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7), liftId: lift.id });
+  savePlan();
+  renderAll();
+}
+
+// ---------- Weekly muscle saturation ----------
+function computeWeeklySaturation() {
+  const totals = {};
+  DAYS.forEach(d => {
+    plan[d.id].forEach(entry => {
+      const lift = findLift(entry.liftId);
+      if (!lift) return;
+      Object.entries(lift.targets).forEach(([muscleId, weight]) => {
+        totals[muscleId] = (totals[muscleId] || 0) + weight;
+      });
+    });
+  });
+  const max = Math.max(0, ...Object.values(totals));
+  const normalized = {};
+  if (max > 0) {
+    Object.entries(totals).forEach(([id, v]) => normalized[id] = v / max);
+  }
+  return normalized;
+}
+
+function viewSaturation() {
+  const saturation = computeWeeklySaturation();
+  localStorage.setItem(SATURATION_KEY, JSON.stringify({ generatedAt: Date.now(), values: saturation }));
+  location.href = '/muscle-viewer.html?saturation=1';
+}
+
+renderAll();
+</script>
+</body>
+</html>

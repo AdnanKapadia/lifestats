@@ -38,6 +38,25 @@
   }
   #topbar .sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 
+  #backBtn {
+    pointer-events: auto;
+    background: var(--panel); border: 1px solid var(--panel-border); color: var(--text);
+    width: 32px; height: 32px; border-radius: 9px; font-size: 16px; margin-right: 8px;
+  }
+
+  #saturationLegend {
+    position: fixed; left: 10px; bottom: 10px;
+    display: none; align-items: center; gap: 8px;
+    background: var(--panel); border: 1px solid var(--panel-border);
+    border-radius: 10px; padding: 8px 12px; z-index: 10;
+    font-size: 11px; color: var(--text-dim);
+  }
+  #saturationLegend.show { display: flex; }
+  #saturationLegend .bar {
+    width: 90px; height: 8px; border-radius: 4px;
+    background: linear-gradient(to right, #3a3f4a, #ff5a3c);
+  }
+
   #viewToggle {
     display: flex; gap: 4px; pointer-events: auto;
     background: var(--panel); border: 1px solid var(--panel-border);
@@ -115,14 +134,21 @@
 <div id="canvas-wrap"></div>
 
 <div id="topbar">
+  <button id="backBtn" style="display:none;" onclick="location.href='/workout-plan.html'">←</button>
   <div>
-    <h1>Muscle Viewer</h1>
-    <div class="sub">Rotate · Pinch to zoom · Drag to pan</div>
+    <h1 id="viewerTitle">Muscle Viewer</h1>
+    <div class="sub" id="viewerSub">Rotate · Pinch to zoom · Drag to pan</div>
   </div>
   <div id="viewToggle">
     <button data-view="front" class="active">Front</button>
     <button data-view="back">Back</button>
   </div>
+</div>
+
+<div id="saturationLegend">
+  <span>Untrained</span>
+  <div class="bar"></div>
+  <span>Most trained</span>
 </div>
 
 <div id="infoPanel">
@@ -578,6 +604,50 @@ mirror('calves',
   [0.11, 0.325, -0.025], [0,0,0]);
 
 bodyGroup.position.y = -0.05;
+
+// ---------- Weekly workout-plan saturation overlay ----------
+// Read-only hook: consumes aggregated weekly muscle intensities produced by
+// workout-plan.html (localStorage, same-origin) and recolors the existing
+// muscle materials on a neutral-to-hot heat scale. Does not touch geometry
+// or the base per-category coloring used outside of saturation mode.
+const urlParams = new URLSearchParams(location.search);
+const saturationMode = urlParams.get('saturation') === '1';
+
+function loadSaturationValues() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('lifestats_muscle_saturation') || 'null');
+    return (raw && raw.values) ? raw.values : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function intensityFor(muscleId, values) {
+  if (values[muscleId] != null) return values[muscleId];
+  const parentId = SUBGROUP_PARENT[muscleId];
+  if (parentId && values[parentId] != null) return values[parentId];
+  return 0;
+}
+
+function applySaturationOverlay(values) {
+  const cold = new THREE.Color(0x3a3f4a);
+  const hot = new THREE.Color(0xff5a3c);
+  muscles.forEach(mesh => {
+    const t = Math.max(0, Math.min(1, intensityFor(mesh.userData.muscleId, values)));
+    mesh.material.color.copy(cold).lerp(hot, t);
+  });
+}
+
+if (saturationMode) {
+  const values = loadSaturationValues();
+  if (values) {
+    applySaturationOverlay(values);
+    document.getElementById('backBtn').style.display = '';
+    document.getElementById('viewerTitle').textContent = 'Weekly Saturation';
+    document.getElementById('viewerSub').textContent = 'Color = training volume this week';
+    document.getElementById('saturationLegend').classList.add('show');
+  }
+}
 
 // ---------- Category filter state ----------
 let activeCategory = 'all';
