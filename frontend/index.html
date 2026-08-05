@@ -3674,7 +3674,7 @@
         // Perform Search
         async function performSearch(query, localOnly = false) {
             try {
-                let url = `/api/search-food?q=${encodeURIComponent(query)}`;
+                let url = `/api/search-food?q=${encodeURIComponent(query)}&userId=${encodeURIComponent(storage.userId)}`;
                 if (localOnly) url += '&local_only=true';
 
                 const response = await fetch(url);
@@ -3708,9 +3708,11 @@
                     calText = `${food.calories} kcal (per 100g)`;
                 }
 
+                const recentTag = food.fromHistory ? `<span style="color: var(--accent, #4a90d9); font-size: 0.8em; margin-left: 6px;">• Recently logged</span>` : '';
+
                 return `
                     <div class="search-result-item" onclick='selectFood(${JSON.stringify(food).replace(/'/g, "&#39;")})'>
-                        <div class="search-result-name">${escapeHtml(food.description)}</div>
+                        <div class="search-result-name">${escapeHtml(food.description)}${recentTag}</div>
                         <div class="search-result-details">${calText} ${brand}</div>
                     </div>
                 `;
@@ -4140,7 +4142,7 @@
 
         async function performMealIngredientSearch(query, localOnly = false) {
             try {
-                let url = `/api/search-food?q=${encodeURIComponent(query)}`;
+                let url = `/api/search-food?q=${encodeURIComponent(query)}&userId=${encodeURIComponent(storage.userId)}`;
                 if (localOnly) url += '&local_only=true';
 
                 const response = await fetch(url);
@@ -4163,9 +4165,11 @@
                 let calText = `${food.calories} kcal`;
                 if (food.servingSize) calText += ` (${food.servingSize}${food.servingUnit || 'g'})`;
 
+                const recentTag = food.fromHistory ? `<span style="color: var(--accent, #4a90d9); font-size: 0.8em; margin-left: 6px;">• Recently logged</span>` : '';
+
                 return `
                     <div class="search-result-item" onclick='addIngredientToMeal(${JSON.stringify(food).replace(/'/g, "&#39;")})'>
-                        <div class="search-result-name">${escapeHtml(food.description)}</div>
+                        <div class="search-result-name">${escapeHtml(food.description)}${recentTag}</div>
                         <div class="search-result-details">${calText} ${brand}</div>
                     </div>
                 `;

@@ -141,32 +141,45 @@ def normalize_food_data(food_id, food_name, brand_name, serving):
 def search_food():
     """Search USDA FoodData Central database"""
     query = request.args.get('q', '')
-    
+
     if not query or len(query) < 2:
         return jsonify({'foods': []})
-    
+
     # Check Cache
     normalized_query = query.lower().strip()
-    
+
     # 0. Search Local DB (food_cache) for Custom Foods & Cached Items
     # This ensures custom foods appear first
     from supabase_client import search_food_in_db
     local_results = search_food_in_db(normalized_query)
-    
+
+    # 0b. Search the user's own recent food log (most recent match wins per name, capped at 3)
+    user_id = request.args.get('userId')
+    recent_matches = []
+    if user_id:
+        from db import get_recent_meal_matches
+        recent_matches = get_recent_meal_matches(user_id, normalized_query, limit=3)
+    recent_names = {f['description'].strip().lower() for f in recent_matches}
+
+    def prepend_recent(other_foods):
+        # Recent log matches first, then everything else with duplicate names removed
+        deduped = [f for f in other_foods if f.get('description', '').strip().lower() not in recent_names]
+        return recent_matches + deduped
+
     # 1. Check Search Cache (FatSecret Results)
     cached_data = supabase_client.get_cached_results(normalized_query)
-    
+
     # Check if local_only request (Optimization for instant results)
     local_only = request.args.get('local_only', 'false').lower() == 'true'
-    
+
     if local_only:
         # For instant search, just return what we have locally + cached
         # No need to merge complex logic, just dump what we have quickly
         if cached_data:
              local_ids = {f['fdcId'] for f in local_results}
              filtered_cache = [f for f in cached_data.get('foods', []) if f.get('fdcId') not in local_ids]
-             return jsonify({'foods': local_results + filtered_cache})
-        return jsonify({'foods': local_results})
+             return jsonify({'foods': prepend_recent(local_results + filtered_cache)})
+        return jsonify({'foods': prepend_recent(local_results)})
 
     if cached_data:
         print(f"Cache hit for: {normalized_query}")
@@ -175,8 +188,8 @@ def search_food():
         # We filter out local results from cached_data if they are duplicates
         local_ids = {f['fdcId'] for f in local_results}
         filtered_cache = [f for f in cached_data.get('foods', []) if f.get('fdcId') not in local_ids]
-        
-        return jsonify({'foods': local_results + filtered_cache})
+
+        return jsonify({'foods': prepend_recent(local_results + filtered_cache)})
     
     try:
         print(f"Cache miss for: {normalized_query}. Calling FatSecret API...")
@@ -265,8 +278,8 @@ def search_food():
         # We perform the same merge logic as the cache-hit case
         local_ids = {f['fdcId'] for f in local_results}
         filtered_api_foods = [f for f in foods if f.get('fdcId') not in local_ids]
-        
-        return jsonify({'foods': local_results + filtered_api_foods})
+
+        return jsonify({'foods': prepend_recent(local_results + filtered_api_foods)})
     
     except Exception as e:
         print(f"Error: {e}")

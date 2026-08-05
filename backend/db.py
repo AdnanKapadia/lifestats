@@ -441,6 +441,61 @@ def get_user_meals(user_id):
     finally:
         conn.close()
 
+def get_recent_meal_matches(user_id, query, limit=3):
+    """
+    Return the user's most recent logged meals whose food_name matches query
+    (case-insensitive substring), deduplicated by food_name, most recent first.
+    """
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        # DISTINCT ON collapses each distinct food name to its most recent entry
+        cur.execute("""
+            SELECT DISTINCT ON (LOWER(food_name)) *,
+                COALESCE(serving_size, 1.0) AS serving_size,
+                COALESCE(serving_unit, '') AS serving_unit
+            FROM meals
+            WHERE user_id = %s AND food_name ILIKE %s
+            ORDER BY LOWER(food_name), timestamp DESC
+        """, (user_id, f'%{query}%'))
+        rows = cur.fetchall()
+
+        rows.sort(key=lambda r: r['timestamp'], reverse=True)
+        rows = rows[:limit]
+
+        results = []
+        for m in rows:
+            results.append({
+                'fdcId': None,
+                'description': m['food_name'],
+                'brandName': None,
+                'servingSize': m.get('serving_size', 1.0),
+                'servingUnit': m.get('serving_unit', ''),
+                'preCalculated': True,
+                'calories': m['calories'],
+                'protein': m['protein'],
+                'carbs': m['carbs'],
+                'fat': m['fat'],
+                'cholesterol': m.get('cholesterol'),
+                'sodium': m.get('sodium'),
+                'fiber': m.get('fiber'),
+                'sugar': m.get('sugar'),
+                'saturatedFat': m.get('saturated_fat'),
+                'transFat': m.get('trans_fat'),
+                'polyunsaturatedFat': m.get('polyunsaturated_fat'),
+                'monounsaturatedFat': m.get('monounsaturated_fat'),
+                'addedSugar': m.get('added_sugar'),
+                'vitaminD': m.get('vitamin_d'),
+                'calcium': m.get('calcium'),
+                'iron': m.get('iron'),
+                'potassium': m.get('potassium'),
+                'vitaminC': m.get('vitamin_c'),
+                'fromHistory': True
+            })
+        return results
+    finally:
+        conn.close()
+
 def add_meal(meal_data):
     conn = get_db_connection()
     try:
