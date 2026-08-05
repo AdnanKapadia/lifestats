@@ -424,12 +424,14 @@ function mirrorFlat(id, geoFactory, pos, rot = [0,0,0], scale = [1,1,1]) {
 // -- Chest (front): fan of fibers converging toward the sternum, --
 // -- widening toward the armpit, rather than a stretched sphere. Pulled --
 // -- in from the shoulder line so it reads as separate from the delt. --
+// -- Sits flatter against the ribcage (a light yaw, not a sharp inward --
+// -- angle toward the sternum). --
 mirrorFlat('chest',
   () => extrudeMuscle([
     [0.00, -0.07], [0.02, -0.095], [0.065, -0.09], [0.105, -0.04],
     [0.115, 0.015], [0.10, 0.065], [0.065, 0.09], [0.02, 0.078], [0.00, 0.05],
   ], 0.05, 0.016),
-  [0.015, 1.33, 0.145], [0.1, -0.45, 0.05]);
+  [0.035, 1.33, 0.145], [0.1, -0.12, 0.05]);
 
 // -- Lats (back): wide near the armpit, tapering to a point at the --
 // -- lower back near the spine — the classic V shape. Pulled back from --
