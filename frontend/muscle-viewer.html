@@ -331,18 +331,21 @@ const highlightMat = (hex) => new THREE.MeshPhysicalMaterial({
 });
 
 // A tapering "muscle belly" — thin tendon-like ends with a fuller bulge
-// somewhere along its length — built by revolving a radius profile around
-// the local Y axis. Used in place of uniform capsules for limb muscles so
-// they read as belly-into-tendon shapes rather than tubes.
+// somewhere along its length — built by revolving a smooth radius profile
+// around the local Y axis. Used in place of uniform capsules for limb
+// muscles so they read as belly-into-tendon shapes rather than tubes.
+// The profile is run through a spline so the taper is a smooth curve
+// along the length too, not just smooth around the circumference.
 function muscleBelly(maxRadius, length, opts = {}) {
   const {
     peak = 0.45,          // 0..1 position of the bulge along the length
     peakR = 1.0,          // bulge radius, as a fraction of maxRadius
     botR = 0.0,           // radius fraction at the bottom (distal) end
     topR = 0.0,           // radius fraction at the top (proximal) end
-    radialSegments = 20,
+    radialSegments = 28,
+    profileSamples = 22,
   } = opts;
-  const profile = [
+  const controlFracs = [
     [botR, 0.0],
     [Math.max(botR, peakR * 0.55), 0.12],
     [Math.max(botR, peakR * 0.85), peak * 0.62],
@@ -352,23 +355,29 @@ function muscleBelly(maxRadius, length, opts = {}) {
     [Math.max(topR, peakR * 0.22), peak + (1 - peak) * 0.9],
     [topR, 1.0],
   ];
-  const pts = profile.map(([rf, yf]) =>
+  const controlPts = controlFracs.map(([rf, yf]) =>
     new THREE.Vector2(Math.max(rf * maxRadius, 0.0009), (yf - 0.5) * length));
+  const curve = new THREE.SplineCurve(controlPts);
+  const pts = curve.getPoints(profileSamples);
   return new THREE.LatheGeometry(pts, radialSegments);
 }
 
 // A flat, beveled anatomical plaque (fan/wing/kite silhouette) for muscles
 // that lie against the torso — built from a 2D outline instead of a
 // stretched box or sphere, so it can carry an asymmetric shape (e.g. the
-// pec's converging fibers, the lat's V taper).
-function extrudeMuscle(points, depth = 0.05, bevelSize = 0.01) {
+// pec's converging fibers, the lat's V taper). Corners are rounded by
+// running the outline through a spline before extruding.
+function extrudeMuscle(points, depth = 0.05, bevelSize = 0.014, roundness = 5) {
+  const control = points.map(([x, y]) => new THREE.Vector2(x, y));
+  const curve = new THREE.SplineCurve(control.concat([control[0]]));
+  const smoothed = curve.getPoints(points.length * roundness);
   const shape = new THREE.Shape();
-  shape.moveTo(points[0][0], points[0][1]);
-  for (let i = 1; i < points.length; i++) shape.lineTo(points[i][0], points[i][1]);
+  shape.moveTo(smoothed[0].x, smoothed[0].y);
+  for (let i = 1; i < smoothed.length; i++) shape.lineTo(smoothed[i].x, smoothed[i].y);
   shape.closePath();
   const geo = new THREE.ExtrudeGeometry(shape, {
     depth, bevelEnabled: true, bevelThickness: bevelSize, bevelSize,
-    bevelSegments: 3, curveSegments: 10,
+    bevelSegments: 4, curveSegments: 3,
   });
   geo.translate(0, 0, -depth / 2);
   geo.computeVertexNormals();
@@ -413,129 +422,140 @@ function mirrorFlat(id, geoFactory, pos, rot = [0,0,0], scale = [1,1,1]) {
 }
 
 // -- Chest (front): fan of fibers converging toward the sternum, --
-// -- widening toward the armpit, rather than a stretched sphere. --
+// -- widening toward the armpit, rather than a stretched sphere. Pulled --
+// -- in from the shoulder line so it reads as separate from the delt. --
 mirrorFlat('chest',
   () => extrudeMuscle([
-    [0.00, -0.075], [0.02, -0.105], [0.075, -0.10], [0.125, -0.045],
-    [0.14, 0.02], [0.12, 0.075], [0.075, 0.10], [0.02, 0.085], [0.00, 0.055],
-  ], 0.05, 0.012),
-  [0.02, 1.335, 0.145], [0.1, -0.5, 0.05]);
+    [0.00, -0.07], [0.02, -0.095], [0.065, -0.09], [0.105, -0.04],
+    [0.115, 0.015], [0.10, 0.065], [0.065, 0.09], [0.02, 0.078], [0.00, 0.05],
+  ], 0.05, 0.016),
+  [0.015, 1.33, 0.145], [0.1, -0.45, 0.05]);
 
 // -- Lats (back): wide near the armpit, tapering to a point at the --
-// -- lower back near the spine — the classic V shape. --
+// -- lower back near the spine — the classic V shape. Pulled back from --
+// -- the armpit corner (so it doesn't merge into the delt/triceps) and --
+// -- given real thickness so it wraps around toward the side of the --
+// -- torso instead of reading as a flat side panel. --
 mirrorFlat('lats',
   () => extrudeMuscle([
-    [0.01, -0.15], [0.05, -0.09], [0.10, 0.0], [0.155, 0.08],
-    [0.175, 0.16], [0.13, 0.14], [0.09, 0.10], [0.03, 0.02], [0.0, -0.09],
-  ], 0.045, 0.01),
-  [0.03, 1.28, -0.13], [0.05, Math.PI, -0.08]);
+    [0.01, -0.15], [0.05, -0.09], [0.10, 0.0], [0.15, 0.075],
+    [0.155, 0.135], [0.115, 0.125], [0.085, 0.095], [0.03, 0.02], [0.0, -0.09],
+  ], 0.095, 0.02),
+  [0.045, 1.27, -0.1], [0.08, Math.PI, -0.16]);
 
-// -- Traps (upper back / neckline): a kite/diamond outline — narrow at --
-// -- the base of the skull, wide at the shoulders, tapering again --
-// -- between the shoulder blades — instead of a 4-sided cone. --
+// -- Traps (upper back / neckline): a softened kite outline that lies --
+// -- along the neck-to-shoulder line rather than spiking off it. --
 addMuscle('traps',
   extrudeMuscle([
-    [0.0, 0.13], [0.115, 0.03], [0.05, -0.11], [0.0, -0.18],
-    [-0.05, -0.11], [-0.115, 0.03],
-  ], 0.04, 0.01),
-  [0, 1.50, -0.1], [0.35, Math.PI, 0]);
+    [0.0, 0.09], [0.09, 0.025], [0.04, -0.09], [0.0, -0.14],
+    [-0.04, -0.09], [-0.09, 0.025],
+  ], 0.035, 0.026),
+  [0, 1.47, -0.08], [0.18, Math.PI, 0]);
 
 // -- Rhomboids (small diamond between traps and lats, near the spine) --
 mirrorFlat('rhomboids',
   () => extrudeMuscle([
     [0.0, 0.05], [0.045, 0.01], [0.03, -0.045], [0.0, -0.06], [-0.015, -0.02],
-  ], 0.03, 0.008),
+  ], 0.03, 0.012),
   [0.06, 1.37, -0.12], [0.1, Math.PI, 0.15]);
 
 // -- Shoulders / deltoids: rounded cap that tapers down into the arm --
-// -- rather than a plain sphere. --
+// -- rather than a plain sphere. Scaled down and tucked closer to the --
+// -- shoulder joint so it no longer overpowers the chest. --
 mirror('shoulders',
-  () => muscleBelly(0.09, 0.16, { peak: 0.62, topR: 0.45, botR: 0.0, radialSegments: 18 }),
-  [0.29, 1.44, 0], [0,0,0.05]);
+  () => muscleBelly(0.072, 0.135, { peak: 0.6, topR: 0.4, botR: 0.0, radialSegments: 22 }),
+  [0.275, 1.435, 0], [0,0,0.05]);
 
 // -- Biceps, split into long head / short head / brachialis — each a --
 // -- tapering belly-into-tendon shape instead of a uniform capsule. --
 // Long head: outer (lateral) lobe, closer to the shoulder
 mirror('bicepsLongHead',
-  () => muscleBelly(0.032, 0.15, { peak: 0.4, radialSegments: 16 }),
+  () => muscleBelly(0.032, 0.15, { peak: 0.4, radialSegments: 22 }),
   [0.328, 1.315, 0.04], [0, 0, 0.12]);
 // Short head: inner (medial) lobe, closer to the shoulder
 mirror('bicepsShortHead',
-  () => muscleBelly(0.03, 0.15, { peak: 0.38, radialSegments: 16 }),
+  () => muscleBelly(0.03, 0.15, { peak: 0.38, radialSegments: 22 }),
   [0.305, 1.30, 0.05], [0, 0, 0.12]);
 // Brachialis: sits lower/deeper, peeking out on the lateral edge near the elbow
 mirror('bicepsBrachialis',
-  () => muscleBelly(0.026, 0.1, { peak: 0.32, radialSegments: 14 }),
+  () => muscleBelly(0.026, 0.1, { peak: 0.32, radialSegments: 20 }),
   [0.325, 1.235, 0.025], [0, 0, 0.12]);
 
 // -- Triceps, split into long / lateral / medial heads --
 // Long head: largest, runs medial/upper, toward the shoulder
 mirror('tricepsLongHead',
-  () => muscleBelly(0.032, 0.18, { peak: 0.58, radialSegments: 16 }),
+  () => muscleBelly(0.032, 0.18, { peak: 0.58, radialSegments: 22 }),
   [0.293, 1.31, -0.045], [0, 0, 0.12]);
 // Lateral head: outer, upper-mid of the back of the arm
 mirror('tricepsLateralHead',
-  () => muscleBelly(0.028, 0.14, { peak: 0.46, radialSegments: 16 }),
+  () => muscleBelly(0.028, 0.14, { peak: 0.46, radialSegments: 22 }),
   [0.318, 1.285, -0.03], [0, 0, 0.12]);
 // Medial head: deep, small, visible near the elbow
 mirror('tricepsMedialHead',
-  () => muscleBelly(0.023, 0.09, { peak: 0.35, radialSegments: 14 }),
+  () => muscleBelly(0.023, 0.09, { peak: 0.35, radialSegments: 20 }),
   [0.302, 1.225, -0.03], [0, 0, 0.12]);
 
-// -- Forearms: fuller mass near the elbow, tapering toward the wrist --
+// -- Forearms: fuller mass near the elbow, tapering toward the wrist. --
+// -- Extended upward so it physically overlaps the upper-arm bottom, --
+// -- bridging the elbow instead of leaving a gap between two floating --
+// -- pieces. --
 mirror('forearms',
-  () => muscleBelly(0.045, 0.21, { peak: 0.72, topR: 0.2, botR: 0.0, radialSegments: 16 }),
-  [0.335, 1.00, 0.02], [0.15, 0, 0.1]);
+  () => muscleBelly(0.046, 0.275, { peak: 0.78, topR: 0.32, botR: 0.0, radialSegments: 22 }),
+  [0.335, 1.035, 0.02], [0.15, 0, 0.1]);
 
 // -- Abs: six segmented rectus-abdominis blocks instead of one plate --
 [1.255, 1.16, 1.065].forEach(y => {
   [-0.05, 0.05].forEach(x => {
     addMuscle('abs',
-      new RoundedBoxGeometry(0.078, 0.062, 0.045, 4, 0.013),
+      new RoundedBoxGeometry(0.078, 0.062, 0.045, 5, 0.018),
       [x, y, 0.155], [0, 0, 0]);
   });
 });
 
 // -- Obliques --
 mirror('obliques',
-  () => muscleBelly(0.05, 0.18, { peak: 0.45, radialSegments: 16 }),
+  () => muscleBelly(0.05, 0.18, { peak: 0.45, radialSegments: 22 }),
   [0.14, 1.14, 0.09], [0, 0, 0.15]);
 
 // -- Lower back / erector spinae (back, either side of spine) --
 mirror('lowerback',
-  () => muscleBelly(0.035, 0.22, { peak: 0.5, topR: 0.5, botR: 0.4, radialSegments: 14 }),
+  () => muscleBelly(0.035, 0.22, { peak: 0.5, topR: 0.5, botR: 0.4, radialSegments: 20 }),
   [0.045, 1.06, -0.13], [0, 0, 0.04]);
 
 // -- Glutes (back): rounded mound blending into the hip/thigh --
 mirror('glutes',
-  () => muscleBelly(0.125, 0.2, { peak: 0.55, topR: 0.2, botR: 0.15, radialSegments: 18 }),
+  () => muscleBelly(0.125, 0.2, { peak: 0.55, topR: 0.2, botR: 0.15, radialSegments: 24 }),
   [0.11, 0.92, -0.09], [0,0,0]);
 
 // -- Hip abductors/adductors (outer hip + inner thigh) --
 // Outer hip (abductors, e.g. glute medius)
 mirror('hipAbductors',
-  () => muscleBelly(0.06, 0.12, { peak: 0.5, topR: 0.2, botR: 0.15, radialSegments: 16 }),
+  () => muscleBelly(0.06, 0.12, { peak: 0.5, topR: 0.2, botR: 0.15, radialSegments: 22 }),
   [0.185, 0.83, -0.01], [0,0,0]);
 // Inner thigh (adductors)
 mirror('hipAbductors',
-  () => muscleBelly(0.048, 0.17, { peak: 0.5, topR: 0.2, botR: 0.15, radialSegments: 16 }),
+  () => muscleBelly(0.048, 0.17, { peak: 0.5, topR: 0.2, botR: 0.15, radialSegments: 22 }),
   [0.06, 0.58, 0.01], [0,0,0]);
 
-// -- Quads (front of thigh): fuller mid-thigh mass, blending into hip --
-// -- above and the knee below rather than a uniform tube. --
+// -- Quads (front of thigh): split into an outer (vastus lateralis) and --
+// -- inner (vastus medialis) lobe with a shallow seam between them, --
+// -- instead of one uniform mass, for a clearer silhouette break. --
 mirror('quads',
-  () => muscleBelly(0.085, 0.24, { peak: 0.55, topR: 0.15, botR: 0.1, radialSegments: 18 }),
-  [0.115, 0.63, 0.04], [0,0,0]);
+  () => muscleBelly(0.052, 0.24, { peak: 0.55, topR: 0.16, botR: 0.1, radialSegments: 20 }),
+  [0.148, 0.63, 0.035], [0,0,0]);
+mirror('quads',
+  () => muscleBelly(0.046, 0.225, { peak: 0.48, topR: 0.14, botR: 0.09, radialSegments: 20 }),
+  [0.067, 0.615, 0.045], [0,0,-0.05]);
 
 // -- Hamstrings (back of thigh) --
 mirror('hamstrings',
-  () => muscleBelly(0.075, 0.24, { peak: 0.5, topR: 0.15, botR: 0.1, radialSegments: 18 }),
+  () => muscleBelly(0.075, 0.24, { peak: 0.5, topR: 0.15, botR: 0.1, radialSegments: 24 }),
   [0.115, 0.62, -0.04], [0,0,0]);
 
 // -- Calves (back of shin): bulges below the knee, tapers to the --
 // -- Achilles near the ankle. --
 mirror('calves',
-  () => muscleBelly(0.058, 0.2, { peak: 0.62, topR: 0.18, botR: 0.0, radialSegments: 16 }),
+  () => muscleBelly(0.058, 0.2, { peak: 0.62, topR: 0.18, botR: 0.0, radialSegments: 22 }),
   [0.11, 0.26, -0.025], [0,0,0]);
 
 bodyGroup.position.y = -0.05;
