@@ -29,6 +29,7 @@ def init_db():
                 id VARCHAR(50) PRIMARY KEY,
                 user_id VARCHAR(50) NOT NULL,
                 food_name TEXT NOT NULL,
+                brand_name TEXT,
                 meal_type VARCHAR(20) NOT NULL,
                 calories INTEGER DEFAULT 0,
                 protein FLOAT DEFAULT 0,
@@ -232,6 +233,12 @@ def init_db():
                     WHEN duplicate_column THEN NULL;
                 END;
 
+                BEGIN
+                    ALTER TABLE meals ADD COLUMN brand_name TEXT;
+                EXCEPTION
+                    WHEN duplicate_column THEN NULL;
+                END;
+
                 -- Event Types Schema Updates
                 BEGIN
                     ALTER TABLE event_types ADD COLUMN tracking_type VARCHAR(20) DEFAULT 'count';
@@ -412,6 +419,7 @@ def get_user_meals(user_id):
                 'id': m['id'],
                 'userId': m['user_id'],
                 'foodName': m['food_name'],
+                'brandName': m.get('brand_name'),
                 'mealType': m['meal_type'],
                 'nutrition': {
                     'calories': m['calories'],
@@ -455,9 +463,9 @@ def get_recent_meal_matches(user_id, query, limit=3):
                 COALESCE(serving_size, 1.0) AS serving_size,
                 COALESCE(serving_unit, '') AS serving_unit
             FROM meals
-            WHERE user_id = %s AND food_name ILIKE %s
+            WHERE user_id = %s AND (LOWER(food_name) LIKE %s OR LOWER(brand_name) LIKE %s)
             ORDER BY LOWER(food_name), timestamp DESC
-        """, (user_id, f'%{query}%'))
+        """, (user_id, f'%{query}%', f'%{query}%'))
         rows = cur.fetchall()
 
         rows.sort(key=lambda r: r['timestamp'], reverse=True)
@@ -468,7 +476,7 @@ def get_recent_meal_matches(user_id, query, limit=3):
             results.append({
                 'fdcId': None,
                 'description': m['food_name'],
-                'brandName': None,
+                'brandName': m.get('brand_name'),
                 'servingSize': m.get('serving_size', 1.0),
                 'servingUnit': m.get('serving_unit', ''),
                 'preCalculated': True,
@@ -507,16 +515,17 @@ def add_meal(meal_data):
         nutrition = meal_data.get('nutrition', {})
         
         cur.execute("""
-            INSERT INTO meals (id, user_id, food_name, meal_type, calories, protein, carbs, fat, 
+            INSERT INTO meals (id, user_id, food_name, brand_name, meal_type, calories, protein, carbs, fat,
                              cholesterol, sodium, fiber, sugar, saturated_fat, trans_fat,
                              polyunsaturated_fat, monounsaturated_fat, added_sugar,
                              vitamin_d, calcium, iron, potassium, vitamin_c,
                              serving_size, serving_unit, timestamp)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             meal_data['id'],
             meal_data['userId'],
             meal_data['foodName'],
+            meal_data.get('brandName'),
             meal_data['mealType'],
             nutrition.get('calories', 0),
             nutrition.get('protein', 0),

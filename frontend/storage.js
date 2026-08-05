@@ -15,11 +15,12 @@ class Storage {
     }
 
     // Save a meal (Async)
-    async saveMeal(foodName, mealType, nutrition = null, servingInfo = null, timestamp = null) {
+    async saveMeal(foodName, mealType, nutrition = null, servingInfo = null, timestamp = null, brandName = null) {
         const newMeal = {
             id: 'meal-' + Date.now(),
             userId: this.userId,
             foodName: foodName,
+            brandName: brandName || null,
             mealType: mealType,
             nutrition: nutrition || { calories: 0, protein: 0, carbs: 0, fat: 0 },
             servingSize: servingInfo ? servingInfo.size : 1.0,

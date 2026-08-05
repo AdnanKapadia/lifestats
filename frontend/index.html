@@ -3793,7 +3793,8 @@
                 iron: food.iron,
                 potassium: food.potassium,
                 vitaminC: food.vitaminC,
-                portion: displayPortion
+                portion: displayPortion,
+                brandName: (food.brandName && food.brandName !== 'Generic') ? food.brandName : null
             };
 
             // Show nutrition section
@@ -4012,7 +4013,7 @@
                 };
 
                 // Save meal
-                await storage.saveMeal(foodName, mealType, nutrition, servingInfo, currentMealDate.getTime()); // Pass currentMealDate timestamp
+                await storage.saveMeal(foodName, mealType, nutrition, servingInfo, currentMealDate.getTime(), window.refNutrition?.brandName); // Pass currentMealDate timestamp
 
                 // Success feedback
                 const form = document.getElementById('foodForm');
