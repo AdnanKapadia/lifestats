@@ -1962,7 +1962,7 @@ def get_maintenance_calories(user_id, start_date, end_date, timezone_offset=0):
             weight_val = row['data'].get('weight')
             if weight_val is None:
                 continue
-            is_auto = row['data'].get('_auto_generated') == 'true'
+            is_auto = row['data'].get('_auto_generated') in ('true', True)
             if is_auto:
                 continue
             day_label = local_day_label(row['timestamp'])

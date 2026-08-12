@@ -6056,11 +6056,13 @@
             const userId = localStorage.getItem('lifestats_userId');
             if (!userId) return;
 
-            // Construct payload based on schema
-            // For simple tracking, we assume the single 'value' field is what we want
-            // If schema has multiple fields, we might need a default mapping
+            // Use the event type's first schema field as the key (e.g. weight -> 'weight', steps -> 'count')
+            // so downstream code that reads specific field names (not just a generic fallback) sees the value.
+            const primaryField = eventTypeObj && eventTypeObj.fieldSchema && eventTypeObj.fieldSchema.fields && eventTypeObj.fieldSchema.fields[0]
+                ? eventTypeObj.fieldSchema.fields[0].name
+                : 'value';
             const formData = {
-                value: value
+                [primaryField]: value
             };
 
             const eventData = {
