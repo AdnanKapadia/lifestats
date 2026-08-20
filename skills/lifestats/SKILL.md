@@ -13,11 +13,14 @@ Everything goes through the `/api/agent/*` API, which is plain JSON over HTTPS.
 Every request needs the shared phrase. Send it as a header:
 
 ```
-X-API-Key: $LIFESTATS_API_KEY
+X-API-Key: ${LIFESTATS_API_KEY:-foodtrack}
 ```
 
-Read the value from the `LIFESTATS_API_KEY` environment variable. If it is unset, ask
-the user for it rather than guessing — but note the app's default phrase is `foodtrack`.
+The phrase is `foodtrack` — the default the deployed app ships with. Don't ask the user
+for it. If `LIFESTATS_API_KEY` is set in the environment it overrides that default, so
+write the examples below exactly as shown: `${LIFESTATS_API_KEY:-foodtrack}` uses the
+override when present and falls back to `foodtrack` when it isn't.
+
 A `?key=` query param also works and is handy for pasting a read URL into a browser;
 prefer the header for anything you run yourself, since query strings land in server logs.
 
@@ -32,7 +35,7 @@ prefer the header for anything you run yourself, since query strings land in ser
 ## Orientation (do this first)
 
 ```bash
-curl -s -H "X-API-Key: $LIFESTATS_API_KEY" \
+curl -s -H "X-API-Key: ${LIFESTATS_API_KEY:-foodtrack}" \
   "https://lifestats-pi.vercel.app/api/agent/users"
 ```
 
@@ -44,7 +47,7 @@ against the list rather than guessing. Writing to the wrong id puts their data o
 person's account. Then:
 
 ```bash
-curl -s -H "X-API-Key: $LIFESTATS_API_KEY" \
+curl -s -H "X-API-Key: ${LIFESTATS_API_KEY:-foodtrack}" \
   "https://lifestats-pi.vercel.app/api/agent/schema?userId=USER_ID&tz=America/Los_Angeles"
 ```
 
@@ -88,7 +91,7 @@ Then post the one the user meant, scaling nutrition to the serving they actually
 
 ```bash
 curl -s -X POST "https://lifestats-pi.vercel.app/api/agent/meals" \
-  -H "X-API-Key: $LIFESTATS_API_KEY" -H "Content-Type: application/json" \
+  -H "X-API-Key: ${LIFESTATS_API_KEY:-foodtrack}" -H "Content-Type: application/json" \
   -d '{
     "userId": "USER_ID",
     "tz": "America/Los_Angeles",
@@ -108,7 +111,7 @@ curl -s -X POST "https://lifestats-pi.vercel.app/api/agent/meals" \
 
 ```bash
 curl -s -X POST "https://lifestats-pi.vercel.app/api/agent/events" \
-  -H "X-API-Key: $LIFESTATS_API_KEY" -H "Content-Type: application/json" \
+  -H "X-API-Key: ${LIFESTATS_API_KEY:-foodtrack}" -H "Content-Type: application/json" \
   -d '{
     "userId": "USER_ID",
     "tz": "America/Los_Angeles",
@@ -124,10 +127,10 @@ If the data doesn't match the schema, the 400 response includes the offending ty
 **What did I eat yesterday / how many calories:**
 
 ```bash
-curl -s -H "X-API-Key: $LIFESTATS_API_KEY" \
+curl -s -H "X-API-Key: ${LIFESTATS_API_KEY:-foodtrack}" \
   "https://lifestats-pi.vercel.app/api/agent/meals?userId=USER_ID&tz=America/Los_Angeles&date=2026-08-18"
 
-curl -s -H "X-API-Key: $LIFESTATS_API_KEY" \
+curl -s -H "X-API-Key: ${LIFESTATS_API_KEY:-foodtrack}" \
   "https://lifestats-pi.vercel.app/api/agent/summary?userId=USER_ID&tz=America/Los_Angeles&date=2026-08-18"
 ```
 
@@ -137,7 +140,7 @@ calories, with `protein`/`carbs`/`fat` alongside; other keys are event type ids.
 **Trend over the last two weeks:**
 
 ```bash
-curl -s -H "X-API-Key: $LIFESTATS_API_KEY" \
+curl -s -H "X-API-Key: ${LIFESTATS_API_KEY:-foodtrack}" \
   "https://lifestats-pi.vercel.app/api/agent/summary?userId=USER_ID&tz=America/Los_Angeles&days=14"
 ```
 
@@ -145,11 +148,11 @@ curl -s -H "X-API-Key: $LIFESTATS_API_KEY" \
 
 ```bash
 curl -s -X PATCH "https://lifestats-pi.vercel.app/api/agent/meals/MEAL_ID?userId=USER_ID" \
-  -H "X-API-Key: $LIFESTATS_API_KEY" -H "Content-Type: application/json" \
+  -H "X-API-Key: ${LIFESTATS_API_KEY:-foodtrack}" -H "Content-Type: application/json" \
   -d '{"nutrition": {"calories": 240}, "tz": "America/Los_Angeles"}'
 
 curl -s -X DELETE "https://lifestats-pi.vercel.app/api/agent/events/EVENT_ID?userId=USER_ID" \
-  -H "X-API-Key: $LIFESTATS_API_KEY"
+  -H "X-API-Key: ${LIFESTATS_API_KEY:-foodtrack}"
 ```
 
 Event PATCH merges into existing `data`, so you can change one field without resending all.
