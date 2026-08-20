@@ -300,6 +300,18 @@
             margin-top: 2px;
         }
 
+        .my-food-row {
+            background: rgba(39, 39, 42, 0.4);
+            border-radius: 12px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .my-food-row:hover {
+            background: rgba(39, 39, 42, 0.7);
+        }
+
         .meal-delete {
             background: rgba(239, 68, 68, 0.2);
             border: 1px solid rgba(239, 68, 68, 0.3);
@@ -1722,23 +1734,16 @@
 
             <!-- My Foods & Meals -->
             <div id="myCustomFoodsCard" class="card">
-                <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>🍽️ My Foods & Meals</span>
-                    <button onclick="openCustomFoodModal(null)"
-                        style="background: #2ECC71; color: white; border: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);">
-                        <span style="font-size: 1.2em;">+</span>
-                    </button>
-                </div>
+                <div class="section-title">🍽️ My Foods & Meals</div>
                 <p style="color: #a1a1aa; font-size: 0.85em; margin-top: -8px; margin-bottom: 16px;">
-                    Custom foods and meals you've created. Edit or remove them here.
+                    Custom foods and meals you've created. Search, edit, or remove them.
                 </p>
 
-                <div id="myCustomFoodsList" style="display: flex; flex-direction: column; gap: 12px;">
-                    <div class="empty-state" style="padding: 20px;">
-                        <div style="font-size: 2em; margin-bottom: 8px;">🍳</div>
-                        <div style="font-size: 0.9em;">Loading...</div>
-                    </div>
-                </div>
+                <button onclick="openMyFoodsPage()"
+                    style="width: 100%; padding: 14px; background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; color: #e4e4e7; border-radius: 12px; cursor: pointer; font-size: 1em; font-weight: 600; display: flex; align-items: center; justify-content: space-between;">
+                    <span>View all foods &amp; meals</span>
+                    <span style="color: #a1a1aa;">→</span>
+                </button>
             </div>
 
             <!-- Maintenance Calories Calculator -->
@@ -1902,6 +1907,47 @@
                 <div class="empty-state">
                     <div class="empty-state-emoji">👋</div>
                     <p>Welcome to LifeStats</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 8: My Foods & Meals (full list) -->
+    <div id="page8" class="page-content">
+        <div class="container">
+            <!-- Header with back button -->
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <button onclick="closeMyFoodsPage()"
+                    style="background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; color: #e4e4e7; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9em;">
+                    ← Back
+                </button>
+                <h1 style="margin: 0; flex: 1;">🍽️ My Foods</h1>
+                <button onclick="openCustomFoodModalFromMyFoods()"
+                    style="background: #2ECC71; color: white; border: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);">
+                    <span style="font-size: 1.2em;">+</span>
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="form-group">
+                    <input type="search" id="myFoodsSearch" placeholder="Search your foods and meals"
+                        autocomplete="off" oninput="renderMyCustomFoods()">
+                </div>
+
+                <div class="custom-food-mode-toggle">
+                    <div id="myFoodsFilterAll" class="custom-food-mode-btn active" onclick="setMyFoodsFilter('all')">
+                        All</div>
+                    <div id="myFoodsFilterFoods" class="custom-food-mode-btn" onclick="setMyFoodsFilter('foods')">Foods
+                    </div>
+                    <div id="myFoodsFilterMeals" class="custom-food-mode-btn" onclick="setMyFoodsFilter('meals')">Meals
+                    </div>
+                </div>
+
+                <div id="myCustomFoodsList" style="display: flex; flex-direction: column; gap: 12px;">
+                    <div class="empty-state" style="padding: 20px;">
+                        <div style="font-size: 2em; margin-bottom: 8px;">🍳</div>
+                        <div style="font-size: 0.9em;">Loading...</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3533,7 +3579,7 @@
                 if (index === 0 && (pageNumber === 1 || pageNumber === 3 || pageNumber === 6)) isActive = true;
                 if (index === 1 && pageNumber === 2) isActive = true;
                 if (index === 2 && pageNumber === 7) isActive = true;
-                if (index === 3 && pageNumber === 4) isActive = true;
+                if (index === 3 && (pageNumber === 4 || pageNumber === 8)) isActive = true;
                 if (index === 4 && pageNumber === 5) isActive = true;
 
                 if (isActive) {
@@ -3551,6 +3597,7 @@
             if (pageNumber === 4) {
                 loadProfilePage();
                 initMaintenanceDateRange();
+            } else if (pageNumber === 8) {
                 loadMyCustomFoods();
             } else if (pageNumber === 2) {
                 // Load goals data if needed, or already handled by tab switching inside page
@@ -4102,24 +4149,71 @@
         let mealIngredientSearchTimeout;
         let editingCustomFoodId = null; // Set when editing an existing custom food/meal from the Me tab
 
-        // --- My Foods & Meals (Me tab) ---
+        // --- My Foods & Meals (own page, opened from the Me tab) ---
+        let myCustomFoodsCache = [];   // Last fetch, so search/filter re-render without a round trip
+        let myFoodsFilter = 'all';     // 'all' | 'foods' | 'meals'
+        let creatingCustomFoodFromMyFoods = false;
+
+        function openMyFoodsPage() {
+            switchPage(8);
+        }
+
+        function closeMyFoodsPage() {
+            switchPage(4);
+        }
+
+        // The + on the My Foods page: create, then come back to the refreshed list
+        // instead of dropping the new food into the log form on the Food page.
+        function openCustomFoodModalFromMyFoods() {
+            openCustomFoodModal(null);
+            creatingCustomFoodFromMyFoods = true;
+        }
+
+        function setMyFoodsFilter(mode) {
+            myFoodsFilter = mode;
+
+            const buttons = {
+                all: document.getElementById('myFoodsFilterAll'),
+                foods: document.getElementById('myFoodsFilterFoods'),
+                meals: document.getElementById('myFoodsFilterMeals')
+            };
+            Object.entries(buttons).forEach(([key, btn]) => {
+                if (btn) btn.classList.toggle('active', key === mode);
+            });
+
+            renderMyCustomFoods();
+        }
+
         async function loadMyCustomFoods() {
             const listEl = document.getElementById('myCustomFoodsList');
             if (!listEl) return;
 
-            const foods = await storage.listCustomFoods();
-            renderMyCustomFoods(foods);
+            myCustomFoodsCache = (await storage.listCustomFoods()) || [];
+            renderMyCustomFoods();
         }
 
-        function renderMyCustomFoods(foods) {
+        function renderMyCustomFoods() {
             const listEl = document.getElementById('myCustomFoodsList');
             if (!listEl) return;
 
-            if (!foods || foods.length === 0) {
+            const query = (document.getElementById('myFoodsSearch')?.value || '').trim().toLowerCase();
+
+            const foods = myCustomFoodsCache.filter(food => {
+                if (myFoodsFilter === 'foods' && food.isMeal) return false;
+                if (myFoodsFilter === 'meals' && !food.isMeal) return false;
+                if (!query) return true;
+                return (food.description || '').toLowerCase().includes(query)
+                    || (food.brandName || '').toLowerCase().includes(query);
+            });
+
+            if (foods.length === 0) {
+                // Distinguish "you have none" from "none matched" — otherwise a typo
+                // in the search box looks like the data is gone.
+                const isFiltered = query || myFoodsFilter !== 'all';
                 listEl.innerHTML = `
                     <div class="empty-state" style="padding: 20px;">
-                        <div style="font-size: 2em; margin-bottom: 8px;">🍳</div>
-                        <div style="font-size: 0.9em;">No custom foods or meals yet</div>
+                        <div style="font-size: 2em; margin-bottom: 8px;">${isFiltered ? '🔍' : '🍳'}</div>
+                        <div style="font-size: 0.9em;">${isFiltered ? 'No matches' : 'No custom foods or meals yet'}</div>
                     </div>`;
                 return;
             }
@@ -4137,7 +4231,7 @@
                     : '';
 
                 return `
-                    <div style="background: rgba(39, 39, 42, 0.4); border-radius: 12px; padding: 14px 16px;">
+                    <div class="my-food-row" onclick="editCustomFoodById('${food.fdcId}')">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
                             <div style="min-width: 0;">
                                 <div style="color: #e4e4e7; font-weight: 600; font-size: 1em; display: flex; align-items: center; gap: 6px;">
@@ -4149,15 +4243,20 @@
                                 ${ingredientsList}
                             </div>
                             <div style="display: flex; gap: 8px; flex-shrink: 0;">
-                                <button onclick='editCustomFoodItem(${JSON.stringify(food).replace(/'/g, "&#39;")})'
-                                    style="background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; color: #a1a1aa; width: 32px; height: 32px; border-radius: 8px; cursor: pointer;">✏️</button>
-                                <button onclick="deleteCustomFoodItem('${food.fdcId}')"
-                                    style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; width: 32px; height: 32px; border-radius: 8px; cursor: pointer;">🗑️</button>
+                                <button class="meal-delete"
+                                    onclick="event.stopPropagation(); deleteCustomFoodItem('${food.fdcId}')">&times;</button>
                             </div>
                         </div>
                     </div>
                 `;
             }).join('');
+        }
+
+        // Rows carry only the id; the full record comes from the cache so we don't
+        // have to embed serialized JSON in an onclick attribute.
+        function editCustomFoodById(foodId) {
+            const food = myCustomFoodsCache.find(f => f.fdcId === foodId);
+            if (food) editCustomFoodItem(food);
         }
 
         function editCustomFoodItem(food) {
@@ -4459,6 +4558,10 @@
         let sourceButtonRect = null;
 
         function openCustomFoodModal(btnElement) {
+            // Cleared here so every entry point starts fresh; the My Foods page
+            // re-sets it right after calling this.
+            creatingCustomFoodFromMyFoods = false;
+
             // 1. Get position of button (Start State)
             // Fix: Target the inner green square div, not the container (which includes text and is rectangular)
             const actualBtn = btnElement ? btnElement.querySelector('div') : null;
@@ -4775,6 +4878,10 @@
                 closeCustomFoodModal();
                 if (isEditing) {
                     showNotification('Custom food updated!');
+                    loadMyCustomFoods();
+                } else if (creatingCustomFoodFromMyFoods) {
+                    creatingCustomFoodFromMyFoods = false;
+                    showNotification('Custom food added!');
                     loadMyCustomFoods();
                 } else {
                     // Select the food in the main form so user can log it immediately
