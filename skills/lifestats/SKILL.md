@@ -24,6 +24,11 @@ override when present and falls back to `foodtrack` when it isn't.
 A `?key=` query param also works and is handy for pasting a read URL into a browser;
 prefer the header for anything you run yourself, since query strings land in server logs.
 
+The examples below use `curl`. If the environment you're running in doesn't have it,
+make the same requests with Python (`urllib.request` or `requests`) — the URLs, headers,
+and JSON bodies are identical. In an environment with no shell at all, `${LIFESTATS_API_KEY:-foodtrack}`
+won't expand; use the literal `foodtrack` unless you were given a different phrase.
+
 ## The two rules that matter
 
 1. **Call `GET /api/agent/schema` before your first write in a session.** It returns the
