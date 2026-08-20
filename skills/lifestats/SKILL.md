@@ -36,8 +36,12 @@ curl -s -H "X-API-Key: $LIFESTATS_API_KEY" \
   "https://lifestats-pi.vercel.app/api/agent/users"
 ```
 
-Returns each known user id with meal/event counts and last activity. Single-user app, so
-there is normally one id — use it. Then:
+Returns each known user id with meal/event counts and last activity. **The default user is
+`Adnan`.** Note the list also contains a second real account (`Estefani`) plus a couple of
+dozen abandoned test ids from development — so do not just take the first or only id you
+see. Use `Adnan` unless the user says otherwise, and if they name someone else, match it
+against the list rather than guessing. Writing to the wrong id puts their data on another
+person's account. Then:
 
 ```bash
 curl -s -H "X-API-Key: $LIFESTATS_API_KEY" \
