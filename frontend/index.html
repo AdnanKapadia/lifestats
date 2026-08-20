@@ -1720,6 +1720,27 @@
                 </button>
             </div>
 
+            <!-- My Foods & Meals -->
+            <div id="myCustomFoodsCard" class="card">
+                <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>🍽️ My Foods & Meals</span>
+                    <button onclick="openCustomFoodModal(null)"
+                        style="background: #2ECC71; color: white; border: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);">
+                        <span style="font-size: 1.2em;">+</span>
+                    </button>
+                </div>
+                <p style="color: #a1a1aa; font-size: 0.85em; margin-top: -8px; margin-bottom: 16px;">
+                    Custom foods and meals you've created. Edit or remove them here.
+                </p>
+
+                <div id="myCustomFoodsList" style="display: flex; flex-direction: column; gap: 12px;">
+                    <div class="empty-state" style="padding: 20px;">
+                        <div style="font-size: 2em; margin-bottom: 8px;">🍳</div>
+                        <div style="font-size: 0.9em;">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Maintenance Calories Calculator -->
             <div id="maintenanceCard" class="card">
                 <div class="section-title">
@@ -3530,6 +3551,7 @@
             if (pageNumber === 4) {
                 loadProfilePage();
                 initMaintenanceDateRange();
+                loadMyCustomFoods();
             } else if (pageNumber === 2) {
                 // Load goals data if needed, or already handled by tab switching inside page
                 initGoalsTab();
@@ -4078,6 +4100,120 @@
         let customMealMode = 'simple'; // 'simple' or 'meal'
         let customMealIngredients = [];
         let mealIngredientSearchTimeout;
+        let editingCustomFoodId = null; // Set when editing an existing custom food/meal from the Me tab
+
+        // --- My Foods & Meals (Me tab) ---
+        async function loadMyCustomFoods() {
+            const listEl = document.getElementById('myCustomFoodsList');
+            if (!listEl) return;
+
+            const foods = await storage.listCustomFoods();
+            renderMyCustomFoods(foods);
+        }
+
+        function renderMyCustomFoods(foods) {
+            const listEl = document.getElementById('myCustomFoodsList');
+            if (!listEl) return;
+
+            if (!foods || foods.length === 0) {
+                listEl.innerHTML = `
+                    <div class="empty-state" style="padding: 20px;">
+                        <div style="font-size: 2em; margin-bottom: 8px;">🍳</div>
+                        <div style="font-size: 0.9em;">No custom foods or meals yet</div>
+                    </div>`;
+                return;
+            }
+
+            listEl.innerHTML = foods.map(food => {
+                const brand = food.brandName ? ` • ${escapeHtml(food.brandName)}` : '';
+                const ingredientsList = (food.isMeal && food.ingredients && food.ingredients.length > 0)
+                    ? `<div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
+                        ${food.ingredients.map(ing => `
+                            <span style="background: rgba(46, 204, 113, 0.12); color: #a1a1aa; font-size: 0.75em; padding: 3px 8px; border-radius: 10px;">
+                                ${escapeHtml(ing.description || 'Ingredient')} (${ing.userQty || ing.servingSize || ''}${ing.userUnit || ing.servingUnit || ''})
+                            </span>
+                        `).join('')}
+                    </div>`
+                    : '';
+
+                return `
+                    <div style="background: rgba(39, 39, 42, 0.4); border-radius: 12px; padding: 14px 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
+                            <div style="min-width: 0;">
+                                <div style="color: #e4e4e7; font-weight: 600; font-size: 1em; display: flex; align-items: center; gap: 6px;">
+                                    ${food.isMeal ? '🥣' : '🍎'} ${escapeHtml(food.description)}
+                                </div>
+                                <div style="color: #a1a1aa; font-size: 0.85em; margin-top: 2px;">
+                                    ${food.calories} kcal / ${food.servingSize}${food.servingUnit}${brand}
+                                </div>
+                                ${ingredientsList}
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                                <button onclick='editCustomFoodItem(${JSON.stringify(food).replace(/'/g, "&#39;")})'
+                                    style="background: rgba(39, 39, 42, 0.6); border: 1px solid #3f3f46; color: #a1a1aa; width: 32px; height: 32px; border-radius: 8px; cursor: pointer;">✏️</button>
+                                <button onclick="deleteCustomFoodItem('${food.fdcId}')"
+                                    style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; width: 32px; height: 32px; border-radius: 8px; cursor: pointer;">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function editCustomFoodItem(food) {
+            editingCustomFoodId = food.fdcId;
+
+            // Open modal (no source button -> opens from center)
+            openCustomFoodModal(null);
+
+            document.querySelector('#customFoodModalOverlay .modal-title').textContent = 'Edit Custom Food';
+            document.querySelector('#customFoodModalOverlay button[type="submit"]').textContent = 'Save Changes';
+
+            document.getElementById('customFoodName').value = food.description || '';
+            document.getElementById('customBrand').value = food.brandName || '';
+            document.getElementById('customServingSize').value = food.servingSize || 1;
+            document.getElementById('customServingUnit').value = food.servingUnit || 'serving';
+            document.getElementById('customCalories').value = food.calories || 0;
+            document.getElementById('customProtein').value = food.protein || 0;
+            document.getElementById('customCarbs').value = food.carbs || 0;
+            document.getElementById('customFat').value = food.fat || 0;
+            document.getElementById('customCholesterol').value = food.cholesterol || '';
+            document.getElementById('customSodium').value = food.sodium || '';
+            document.getElementById('customFiber').value = food.fiber || '';
+            document.getElementById('customSugar').value = food.sugar || '';
+            document.getElementById('customSatFat').value = food.saturatedFat || '';
+            document.getElementById('customTransFat').value = food.transFat || '';
+            document.getElementById('customPolyFat').value = food.polyunsaturatedFat || '';
+            document.getElementById('customMonoFat').value = food.monounsaturatedFat || '';
+            document.getElementById('customAddedSugar').value = food.addedSugar || '';
+            document.getElementById('customVitD').value = food.vitaminD || '';
+            document.getElementById('customCalcium').value = food.calcium || '';
+            document.getElementById('customIron').value = food.iron || '';
+            document.getElementById('customPotassium').value = food.potassium || '';
+            document.getElementById('customVitC').value = food.vitaminC || '';
+
+            if (food.isMeal) {
+                customMealIngredients = (food.ingredients || []).map(ing => ({ ...ing, uuid: ing.uuid || ('ing-' + Math.random().toString(36).slice(2)) }));
+                setCustomFoodMode('meal');
+                renderMealIngredients();
+                recalculateMealTotals();
+            } else {
+                customMealIngredients = [];
+                setCustomFoodMode('simple');
+            }
+        }
+
+        async function deleteCustomFoodItem(foodId) {
+            if (!confirm('Delete this custom food/meal? This cannot be undone.')) return;
+
+            const success = await storage.deleteCustomFood(foodId);
+            if (success) {
+                showNotification('Custom food deleted');
+                loadMyCustomFoods();
+            } else {
+                showNotification('Failed to delete custom food');
+            }
+        }
 
         function setCustomFoodMode(mode) {
             customMealMode = mode;
@@ -4443,6 +4579,13 @@
                 document.getElementById('moreNutritionSectionArrow').textContent = '▼';
                 document.getElementById('advancedNutritionSection').classList.remove('open');
                 document.getElementById('advancedNutritionSectionArrow').textContent = '▼';
+
+                // Reset edit state and meal mode for the next time the modal opens
+                editingCustomFoodId = null;
+                document.querySelector('#customFoodModalOverlay .modal-title').textContent = 'Create Custom Food';
+                document.querySelector('#customFoodModalOverlay button[type="submit"]').textContent = 'Save Food';
+                customMealIngredients = [];
+                setCustomFoodMode('simple');
             }, 300);
         }
 
@@ -4620,16 +4763,24 @@
                 foodData.isMeal = true;
             }
 
-            const result = await storage.saveCustomFood(foodData);
+            const isEditing = !!editingCustomFoodId;
+            const result = isEditing
+                ? await storage.updateCustomFood(editingCustomFoodId, foodData)
+                : await storage.saveCustomFood(foodData);
 
             submitBtn.textContent = originalText;
             submitBtn.disabled = false;
 
             if (result) {
                 closeCustomFoodModal();
-                // Select the food in the main form so user can log it immediately
-                selectFood(result);
-                showNotification('Custom food added, add meal to track it!');
+                if (isEditing) {
+                    showNotification('Custom food updated!');
+                    loadMyCustomFoods();
+                } else {
+                    // Select the food in the main form so user can log it immediately
+                    selectFood(result);
+                    showNotification('Custom food added, add meal to track it!');
+                }
             }
         }
 

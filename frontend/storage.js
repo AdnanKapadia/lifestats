@@ -136,6 +136,60 @@ class Storage {
             return null;
         }
     }
+
+    // List custom foods/meals (Async)
+    async listCustomFoods() {
+        try {
+            const response = await fetch(`/api/custom-foods?userId=${encodeURIComponent(this.userId)}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch custom foods');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching custom foods:', error);
+            return [];
+        }
+    }
+
+    // Update custom food (Async)
+    async updateCustomFood(foodId, foodData) {
+        try {
+            const payload = { ...foodData, userId: this.userId };
+            const response = await fetch(`/api/custom-foods/${encodeURIComponent(foodId)}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Failed to update custom food');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating custom food:', error);
+            alert('Error updating custom food: ' + error.message);
+            return null;
+        }
+    }
+
+    // Delete custom food (Async)
+    async deleteCustomFood(foodId) {
+        try {
+            const response = await fetch(`/api/custom-foods/${encodeURIComponent(foodId)}?userId=${encodeURIComponent(this.userId)}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) {
+                throw new Error('Failed to delete custom food');
+            }
+            return true;
+        } catch (error) {
+            console.error('Error deleting custom food:', error);
+            return false;
+        }
+    }
 }
 
 // Export for use in HTML

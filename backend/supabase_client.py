@@ -82,7 +82,9 @@ def get_cached_food(food_id: str):
                 'calcium': row['calcium'],
                 'iron': row['iron'],
                 'potassium': row['potassium'],
-                'vitaminC': row['vitamin_c']
+                'vitaminC': row['vitamin_c'],
+                'ingredients': (row.get('food_data') or {}).get('ingredients'),
+                'isMeal': bool((row.get('food_data') or {}).get('isMeal'))
             }
     except Exception as e:
         print(f"Error fetching cached food from Supabase: {e}")
@@ -193,6 +195,136 @@ def add_custom_food(food_data: dict):
         }
     except Exception as e:
         print(f"Error adding custom food: {e}")
+        raise e
+
+def list_custom_foods(user_id: str):
+    """
+    List all custom foods/meals created by a given user.
+    """
+    if not supabase:
+        return []
+
+    try:
+        response = supabase.table("food_cache") \
+            .select("*") \
+            .eq("source", f"custom_{user_id}") \
+            .order("food_name") \
+            .execute()
+
+        results = []
+        if response.data:
+            for row in response.data:
+                food_data = row.get('food_data') or {}
+                results.append({
+                    'fdcId': row['food_id'],
+                    'description': row['food_name'],
+                    'brandName': row.get('brand'),
+                    'servingSize': row['serving_size'],
+                    'servingUnit': row['serving_unit'],
+                    'calories': row['calories'],
+                    'protein': row['protein'],
+                    'carbs': row['carbs'],
+                    'fat': row['fat'],
+                    'cholesterol': row.get('cholesterol'),
+                    'sodium': row.get('sodium'),
+                    'fiber': row.get('fiber'),
+                    'sugar': row.get('sugar'),
+                    'saturatedFat': row.get('saturated_fat'),
+                    'transFat': row.get('trans_fat'),
+                    'polyunsaturatedFat': row.get('polyunsaturated_fat'),
+                    'monounsaturatedFat': row.get('monounsaturated_fat'),
+                    'addedSugar': row.get('added_sugar'),
+                    'vitaminD': row.get('vitamin_d'),
+                    'calcium': row.get('calcium'),
+                    'iron': row.get('iron'),
+                    'potassium': row.get('potassium'),
+                    'vitaminC': row.get('vitamin_c'),
+                    'isMeal': bool(food_data.get('isMeal')),
+                    'ingredients': food_data.get('ingredients', [])
+                })
+        return results
+    except Exception as e:
+        print(f"Error listing custom foods: {e}")
+        return []
+
+def update_custom_food(food_id: str, user_id: str, food_data: dict):
+    """
+    Update a user-owned custom food/meal. Only allows updating rows the user owns.
+    """
+    if not supabase:
+        return None
+
+    source = f"custom_{user_id}"
+
+    try:
+        data = {
+            'brand': food_data.get('brandName'),
+            'food_name': food_data.get('foodName', 'Custom Food'),
+            'calories': food_data.get('calories', 0),
+            'protein': food_data.get('protein', 0),
+            'carbs': food_data.get('carbs', 0),
+            'fat': food_data.get('fat', 0),
+            'cholesterol': food_data.get('cholesterol'),
+            'sodium': food_data.get('sodium'),
+            'fiber': food_data.get('fiber'),
+            'sugar': food_data.get('sugar'),
+            'saturated_fat': food_data.get('saturatedFat'),
+            'trans_fat': food_data.get('transFat'),
+            'polyunsaturated_fat': food_data.get('polyunsaturatedFat'),
+            'monounsaturated_fat': food_data.get('monounsaturatedFat'),
+            'added_sugar': food_data.get('addedSugar'),
+            'vitamin_d': food_data.get('vitaminD'),
+            'calcium': food_data.get('calcium'),
+            'iron': food_data.get('iron'),
+            'potassium': food_data.get('potassium'),
+            'vitamin_c': food_data.get('vitaminC'),
+            'serving_size': food_data.get('servingSize', 1.0),
+            'serving_unit': food_data.get('servingUnit', 'serving'),
+            'food_data': food_data
+        }
+
+        result = supabase.table("food_cache") \
+            .update(data) \
+            .eq("food_id", food_id) \
+            .eq("source", source) \
+            .execute()
+
+        if not result.data:
+            return None
+
+        return {
+            'fdcId': food_id,
+            'description': data['food_name'],
+            'brandName': data['brand'],
+            'servingSize': data['serving_size'],
+            'servingUnit': data['serving_unit'],
+            'preCalculated': True,
+            'source': source,
+            'calories': data['calories'],
+            'protein': data['protein'],
+            'carbs': data['carbs'],
+            'fat': data['fat']
+        }
+    except Exception as e:
+        print(f"Error updating custom food: {e}")
+        raise e
+
+def delete_custom_food(food_id: str, user_id: str):
+    """
+    Delete a user-owned custom food/meal. Only allows deleting rows the user owns.
+    """
+    if not supabase:
+        return False
+
+    try:
+        result = supabase.table("food_cache") \
+            .delete() \
+            .eq("food_id", food_id) \
+            .eq("source", f"custom_{user_id}") \
+            .execute()
+        return bool(result.data)
+    except Exception as e:
+        print(f"Error deleting custom food: {e}")
         raise e
 
 def search_food_in_db(query: str, limit: int = 5):

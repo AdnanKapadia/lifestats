@@ -357,6 +357,61 @@ def add_custom_food_route():
         print(f"Error adding custom food: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/custom-foods', methods=['GET'])
+def list_custom_foods_route():
+    """List the current user's custom foods/meals."""
+    user_id = request.args.get('userId')
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+
+    try:
+        from supabase_client import list_custom_foods
+        return jsonify(list_custom_foods(user_id))
+    except Exception as e:
+        print(f"Error listing custom foods: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/custom-foods/<food_id>', methods=['PUT'])
+def update_custom_food_route(food_id):
+    """Update a custom food/meal owned by the current user."""
+    data = request.json
+    if not data or 'userId' not in data:
+        return jsonify({'error': 'userId required'}), 400
+
+    required_fields = ['foodName', 'servingSize', 'servingUnit', 'calories']
+    for field in required_fields:
+        if field not in data:
+            return jsonify({'error': f'Missing required field: {field}'}), 400
+
+    try:
+        from supabase_client import update_custom_food
+        result = update_custom_food(food_id, data['userId'], data)
+        if result:
+            return jsonify(result)
+        else:
+            return jsonify({'error': 'Custom food not found'}), 404
+    except Exception as e:
+        print(f"Error updating custom food: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/custom-foods/<food_id>', methods=['DELETE'])
+def delete_custom_food_route(food_id):
+    """Delete a custom food/meal owned by the current user."""
+    user_id = request.args.get('userId')
+    if not user_id:
+        return jsonify({'error': 'userId required'}), 400
+
+    try:
+        from supabase_client import delete_custom_food
+        deleted = delete_custom_food(food_id, user_id)
+        if deleted:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Custom food not found'}), 404
+    except Exception as e:
+        print(f"Error deleting custom food: {e}")
+        return jsonify({'error': str(e)}), 500
+
 from db import init_db, get_user_meals, add_meal, delete_meal, update_meal, get_db_connection
 # Initialize DB on startup (safely fails if no URL)
 init_db()
