@@ -404,48 +404,46 @@ def seed_event_types():
     finally:
         conn.close()
 
+def _meal_record(m):
+    """Map a meals row into the JSON shape the frontend and API expect."""
+    return {
+        'id': m['id'],
+        'userId': m['user_id'],
+        'foodName': m['food_name'],
+        'brandName': m.get('brand_name'),
+        'mealType': m['meal_type'],
+        'nutrition': {
+            'calories': m['calories'],
+            'protein': m['protein'],
+            'carbs': m['carbs'],
+            'fat': m['fat'],
+            'cholesterol': m.get('cholesterol'),
+            'sodium': m.get('sodium'),
+            'fiber': m.get('fiber'),
+            'sugar': m.get('sugar'),
+            'saturatedFat': m.get('saturated_fat'),
+            'transFat': m.get('trans_fat'),
+            'polyunsaturatedFat': m.get('polyunsaturated_fat'),
+            'monounsaturatedFat': m.get('monounsaturated_fat'),
+            'addedSugar': m.get('added_sugar'),
+            'vitaminD': m.get('vitamin_d'),
+            'calcium': m.get('calcium'),
+            'iron': m.get('iron'),
+            'potassium': m.get('potassium'),
+            'vitaminC': m.get('vitamin_c')
+        },
+        'servingSize': m.get('serving_size', 1.0),
+        'servingUnit': m.get('serving_unit', ''),
+        'timestamp': m['timestamp']
+    }
+
 def get_user_meals(user_id):
     conn = get_db_connection()
     try:
         cur = conn.cursor()
         cur.execute("SELECT * FROM meals WHERE user_id = %s ORDER BY timestamp DESC", (user_id,))
         meals = cur.fetchall()
-        
-        # Transform back to format expected by frontend if needed, 
-        # but RealDictCursor returns dicts which is close to JSON
-        results = []
-        for m in meals:
-            results.append({
-                'id': m['id'],
-                'userId': m['user_id'],
-                'foodName': m['food_name'],
-                'brandName': m.get('brand_name'),
-                'mealType': m['meal_type'],
-                'nutrition': {
-                    'calories': m['calories'],
-                    'protein': m['protein'],
-                    'carbs': m['carbs'],
-                    'fat': m['fat'],
-                    'cholesterol': m.get('cholesterol'),
-                    'sodium': m.get('sodium'),
-                    'fiber': m.get('fiber'),
-                    'sugar': m.get('sugar'),
-                    'saturatedFat': m.get('saturated_fat'),
-                    'transFat': m.get('trans_fat'),
-                    'polyunsaturatedFat': m.get('polyunsaturated_fat'),
-                    'monounsaturatedFat': m.get('monounsaturated_fat'),
-                    'addedSugar': m.get('added_sugar'),
-                    'vitaminD': m.get('vitamin_d'),
-                    'calcium': m.get('calcium'),
-                    'iron': m.get('iron'),
-                    'potassium': m.get('potassium'),
-                    'vitaminC': m.get('vitamin_c')
-                },
-                'servingSize': m.get('serving_size', 1.0),
-                'servingUnit': m.get('serving_unit', ''),
-                'timestamp': m['timestamp']
-            })
-        return results
+        return [_meal_record(m) for m in meals]
     finally:
         conn.close()
 
@@ -569,7 +567,19 @@ def update_meal(meal_id, user_id, updates):
         if 'foodName' in updates:
             fields.append("food_name = %s")
             values.append(updates['foodName'])
-            
+
+        if 'brandName' in updates:
+            fields.append("brand_name = %s")
+            values.append(updates['brandName'])
+
+        if 'mealType' in updates:
+            fields.append("meal_type = %s")
+            values.append(updates['mealType'])
+
+        if 'timestamp' in updates:
+            fields.append("timestamp = %s")
+            values.append(updates['timestamp'])
+
         if 'nutrition' in updates:
             nut = updates['nutrition']
             if 'calories' in nut:
@@ -2378,6 +2388,135 @@ def fill_and_interpolate_weight_data(user_id, trigger_timestamp=None):
     except Exception as e:
         conn.rollback()
         raise e
+    finally:
+        conn.close()
+
+def user_exists(user_id):
+    """
+    Return True if this user_id has any footprint in the database.
+
+    There is no users table — identity is just a string that appears on rows.
+    The remote API uses this to reject unknown user ids so that a typo can never
+    quietly bring a new "user" into existence. Note that event_types with a NULL
+    user_id are system-defined and deliberately do not count as a match.
+    """
+    if not user_id:
+        return False
+
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT (
+                EXISTS(SELECT 1 FROM meals WHERE user_id = %s)
+                OR EXISTS(SELECT 1 FROM events WHERE user_id = %s)
+                OR EXISTS(SELECT 1 FROM user_profiles WHERE user_id = %s)
+                OR EXISTS(SELECT 1 FROM user_categories WHERE user_id = %s)
+                OR EXISTS(SELECT 1 FROM event_types WHERE user_id = %s)
+                OR EXISTS(SELECT 1 FROM goals WHERE user_id = %s)
+                OR EXISTS(SELECT 1 FROM favorite_event_types WHERE user_id = %s)
+            ) AS found
+        """, (user_id,) * 7)
+        row = cur.fetchone()
+        return bool(row and row['found'])
+    finally:
+        conn.close()
+
+def list_known_users():
+    """
+    List every user_id that appears anywhere in the database, with a row count
+    and the most recent activity timestamp (ms) so a remote caller can identify
+    which id is theirs. Read-only; never creates anything.
+    """
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT user_id,
+                   SUM(meal_count) AS meal_count,
+                   SUM(event_count) AS event_count,
+                   MAX(last_ts) AS last_ts
+            FROM (
+                SELECT user_id, COUNT(*) AS meal_count, 0 AS event_count, MAX(timestamp) AS last_ts
+                FROM meals GROUP BY user_id
+                UNION ALL
+                SELECT user_id, 0 AS meal_count, COUNT(*) AS event_count, MAX(timestamp) AS last_ts
+                FROM events GROUP BY user_id
+                UNION ALL
+                SELECT user_id, 0, 0, NULL FROM user_profiles
+                UNION ALL
+                SELECT user_id, 0, 0, NULL FROM user_categories
+                UNION ALL
+                SELECT user_id, 0, 0, NULL FROM event_types WHERE user_id IS NOT NULL
+                UNION ALL
+                SELECT user_id, 0, 0, NULL FROM goals
+            ) AS combined
+            GROUP BY user_id
+            ORDER BY last_ts DESC NULLS LAST
+        """)
+        return [{
+            'userId': row['user_id'],
+            'mealCount': int(row['meal_count'] or 0),
+            'eventCount': int(row['event_count'] or 0),
+            'lastActivity': int(row['last_ts']) if row['last_ts'] else None
+        } for row in cur.fetchall()]
+    finally:
+        conn.close()
+
+def get_meals_in_range(user_id, start_ms, end_ms, limit=None):
+    """
+    Meals for a user within a half-open [start_ms, end_ms) window, newest first.
+    Same record shape as get_user_meals.
+    """
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        query = """
+            SELECT * FROM meals
+            WHERE user_id = %s AND timestamp >= %s AND timestamp < %s
+            ORDER BY timestamp DESC
+        """
+        params = [user_id, start_ms, end_ms]
+        if limit:
+            query += " LIMIT %s"
+            params.append(limit)
+
+        cur.execute(query, tuple(params))
+        return [_meal_record(m) for m in cur.fetchall()]
+    finally:
+        conn.close()
+
+def get_meal(meal_id, user_id):
+    """Get a single meal scoped to its owner, or None."""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM meals WHERE id = %s AND user_id = %s", (meal_id, user_id))
+        row = cur.fetchone()
+        return _meal_record(row) if row else None
+    finally:
+        conn.close()
+
+def get_user_data_range(user_id):
+    """Earliest and latest activity timestamps (ms) across meals and events."""
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT MIN(first_ts) AS first_ts, MAX(last_ts) AS last_ts
+            FROM (
+                SELECT MIN(timestamp) AS first_ts, MAX(timestamp) AS last_ts
+                FROM meals WHERE user_id = %s
+                UNION ALL
+                SELECT MIN(timestamp) AS first_ts, MAX(timestamp) AS last_ts
+                FROM events WHERE user_id = %s
+            ) AS combined
+        """, (user_id, user_id))
+        row = cur.fetchone()
+        return {
+            'first': int(row['first_ts']) if row and row['first_ts'] else None,
+            'last': int(row['last_ts']) if row and row['last_ts'] else None
+        }
     finally:
         conn.close()
 

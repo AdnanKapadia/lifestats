@@ -11,6 +11,10 @@ load_dotenv()
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
 CORS(app)
 
+# Remote read/write API (/api/agent/*), key-protected. Routes live in agent_api.py.
+from agent_api import agent_api as agent_api_blueprint
+app.register_blueprint(agent_api_blueprint)
+
 # USDA API Configuration
 USDA_API_KEY = os.getenv('USDA_API_KEY', 'DEMO_KEY')
 USDA_BASE_URL = 'https://api.nal.usda.gov/fdc/v1'
