@@ -152,23 +152,37 @@ def search_food():
     # Check Cache
     normalized_query = query.lower().strip()
 
-    # 0. Search Local DB (food_cache) for Custom Foods & Cached Items
-    # This ensures custom foods appear first
-    from supabase_client import search_food_in_db
-    local_results = search_food_in_db(normalized_query)
-
-    # 0b. Search the user's own recent food log (most recent match wins per name, capped at 3)
     user_id = request.args.get('userId')
+
+    # 0. The user's own custom foods/meals. These always reflect the food's
+    # current definition, so they come ahead of the frozen copies in the log.
+    from supabase_client import search_custom_foods, search_food_in_db
+    custom_results = search_custom_foods(user_id, normalized_query) if user_id else []
+    custom_ids = {f['fdcId'] for f in custom_results}
+    custom_names = {f['description'].strip().lower() for f in custom_results}
+
+    # 0b. Search Local DB (food_cache) for other cached items
+    local_results = [f for f in search_food_in_db(normalized_query) if f['fdcId'] not in custom_ids]
+
+    # 0c. Search the user's own recent food log (most recent match wins per name, capped at 3)
     recent_matches = []
     if user_id:
         from db import get_recent_meal_matches
         recent_matches = get_recent_meal_matches(user_id, normalized_query, limit=3)
+    # A logged meal is a snapshot taken at log time; don't let it shadow the
+    # custom food it came from, or edits to that food look like they were lost.
+    recent_matches = [f for f in recent_matches
+                      if f['description'].strip().lower() not in custom_names]
     recent_names = {f['description'].strip().lower() for f in recent_matches}
 
     def prepend_recent(other_foods):
-        # Recent log matches first, then everything else with duplicate names removed
-        deduped = [f for f in other_foods if f.get('description', '').strip().lower() not in recent_names]
-        return recent_matches + deduped
+        # Custom foods first, then recent log matches, then everything else
+        # with duplicate names/ids removed
+        deduped = [f for f in other_foods
+                   if f.get('description', '').strip().lower() not in recent_names
+                   and f.get('description', '').strip().lower() not in custom_names
+                   and f.get('fdcId') not in custom_ids]
+        return custom_results + recent_matches + deduped
 
     # 1. Check Search Cache (FatSecret Results)
     cached_data = supabase_client.get_cached_results(normalized_query)

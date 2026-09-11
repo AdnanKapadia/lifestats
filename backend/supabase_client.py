@@ -364,3 +364,59 @@ def search_food_in_db(query: str, limit: int = 5):
     except Exception as e:
         print(f"Error searching food in DB: {e}")
         return []
+
+def search_custom_foods(user_id: str, query: str, limit: int = 10):
+    """
+    Search only the given user's custom foods/meals. These always reflect the
+    current definition of the food, so the search route surfaces them ahead of
+    frozen entries from the user's meal log.
+    """
+    if not supabase or not user_id:
+        return []
+
+    source = f"custom_{user_id}"
+    try:
+        response = supabase.table("food_cache") \
+            .select("*") \
+            .eq("source", source) \
+            .ilike("food_name", f"%{query}%") \
+            .order("food_name") \
+            .limit(limit) \
+            .execute()
+
+        results = []
+        for row in (response.data or []):
+            food_data = row.get('food_data') or {}
+            results.append({
+                'fdcId': row['food_id'],
+                'description': row['food_name'],
+                'brandName': row.get('brand'),
+                'source': row.get('source'),
+                'servingSize': row['serving_size'],
+                'servingUnit': row['serving_unit'],
+                'preCalculated': True,
+                'calories': row['calories'],
+                'protein': row['protein'],
+                'carbs': row['carbs'],
+                'fat': row['fat'],
+                'cholesterol': row.get('cholesterol'),
+                'sodium': row.get('sodium'),
+                'fiber': row.get('fiber'),
+                'sugar': row.get('sugar'),
+                'saturatedFat': row.get('saturated_fat'),
+                'transFat': row.get('trans_fat'),
+                'polyunsaturatedFat': row.get('polyunsaturated_fat'),
+                'monounsaturatedFat': row.get('monounsaturated_fat'),
+                'addedSugar': row.get('added_sugar'),
+                'vitaminD': row.get('vitamin_d'),
+                'calcium': row.get('calcium'),
+                'iron': row.get('iron'),
+                'potassium': row.get('potassium'),
+                'vitaminC': row.get('vitamin_c'),
+                'isMeal': bool(food_data.get('isMeal')),
+                'ingredients': food_data.get('ingredients', [])
+            })
+        return results
+    except Exception as e:
+        print(f"Error searching custom foods: {e}")
+        return []
