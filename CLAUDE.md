@@ -10,7 +10,7 @@ Personal food & fitness tracking PWA. Single-user (Adnan), no build step, no fra
   - `backend/db.py` — raw `psycopg2` connection to Supabase Postgres via `POSTGRES_URL`. This is the primary data store (meals, events, goals, categories, etc.).
   - `backend/supabase_client.py` — Supabase client SDK using `FOOD_CACHE_SUPABASE_URL` / `FOOD_CACHE_SUPABASE_SERVICE_ROLE_KEY`. Used only for the `search_cache` and `food_cache` tables (USDA/FatSecret search result caching + custom foods).
 - **Remote API**: `backend/agent_api.py` — a Flask blueprint mounted at `/api/agent/*`, registered in `app.py` right after `CORS(app)`. Key-protected read/write access for things outside the browser (a Claude skill, curl). Not used by the frontend. Two invariants: every route is behind `@require_key`, and every route touching user data calls `require_user()`, which 404s unknown ids — there is no users table, so an unchecked write would invent a user. Skill definition lives in `skills/lifestats/SKILL.md`.
-- **External APIs**: USDA FoodData Central (`USDA_API_KEY`, falls back to `DEMO_KEY`), and a FatSecret proxy at a hardcoded Railway URL in `app.py`.
+- **External APIs**: FatSecret, reached through a proxy. `FATSECRET_PROXY_URL` selects it and defaults to the legacy Railway service; `fatsecret-proxy/` is the self-hosted replacement that runs on the Ubuntu "mac mini" (see its README). The proxy exists because FatSecret IP-allowlists API calls and Vercel has no stable outbound IP — note their docs claim the allowlist covers token requests instead, which is backwards. USDA FoodData Central (`USDA_API_KEY`) is declared in `app.py` but nothing calls it.
 
 ## Deployment (Vercel)
 

@@ -16,9 +16,31 @@ from agent_api import agent_api as agent_api_blueprint
 app.register_blueprint(agent_api_blueprint)
 
 # USDA API Configuration
+# NOTE: these two are currently unused — nothing calls FoodData Central. All
+# food lookup goes through FatSecret below. Kept because /api/debug reports
+# USDA_KEY_SET.
 USDA_API_KEY = os.getenv('USDA_API_KEY', 'DEMO_KEY')
 USDA_BASE_URL = 'https://api.nal.usda.gov/fdc/v1'
-FATSECRET_BASE_URL = 'https://fatsecret-proxy-production-e380.up.railway.app'
+
+# FatSecret is reached through a proxy on a host with a stable IP, because
+# FatSecret allowlists the IPs permitted to request OAuth tokens and Vercel's
+# outbound address varies per invocation. Default is the legacy Railway
+# service; set FATSECRET_PROXY_URL to move to the self-hosted proxy, unset it
+# to roll back. Source for the replacement lives in fatsecret-proxy/.
+FATSECRET_BASE_URL = os.getenv(
+    'FATSECRET_PROXY_URL',
+    'https://fatsecret-proxy-production-e380.up.railway.app',
+).rstrip('/')
+
+# The self-hosted proxy requires this; the Railway one ignores the extra header.
+FATSECRET_PROXY_SECRET = os.getenv('FATSECRET_PROXY_SECRET', '')
+
+
+def _fatsecret_headers():
+    """Auth header for the proxy, empty while still pointed at Railway."""
+    if FATSECRET_PROXY_SECRET:
+        return {'X-Proxy-Secret': FATSECRET_PROXY_SECRET}
+    return {}
 
 
 @app.route('/')
@@ -215,15 +237,24 @@ def search_food():
         response = requests.get(
             f'{FATSECRET_BASE_URL}/search',
             params={'query': query},
+            headers=_fatsecret_headers(),
             timeout=5
         )
         
         if response.status_code != 200:
             print(f"FatSecret API Error: {response.status_code} - {response.text}")
             return jsonify({'error': 'Nutrition API error'}), 500
-        
+
         data = response.json()
-        
+
+        # FatSecret reports failures as {"error": {...}} inside an HTTP 200, so
+        # the status check above is not enough. Without this, a rejected call
+        # (e.g. error 21, the proxy host's IP off the allowlist) parses to zero
+        # foods and gets cached as an empty result for this query forever.
+        if isinstance(data, dict) and 'error' in data:
+            print(f"FatSecret API Error body: {data['error']}")
+            return jsonify({'error': 'Nutrition API error'}), 500
+
         # Parse FatSecret response
         foods = []
         fs_foods = data.get('foods', {}).get('food', [])
@@ -288,9 +319,13 @@ def search_food():
             })
         
         result = {'foods': foods}
-        
-        # Save to Cache (API results only, to keep cache clean)
-        supabase_client.cache_results(normalized_query, result)
+
+        # Save to Cache (API results only, to keep cache clean).
+        # Never cache an empty list: a genuine no-results query is cheap to
+        # repeat, whereas caching the empty result of a silently failed call
+        # would hide that food from search permanently.
+        if foods:
+            supabase_client.cache_results(normalized_query, result)
         
         # Merge Local Results for Response
         # We perform the same merge logic as the cache-hit case
@@ -322,6 +357,7 @@ def get_food_details():
         response = requests.get(
             f'{FATSECRET_BASE_URL}/food',
             params={'food_id': food_id},
+            headers=_fatsecret_headers(),
             timeout=5
         )
         
