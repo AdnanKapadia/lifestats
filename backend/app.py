@@ -231,6 +231,25 @@ def search_food():
 
         return jsonify({'foods': prepend_recent(local_results + filtered_cache)})
     
+    def degraded(reason):
+        """FatSecret is unreachable — serve what we already have locally.
+
+        Returning a 500 here would discard the custom foods, locally cached
+        foods and recent-log matches already gathered above, so a proxy outage
+        broke search even for foods logged many times before — which is most of
+        what actually gets searched. Those results are good enough to keep
+        logging meals through an outage.
+
+        'degraded' tells the UI these results are incomplete, so a missing food
+        reads as "the lookup service is down" rather than "this food doesn't
+        exist". Callers that ignore the flag still get a valid response.
+        """
+        print(f"FatSecret unavailable ({reason}); serving local results only")
+        return jsonify({
+            'foods': prepend_recent(local_results),
+            'degraded': True,
+        })
+
     try:
         print(f"Cache miss for: {normalized_query}. Calling FatSecret API...")
         # Call FatSecret Proxy
@@ -243,7 +262,7 @@ def search_food():
         
         if response.status_code != 200:
             print(f"FatSecret API Error: {response.status_code} - {response.text}")
-            return jsonify({'error': 'Nutrition API error'}), 500
+            return degraded(f'http {response.status_code}')
 
         data = response.json()
 
@@ -253,7 +272,7 @@ def search_food():
         # foods and gets cached as an empty result for this query forever.
         if isinstance(data, dict) and 'error' in data:
             print(f"FatSecret API Error body: {data['error']}")
-            return jsonify({'error': 'Nutrition API error'}), 500
+            return degraded(f"upstream error {data['error']}")
 
         # Parse FatSecret response
         foods = []
@@ -334,9 +353,18 @@ def search_food():
 
         return jsonify({'foods': prepend_recent(local_results + filtered_api_foods)})
     
+    except requests.RequestException as e:
+        # Connection refused, DNS failure, or the 5s timeout above — the usual
+        # shape of "the proxy host is down or unreachable".
+        print(f"FatSecret request failed: {e}")
+        return degraded(f'request failed: {e}')
+
     except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        # A parsing or caching bug rather than an outage. Still better to serve
+        # local results than nothing, but log it as distinct from the above so
+        # a real bug isn't mistaken for the proxy being down.
+        print(f"Unexpected error in search_food: {e!r}")
+        return degraded(f'unexpected error: {e!r}')
 
 @app.route('/api/get-food-details', methods=['GET'])
 def get_food_details():
