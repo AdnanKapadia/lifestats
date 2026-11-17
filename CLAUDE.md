@@ -19,7 +19,7 @@ Personal food & fitness tracking PWA. Single-user (Adnan), no build step, no fra
   - `"framework": null` — required, otherwise Vercel misdetects this as a Flask preset and prod 404s. Don't remove this.
   - Rewrites `/api/(.*)` → `/api/index.py` (Flask handles all API routes)
   - Rewrites `/(.*)` → `/frontend/$1` (everything else served as static frontend)
-- Project already linked (`.vercel/project.json`, project `lifestats`). Vercel CLI is not installed globally — install with `npm i -g vercel` if deploying directly via CLI instead of git push.
+- Project already linked (`.vercel/project.json`, project `lifestats`). Vercel CLI is installed and signed in as `adnankapadia`, so `vercel env ls`, `vercel ls --prod` and `vercel --prod` all work; pushing to `main` is still the normal way to ship.
 - Git remote: `github.com/AdnanKapadia/lifestats`, deploys from `main`.
 - To ship a change: commit + push to `main` (Vercel auto-deploys), or `vercel --prod` if CLI is set up.
 
