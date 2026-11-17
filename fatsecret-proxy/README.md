@@ -114,8 +114,7 @@ Wants=network-online.target
 [Service]
 User=adnan
 WorkingDirectory=/home/adnan/lifestats/fatsecret-proxy
-ExecStart=/home/adnan/lifestats/fatsecret-proxy/.venv/bin/gunicorn \
-    --bind 127.0.0.1:8787 --workers 2 --timeout 30 proxy:app
+ExecStart=/home/adnan/lifestats/fatsecret-proxy/.venv/bin/gunicorn --bind 127.0.0.1:8787 --workers 2 --timeout 30 --access-logfile /var/log/fatsecret-proxy.access.log proxy:app
 Restart=always
 RestartSec=5
 
@@ -148,7 +147,11 @@ sudo systemctl restart cloudflared
 curl -s https://fatsecret.adnankapadia.org/healthz
 ```
 
-Restarting `cloudflared` briefly interrupts `garden.adnankapadia.org` too.
+`cloudflared` here has no `ExecReload`, and SIGHUP makes it **exit** rather
+than reload config — with no `Restart=` in its unit the tunnel then stays
+down until you start it again. Use `systemctl restart cloudflared`, which
+briefly interrupts `garden.adnankapadia.org` too, and confirm with
+`systemctl is-active cloudflared` afterwards.
 
 ## Cutover
 

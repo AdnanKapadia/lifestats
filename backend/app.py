@@ -23,21 +23,26 @@ USDA_API_KEY = os.getenv('USDA_API_KEY', 'DEMO_KEY')
 USDA_BASE_URL = 'https://api.nal.usda.gov/fdc/v1'
 
 # FatSecret is reached through a proxy on a host with a stable IP, because
-# FatSecret allowlists the IPs permitted to request OAuth tokens and Vercel's
-# outbound address varies per invocation. Default is the legacy Railway
-# service; set FATSECRET_PROXY_URL to move to the self-hosted proxy, unset it
-# to roll back. Source for the replacement lives in fatsecret-proxy/.
+# FatSecret IP-checks *method calls* and Vercel's outbound address varies per
+# invocation. (Their OAuth docs claim the allowlist covers token requests
+# instead. It is the other way round: a token mints fine from any IP, then
+# foods.search fails with error 21. See fatsecret-proxy/README.md.)
+#
+# Default is the self-hosted proxy on the mac mini; source in fatsecret-proxy/.
+# FATSECRET_PROXY_URL overrides it, which is how you point at a laptop or a
+# replacement host without a deploy.
 FATSECRET_BASE_URL = os.getenv(
     'FATSECRET_PROXY_URL',
-    'https://fatsecret-proxy-production-e380.up.railway.app',
+    'https://fatsecret.adnankapadia.org',
 ).rstrip('/')
 
-# The self-hosted proxy requires this; the Railway one ignores the extra header.
+# The self-hosted proxy fails closed without this: no secret means every call
+# comes back 403 and search degrades to locally cached foods.
 FATSECRET_PROXY_SECRET = os.getenv('FATSECRET_PROXY_SECRET', '')
 
 
 def _fatsecret_headers():
-    """Auth header for the proxy, empty while still pointed at Railway."""
+    """Shared-secret auth header for the proxy."""
     if FATSECRET_PROXY_SECRET:
         return {'X-Proxy-Secret': FATSECRET_PROXY_SECRET}
     return {}
